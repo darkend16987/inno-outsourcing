@@ -94,6 +94,43 @@
 .bRow strong { color: var(--color-charcoal); }
 .succ { color: var(--color-success) !important; }
 
+/* Modal Styles */
+.modalOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);
+  display: flex; justify-content: center; align-items: center; z-index: 1000;
+  padding: var(--space-4);
+}
+
+.modalContent {
+  width: 100%; max-width: 500px; padding: 0; overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.modalHeader {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-4) var(--space-5); background: var(--color-bg);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.modalTitle { font-size: 18px; font-weight: 800; color: var(--color-charcoal); }
+
+.modalBody { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+
+.amountText { color: var(--color-primary); font-size: 1.2rem; }
+
+.infoAlert {
+  display: flex; gap: var(--space-3); padding: var(--space-3);
+  background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-sm); color: var(--color-primary); font-size: 13px; line-height: 1.4;
+}
+
+.modalFooter {
+  display: flex; justify-content: flex-end; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5); background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
 @media (max-width: 1024px) {
   .grid { grid-template-columns: 1fr; }
   .sideCol { position: static; }

@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Storage rules for VAA JOB
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow read for authenticated users (to view PDFs, avatars, etc.)
+      allow read: if request.auth != null;
+      
+      // Allow write only if authenticated and it's the user's Own profile folder
+      // or if it's the contracts folder (written initially by Cloud Functions, 
+      // but we may want users to download them).
+      // Note: Cloud Functions (Admin SDK) bypasses these rules.
+      allow write: if request.auth != null; // For MVP rapid prototyping, we'll keep it simple
+    }
+    
+    match /contracts/{contractId} {
+       allow read: if request.auth != null;
+       // Admin SDK in Cloud Functions will handle creation
+       allow write: if false; 
+    }
+  }
+}

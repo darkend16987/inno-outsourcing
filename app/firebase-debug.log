@@ -1,0 +1,69 @@
+[debug] [2026-04-01T21:00:58.473Z] ----------------------------------------------------------------------
+[debug] [2026-04-01T21:00:58.475Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\hoang\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init functions --project vaa-job --non-interactive
+[debug] [2026-04-01T21:00:58.475Z] CLI Version:   15.5.1
+[debug] [2026-04-01T21:00:58.476Z] Platform:      win32
+[debug] [2026-04-01T21:00:58.476Z] Node Version:  v22.18.0
+[debug] [2026-04-01T21:00:58.476Z] Time:          Thu Apr 02 2026 04:00:58 GMT+0700 (Indochina Time)
+[debug] [2026-04-01T21:00:58.476Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-01T21:00:59.602Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"auth"}
+[debug] [2026-04-01T21:00:59.605Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"auth"}
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  D:\GitHub\inno-outsourcing\app
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-04-01T21:01:06.488Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-01T21:01:06.488Z] > authorizing via signed-in user (hoangnam.mng@gmail.com)
+[debug] [2026-04-01T21:01:06.489Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:06.489Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:06.490Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/vaa-job [none]
+[debug] [2026-04-01T21:01:06.911Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/vaa-job 200
+[debug] [2026-04-01T21:01:06.911Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/vaa-job {"projectId":"vaa-job","projectNumber":"645204219655","displayName":"vaa-job","name":"projects/vaa-job","resources":{"hostingSite":"vaa-job"},"state":"ACTIVE","etag":"1_05bc57f2-d7e3-430d-94bd-53ad9f96aec6"}
+[info] i  Using project vaa-job (vaa-job) . 
+[info] 
+=== Functions Setup
+[debug] [2026-04-01T21:01:06.919Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-01T21:01:06.919Z] > authorizing via signed-in user (hoangnam.mng@gmail.com)
+[debug] [2026-04-01T21:01:06.919Z] [iam] checking project vaa-job for permissions ["firebase.projects.get"]
+[debug] [2026-04-01T21:01:06.920Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:06.920Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:06.920Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/vaa-job:testIamPermissions [none]
+[debug] [2026-04-01T21:01:06.920Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/vaa-job:testIamPermissions  x-goog-user-project=vaa-job
+[debug] [2026-04-01T21:01:06.920Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vaa-job:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-04-01T21:01:07.880Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/vaa-job:testIamPermissions 200
+[debug] [2026-04-01T21:01:07.880Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vaa-job:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-04-01T21:01:07.881Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:07.881Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:07.881Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:07.881Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:07.881Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-04-01T21:01:07.881Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com  x-goog-user-project=vaa-job
+[debug] [2026-04-01T21:01:07.882Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/runtimeconfig.googleapis.com [none]
+[debug] [2026-04-01T21:01:07.882Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/runtimeconfig.googleapis.com  x-goog-user-project=vaa-job
+[debug] [2026-04-01T21:01:09.147Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/runtimeconfig.googleapis.com 200
+[debug] [2026-04-01T21:01:09.147Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2026-04-01T21:01:09.165Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com 200
+[debug] [2026-04-01T21:01:09.165Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com [omitted]
+[debug] [2026-04-01T21:01:09.165Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:09.165Z] Checked if tokens are valid: true, expires at: 1775080315006
+[debug] [2026-04-01T21:01:09.165Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com:enable [none]
+[debug] [2026-04-01T21:01:09.165Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com:enable  x-goog-user-project=vaa-job
+[debug] [2026-04-01T21:01:09.716Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com:enable 200
+[debug] [2026-04-01T21:01:09.717Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/vaa-job/services/cloudfunctions.googleapis.com:enable [omitted]

@@ -11,8 +11,26 @@ import {
   orderBy,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from './config';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { db, app } from './config';
 import { Job, UserProfile, JobApplication } from '@/types';
+
+// =====================
+// FUNCTIONS CALLABLE
+// =====================
+export const requestPaymentOrder = async (data: {
+  jobId: string;
+  milestoneId: string;
+  amount: number;
+  workerId: string;
+  workerName: string;
+  reason: string;
+}) => {
+  if (!app) return;
+  const functions = getFunctions(app);
+  const caller = httpsCallable(functions, 'requestPaymentOrder');
+  return caller(data);
+};
 
 // =====================
 // USERS

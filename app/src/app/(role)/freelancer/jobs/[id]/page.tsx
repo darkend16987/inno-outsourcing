@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Clock, MessageSquare, UploadCloud, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Clock, MessageSquare, UploadCloud, CheckCircle2, X, FileText } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
 import styles from './page.module.css';
 
@@ -25,8 +25,8 @@ const MOCK_JOB = {
     level: 'L5',
   },
   milestones: [
-    { id: 'm1', name: 'Thiết kế cơ sở & Thống nhất phương án', percentage: 20, amount: '24,000,000₫', status: 'in_progress' },
-    { id: 'm2', name: 'Bản vẽ Thiết kế Kỹ thuật (TKKT)', percentage: 40, amount: '48,000,000₫', status: 'pending' },
+    { id: 'm1', name: 'Thiết kế cơ sở & Thống nhất phương án', percentage: 20, amount: '24,000,000₫', status: 'completed' },
+    { id: 'm2', name: 'Bản vẽ Thiết kế Kỹ thuật (TKKT)', percentage: 40, amount: '48,000,000₫', status: 'in_progress' },
     { id: 'm3', name: 'Bản vẽ Thi công (BVTC) & Bóc khối lượng', percentage: 30, amount: '36,000,000₫', status: 'pending' },
     { id: 'm4', name: 'Bảo hành thiết kế (sau khi ra giấy phép)', percentage: 10, amount: '12,000,000₫', status: 'pending' },
   ],
@@ -42,7 +42,26 @@ const fadeUp = {
 
 export default function FreelancerJobDetail() {
   const params = useParams();
-  const job = { ...MOCK_JOB, id: params.id as string };
+  const [job, setJob] = useState({ ...MOCK_JOB, id: params.id as string });
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [submittingMilestone, setSubmittingMilestone] = useState<string | null>(null);
+
+  const handleSubmitClick = (milestoneId: string) => {
+    setSubmittingMilestone(milestoneId);
+    setIsSubmitModalOpen(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    if (!submittingMilestone) return;
+    
+    // Simulate updating status to 'review' for Job Master to see
+    const newMilestones = job.milestones.map(ms => 
+      ms.id === submittingMilestone ? { ...ms, status: 'review' as any } : ms
+    );
+    setJob({ ...job, milestones: newMilestones });
+    setIsSubmitModalOpen(false);
+    alert('Báo cáo hoàn thành đã được gửi đến Job Master!');
+  };
 
   return (
     <div className={styles.page}>
@@ -83,7 +102,7 @@ export default function FreelancerJobDetail() {
             <h3 className={styles.sectionTitle}>Giai đoạn & Thanh toán</h3>
             <div className={styles.milestones}>
               {job.milestones.map((ms, index) => (
-                <div key={ms.id} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''}`}>
+                <div key={ms.id} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''} ${ms.status === 'review' ? styles.mReview : ''}`}>
                   <div className={styles.mLeft}>
                     <div className={styles.mNum}>{index + 1}</div>
                     <div className={styles.mInfo}>
@@ -93,7 +112,11 @@ export default function FreelancerJobDetail() {
                   </div>
                   <div className={styles.mRight}>
                     {ms.status === 'in_progress' ? (
-                      <Button size="sm"><UploadCloud size={14}/> Nộp kết quả</Button>
+                      <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
+                        <UploadCloud size={14}/> Nộp kết quả
+                      </Button>
+                    ) : ms.status === 'review' ? (
+                      <Badge variant="info">Đang chờ duyệt</Badge>
                     ) : ms.status === 'completed' ? (
                       <Badge variant="success"><CheckCircle2 size={12}/> Hoàn thành</Badge>
                     ) : (
@@ -145,6 +168,39 @@ export default function FreelancerJobDetail() {
           </Card>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {isSubmitModalOpen && (
+          <div className={styles.modalOverlay}>
+            <motion.div 
+              className={styles.modalContent}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>Báo cáo hoàn thành giai đoạn</h3>
+                <button onClick={() => setIsSubmitModalOpen(false)} className={styles.closeBtn}><X size={20}/></button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.formGroup}>
+                  <label>Ghi chú gửi Job Master</label>
+                  <textarea placeholder="Mô tả tóm tắt các công việc đã hoàn thành hoặc các lưu ý đặc biệt..." className={styles.textarea}></textarea>
+                </div>
+                <div className={styles.uploadArea}>
+                  <UploadCloud size={32} className={styles.uploadIcon}/>
+                  <p>Kéo thả file kết quả hoặc nhấn để chọn file</p>
+                  <span>Hỗ trợ: PDF, DWG, RVT, ZIP (Max 100MB)</span>
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)}>Hủy bỏ</Button>
+                <Button onClick={handleConfirmSubmit}>Xác nhận & Gửi báo cáo</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

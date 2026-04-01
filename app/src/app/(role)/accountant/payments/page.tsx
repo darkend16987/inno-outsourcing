@@ -71,7 +71,11 @@ export default function AccountantPaymentsPage() {
                     {pay.status === 'failed' && <Badge variant="error" size="sm">Lỗi thông tin</Badge>}
                   </td>
                   <td className={styles.tAction}>
-                     <button className={styles.iconBtn} title="Xem biên bản nghiệm thu"><FileText size={16}/></button>
+                     {pay.status === 'pending' ? (
+                        <Button size="sm" variant="primary" className={styles.payBtn}>Chi tiền</Button>
+                     ) : (
+                        <button className={styles.iconBtn} title="Xem biên nhận"><FileText size={16}/></button>
+                     )}
                   </td>
                 </tr>
               ))}

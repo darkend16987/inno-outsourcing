@@ -1,12 +1,66 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X } from 'lucide-react';
 import { Button, Card, Badge, Avatar } from '@/components/ui';
 import styles from './page.module.css';
 
+// Mock Modal Component
+function PaymentConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  milestoneName, 
+  amount 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void;
+  milestoneName: string;
+  amount: string;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className={styles.modalOverlay}>
+      <Card className={styles.modalContent}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Xác nhận Nghiệm thu & Thanh toán</h3>
+          <button onClick={onClose}><X size={20}/></button>
+        </div>
+        <div className={styles.modalBody}>
+          <p>Bạn đang thực hiện nghiệm thu giai đoạn: <strong>{milestoneName}</strong></p>
+          <p>Số tiền yêu cầu thanh toán: <strong className={styles.amountText}>{amount}</strong></p>
+          <div className={styles.infoAlert}>
+            <Zap size={16}/>
+            <span>Hệ thống sẽ tự động tạo Lệnh chi và gửi thông tin đến bộ phận Kế toán.</span>
+          </div>
+        </div>
+        <div className={styles.modalFooter}>
+          <Button variant="outline" onClick={onClose}>Hủy bỏ</Button>
+          <Button onClick={onConfirm}>Xác nhận & Gửi yêu cầu</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function JobMasterJobDetailPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState({ name: '', amount: '' });
+
+  const handleApproveClick = (name: string, amount: string) => {
+    setSelectedMilestone({ name, amount });
+    setIsModalOpen(true);
+  };
+
+  const handleConfirmOrder = () => {
+    // console.log('Confirming Order for', selectedMilestone.name);
+    setIsModalOpen(false);
+    // In real app: call firebase function 'requestPaymentOrder'
+    alert(`Yêu cầu thanh toán ${selectedMilestone.amount} đã được gửi cho Kế toán!`);
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -48,7 +102,7 @@ export default function JobMasterJobDetailPage() {
                   </div>
                   <p className={styles.mDesc}>Hoàn thiện văn bản pháp lý và khảo sát hiện trạng.</p>
                   <div className={styles.mActions}>
-                     <Badge variant="success">Đã nghiệm thu</Badge>
+                     <Badge variant="success">Đã nghiệm thu & Thanh toán</Badge>
                   </div>
                 </div>
               </div>
@@ -72,8 +126,12 @@ export default function JobMasterJobDetailPage() {
                   </div>
 
                   <div className={styles.mActions}>
-                     <Button size="sm"><CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán</Button>
-                     <Button variant="outline" size="sm" className={styles.rejectBtn}><AlertTriangle size={14}/> Yêu cầu sửa đổi</Button>
+                     <Button size="sm" onClick={() => handleApproveClick('Báo cáo thiết kế cơ sở', '42,000,000₫')}>
+                        <CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán
+                     </Button>
+                     <Button variant="outline" size="sm" className={styles.rejectBtn}>
+                        <AlertTriangle size={14}/> Yêu cầu sửa đổi
+                     </Button>
                   </div>
                 </div>
               </div>
@@ -141,6 +199,14 @@ export default function JobMasterJobDetailPage() {
           </Card>
         </div>
       </div>
+
+      <PaymentConfirmModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        milestoneName={selectedMilestone.name}
+        amount={selectedMilestone.amount}
+        onConfirm={handleConfirmOrder}
+      />
     </div>
   );
 }

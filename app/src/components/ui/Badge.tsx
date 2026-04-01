@@ -4,7 +4,7 @@ import React from 'react';
 import styles from './Badge.module.css';
 import type { JobLevel, JobStatus, BadgeType as BadgeTypeEnum } from '@/types';
 
-type BadgeVariant = 'level' | 'status' | 'role' | 'default';
+type BadgeVariant = 'level' | 'status' | 'role' | 'default' | 'info' | 'success' | 'warning' | 'error' | 'outline';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -31,6 +31,11 @@ export function Badge({
     variant === 'level' && level ? styles[`level${level}`] : '',
     variant === 'status' && status ? styles[`status_${status}`] : '',
     variant === 'role' ? styles.role : '',
+    variant === 'info' ? styles.info : '',
+    variant === 'success' ? styles.success : '',
+    variant === 'warning' ? styles.warning : '',
+    variant === 'error' ? styles.error : '',
+    variant === 'outline' ? styles.outline : '',
     variant === 'default' ? styles.default : '',
     dot ? styles.withDot : '',
     className,

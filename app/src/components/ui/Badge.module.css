@@ -42,6 +42,13 @@
   border-color: var(--color-purple);
 }
 
+/* Semantic Badges */
+.info { background: var(--color-blue-bg); color: var(--color-blue); border-color: var(--color-blue); }
+.success { background: var(--color-success-bg); color: var(--color-success); border-color: var(--color-success); }
+.warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: var(--color-warning); }
+.error { background: var(--color-danger-bg); color: var(--color-danger); border-color: var(--color-danger); }
+.outline { background: transparent; color: var(--color-text-muted); border-color: var(--color-border); }
+
 /* Dot indicator */
 .withDot { padding-left: 8px; }
 .dot {
