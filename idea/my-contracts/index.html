@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C11 - Quản lý hợp đồng Worker | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../index.html">INNO Jobs</a>
+            <span class="brand-note">Worker area</span>
+          </div>
+          <a class="nav-link" href="../dashboard/index.html">Dashboard</a>
+          <a class="nav-link" href="../profile/index.html">Hồ sơ</a>
+          <a class="nav-link" href="../my-jobs/index.html">Việc của tôi</a>
+          <a class="nav-link active" href="index.html">Hợp đồng</a>
+          <a class="nav-link" href="../components/notifications.html">Thông báo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <h1 class="page-title">Quản lý hợp đồng</h1>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Số HĐ</th><th>Tên job</th><th>Giá trị</th><th>Ngày ký</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>HD-2026-042</td><td>Triển khai BIM khối đế thương mại</td><td>48.000.000 VND</td><td>16/03/2026</td><td><span class="badge status-open">Có hiệu lực</span></td></tr>
+                  <tr><td>HD-2026-031</td><td>Thẩm tra kết cấu khối học đường</td><td>63.000.000 VND</td><td>Chưa ký</td><td><span class="badge status-review">Chờ ký</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="card stack">
+            <div class="section-heading"><h2>Chi tiết hợp đồng HD-2026-042</h2><span class="badge status-open">Có hiệu lực</span></div>
+            <div class="two-col">
+              <div class="detail-item"><span class="fact-label">Bên A</span><strong>INNO Design &amp; Build</strong><span class="helper">Đại diện: Nguyễn Khánh Linh</span></div>
+              <div class="detail-item"><span class="fact-label">Bên B</span><strong>Trần Bảo Thy</strong><span class="helper">Freelancer BIM</span></div>
+            </div>
+            <div class="detail-item">
+              <span class="fact-label">Phạm vi công việc</span>
+              <p>Triển khai model Revit, xuất sheet PDF, phối hợp clash report và cập nhật issue log theo checklist.</p>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-item"><span class="fact-label">Giá trị hợp đồng</span><strong>48.000.000 VND</strong></div>
+              <div class="detail-item"><span class="fact-label">Đợt thanh toán</span><strong>50% + 50%</strong></div>
+            </div>
+            <div class="detail-item">
+              <span class="fact-label">Điều khoản chính</span>
+              <p>Thanh toán theo mốc tiến độ được quản lý job xác nhận. Worker chịu trách nhiệm cập nhật model sạch và giao đủ log issue.</p>
+            </div>
+            <div class="preview-box">Preview PDF hợp đồng</div>
+            <div class="form-actions">
+              <a class="button primary" href="../components/contract-wizard.html">Ký điện tử</a>
+              <a class="button ghost" href="../components/contract-wizard.html">Tải PDF</a>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C11 - Quản lý hợp đồng (Worker)</span></footer>
+    </main>
+    <script src="../assets/app.js"></script>
+  </body>
+</html>

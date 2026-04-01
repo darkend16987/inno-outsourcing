@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C3b - Đơn ứng tuyển | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <header class="topbar">
+        <a class="brand" href="../index.html">INNO Jobs</a>
+        <nav class="menu">
+          <a class="menu-link" href="index.html">Danh sách việc</a>
+          <a class="menu-link" href="../dashboard/index.html">Dashboard</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </nav>
+      </header>
+
+      <div class="breadcrumb">
+        <a href="../index.html">Trang chủ</a>
+        <span>/</span>
+        <a href="index.html">Danh sách công việc</a>
+        <span>/</span>
+        <a href="job-detail.html">Chi tiết công việc</a>
+        <span>/</span>
+        <span>Ứng tuyển</span>
+      </div>
+
+      <!-- Tóm tắt job - chỉ đọc -->
+      <section class="card stack">
+        <h1 class="page-title">Ứng tuyển nhận việc</h1>
+        <div class="internal-note stack" style="border-style: solid;">
+          <div class="job-head">
+            <div class="stack">
+              <strong>Triển khai Revit khối văn phòng 12 tầng</strong>
+              <div class="badge-row">
+                <span class="badge level-l3">L3</span>
+                <span class="badge">BIM Modeling</span>
+                <span class="badge">Hybrid</span>
+              </div>
+            </div>
+            <strong class="highlight-amount">48.000.000 VND</strong>
+          </div>
+          <div class="list-row">
+            <span class="muted">Hạn nộp hồ sơ: 08/04/2026</span>
+            <span class="muted">Thời hạn thực hiện: 35 ngày</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Xác nhận thông tin người ứng tuyển -->
+      <section class="card stack">
+        <div class="section-heading">
+          <h2 class="card-title">Thông tin ứng viên</h2>
+          <a class="helper" href="../profile/index.html">Chỉnh sửa hồ sơ</a>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="fact-label">Họ tên</span>
+            <strong>Trần Bảo Thy</strong>
+          </div>
+          <div class="detail-item">
+            <span class="fact-label">Level hiện tại</span>
+            <strong><span class="badge level-l3">L3</span></strong>
+          </div>
+          <div class="detail-item">
+            <span class="fact-label">Lĩnh vực</span>
+            <strong>BIM Modeling, Kết cấu</strong>
+          </div>
+          <div class="detail-item">
+            <span class="fact-label">Kinh nghiệm</span>
+            <strong>6 năm · 18 job hoàn thành</strong>
+          </div>
+          <div class="detail-item">
+            <span class="fact-label">Phần mềm</span>
+            <strong>Revit, Navisworks, AutoCAD</strong>
+          </div>
+          <div class="detail-item">
+            <span class="fact-label">Đánh giá</span>
+            <strong>4.9 / 5 sao</strong>
+          </div>
+        </div>
+        <span class="muted" style="font-size:12px;">Thông tin lấy từ hồ sơ năng lực. Admin sẽ xem toàn bộ hồ sơ khi xét duyệt.</span>
+      </section>
+
+      <!-- Thông tin ứng tuyển -->
+      <section class="card stack">
+        <h2 class="card-title">Thông tin bổ sung cho Admin</h2>
+
+        <div class="form-grid">
+          <div class="stack" style="gap: 6px;">
+            <label class="fact-label">Ngày có thể bắt đầu *</label>
+            <input type="text" value="10/04/2026">
+          </div>
+          <div class="stack" style="gap: 6px;">
+            <label class="fact-label">Mức thù lao kỳ vọng (nếu muốn thỏa thuận khác)</label>
+            <input type="text" value="Đồng ý theo mức đã đăng: 48.000.000 VND">
+          </div>
+        </div>
+
+        <div class="stack" style="gap: 6px;">
+          <label class="fact-label">Lý do ứng tuyển / giới thiệu ngắn *</label>
+          <textarea>Tôi đã triển khai 4 dự án BIM office tower từ L2 đến L5, quen với naming convention INNO qua dự án trước. Sẵn sàng bắt đầu ngay sau 10/04 và cam kết nộp clash report hàng tuần...</textarea>
+        </div>
+
+        <div class="stack" style="gap: 6px;">
+          <label class="fact-label">Portfolio liên quan (link hoặc file — tùy chọn)</label>
+          <input type="text" value="https://drive.google.com/...">
+        </div>
+
+        <div class="upload-box">Đính kèm file bổ sung: CV, mẫu model, hồ sơ tham chiếu (PDF, RVT, ZIP)</div>
+      </section>
+
+      <!-- Xác nhận & gửi -->
+      <section class="card stack">
+        <h2 class="card-title">Xác nhận trước khi gửi</h2>
+        <div class="list-card">
+          <label class="list-row" style="gap:10px; cursor:pointer;">
+            <input type="checkbox" checked>
+            <span>Tôi đã đọc kỹ phạm vi công việc, yêu cầu năng lực và các điều khoản thanh toán</span>
+          </label>
+          <label class="list-row" style="gap:10px; cursor:pointer;">
+            <input type="checkbox" checked>
+            <span>Tôi xác nhận thông tin hồ sơ năng lực là trung thực và cập nhật</span>
+          </label>
+          <label class="list-row" style="gap:10px; cursor:pointer;">
+            <input type="checkbox">
+            <span>Tôi hiểu rằng việc được chọn sẽ yêu cầu ký hợp đồng điện tử trước khi bắt đầu</span>
+          </label>
+        </div>
+        <div class="form-actions">
+          <a class="button success" href="../my-jobs/index.html">Gửi đơn ứng tuyển</a>
+          <a class="button ghost" href="job-detail.html">Hủy, quay lại</a>
+        </div>
+        <span class="muted" style="font-size:12px;">Sau khi gửi, đơn sẽ xuất hiện trong tab "Đã ứng tuyển" của mục Việc của tôi. Admin sẽ thông báo kết quả qua email và in-app.</span>
+      </section>
+
+      <footer class="page-footer"><span class="footer-label">C3b - Đơn ứng tuyển (Worker đã đăng nhập)</span></footer>
+    </main>
+    <script src="../assets/app.js"></script>
+  </body>
+</html>

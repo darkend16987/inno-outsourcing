@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C19 - Báo cáo và thống kê | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../../index.html">INNO Jobs</a>
+            <span class="brand-note">Admin báo cáo</span>
+          </div>
+          <a class="nav-link" href="../index.html">Dashboard</a>
+          <a class="nav-link" href="../jobs/new.html">Quản lý job</a>
+          <a class="nav-link" href="../jobs/pending.html">Chờ duyệt</a>
+          <a class="nav-link" href="../jobs/applications.html">Ứng tuyển</a>
+          <a class="nav-link" href="../contracts/index.html">Hợp đồng</a>
+          <a class="nav-link" href="../progress/index.html">Tiến độ</a>
+          <a class="nav-link" href="../users/index.html">Người dùng</a>
+          <a class="nav-link active" href="index.html">Báo cáo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <h1 class="page-title">Báo cáo và thống kê</h1>
+            <div class="three-col">
+              <div class="fake-input">Thời gian: Tháng</div>
+              <div class="fake-input">Range: 01/03/2026 - 31/03/2026</div>
+              <a class="button" href="../../accounting/history.html">Xuất PDF / Excel</a>
+            </div>
+          </article>
+
+          <article class="card chart-card">
+            <h2 class="card-title">Doanh thu theo tháng</h2>
+            <div class="line-chart">
+              <svg class="line-svg" viewBox="0 0 300 150" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="20,128 70,98 120,92 170,62 220,74 280,30"></polyline>
+                <circle cx="20" cy="128" r="5"></circle>
+                <circle cx="70" cy="98" r="5"></circle>
+                <circle cx="120" cy="92" r="5"></circle>
+                <circle cx="170" cy="62" r="5"></circle>
+                <circle cx="220" cy="74" r="5"></circle>
+                <circle cx="280" cy="30" r="5"></circle>
+              </svg>
+            </div>
+          </article>
+
+          <article class="card chart-card">
+            <h2 class="card-title">Phân bổ job theo lĩnh vực</h2>
+            <div class="donut"></div>
+          </article>
+
+          <article class="card chart-card">
+            <h2 class="card-title">Tỷ lệ hoàn thành đúng hạn</h2>
+            <div class="gauge"></div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Xếp hạng worker</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Tên</th><th>Level</th><th>Số job</th><th>Doanh thu</th><th>Rating</th><th>Đúng hạn</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Nguyễn Minh An</td><td>L4</td><td>24</td><td>186.000.000</td><td>4.9</td><td>95%</td></tr>
+                  <tr><td>Trần Bảo Thy</td><td>L3</td><td>18</td><td>152.000.000</td><td>4.9</td><td>93%</td></tr>
+                  <tr><td>Phạm Hoàng Quân</td><td>L5</td><td>24</td><td>148.000.000</td><td>5.0</td><td>96%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C19 - Báo cáo và thống kê</span></footer>
+    </main>
+    <script src="../../assets/app.js"></script>
+  </body>
+</html>

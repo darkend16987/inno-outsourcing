@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C16 - Quản lý hợp đồng Admin | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../../index.html">INNO Jobs</a>
+            <span class="brand-note">Admin hợp đồng</span>
+          </div>
+          <a class="nav-link" href="../index.html">Dashboard</a>
+          <a class="nav-link" href="../jobs/new.html">Quản lý job</a>
+          <a class="nav-link" href="../jobs/pending.html">Chờ duyệt</a>
+          <a class="nav-link" href="../jobs/applications.html">Ứng tuyển</a>
+          <a class="nav-link active" href="index.html">Hợp đồng</a>
+          <a class="nav-link" href="../progress/index.html">Tiến độ</a>
+          <a class="nav-link" href="../users/index.html">Người dùng</a>
+          <a class="nav-link" href="../reports/index.html">Báo cáo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <h1 class="page-title">Quản lý hợp đồng</h1>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Số HĐ</th><th>Job</th><th>Worker</th><th>Giá trị</th><th>Ngày tạo</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>HD-2026-042</td><td>Triển khai BIM khối đế thương mại</td><td>Trần Bảo Thy</td><td>48.000.000</td><td>16/03/2026</td><td><span class="badge status-open">Có hiệu lực</span></td></tr>
+                  <tr><td>HD-2026-031</td><td>Thẩm tra kết cấu khối học đường</td><td>Phạm Hoàng Quân</td><td>63.000.000</td><td>01/04/2026</td><td><span class="badge status-review">Chờ ký</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Tạo hợp đồng theo wizard</h2>
+            <div class="wizard-steps">
+              <div class="wizard-step active"><strong>Bước 1</strong><span class="muted">Chọn mẫu hợp đồng</span></div>
+              <div class="wizard-step active"><strong>Bước 2</strong><span class="muted">Auto-fill thông tin</span></div>
+              <div class="wizard-step"><strong>Bước 3</strong><span class="muted">Chỉnh sửa điều khoản</span></div>
+              <div class="wizard-step"><strong>Bước 4</strong><span class="muted">Preview PDF</span></div>
+              <div class="wizard-step"><strong>Bước 5</strong><span class="muted">Gửi worker ký</span></div>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-item"><span class="fact-label">Bên A</span><strong>INNO Design &amp; Build</strong></div>
+              <div class="detail-item"><span class="fact-label">Bên B</span><strong>Trần Bảo Thy</strong></div>
+              <div class="detail-item"><span class="fact-label">Công việc</span><strong>Triển khai BIM khối đế thương mại</strong></div>
+              <div class="detail-item"><span class="fact-label">Giá trị + đợt</span><strong>48.000.000 · 50/50</strong></div>
+            </div>
+            <textarea>Điều khoản thanh toán, phạt chậm tiến độ, bảo hành deliverable...</textarea>
+            <div class="preview-box">Preview PDF hợp đồng</div>
+            <div class="form-actions">
+              <a class="button primary" href="../../components/contract-wizard.html">Gửi cho worker xác nhận</a>
+            </div>
+            <span class="helper">Theo dõi trạng thái ký: Chờ worker ký → Đã ký → Có hiệu lực</span>
+          </article>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C16 - Quản lý hợp đồng (Admin)</span></footer>
+    </main>
+    <script src="../../assets/app.js"></script>
+  </body>
+</html>

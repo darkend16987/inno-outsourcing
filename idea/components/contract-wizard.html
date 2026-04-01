@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C26 - Tạo hợp đồng wizard | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <section class="card stack">
+        <div class="section-heading">
+          <div class="stack">
+            <h1 class="page-title">Tạo hợp đồng wizard</h1>
+            <span class="muted">Module dùng lại cho worker ký và admin tạo hợp đồng.</span>
+          </div>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </div>
+
+        <div class="wizard-steps">
+          <div class="wizard-step active"><strong>1</strong><span>Chọn mẫu</span></div>
+          <div class="wizard-step active"><strong>2</strong><span>Auto-fill</span></div>
+          <div class="wizard-step active"><strong>3</strong><span>Điều khoản</span></div>
+          <div class="wizard-step"><strong>4</strong><span>Preview PDF</span></div>
+          <div class="wizard-step"><strong>5</strong><span>Gửi ký</span></div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item"><span class="fact-label">Bên A</span><strong>INNO Design &amp; Build</strong></div>
+          <div class="detail-item"><span class="fact-label">Bên B</span><strong>Trần Bảo Thy</strong></div>
+          <div class="detail-item"><span class="fact-label">Job info</span><strong>Triển khai BIM khối đế thương mại</strong></div>
+          <div class="detail-item"><span class="fact-label">Đợt thanh toán</span><strong>50% + 50%</strong></div>
+        </div>
+
+        <textarea>Điều khoản hợp đồng: thanh toán, phạt chậm, bảo hành deliverable, quyền sở hữu file...</textarea>
+        <div class="preview-box">Preview PDF hợp đồng</div>
+        <div class="form-actions">
+          <a class="button primary" href="../my-contracts/index.html">Gửi cho worker xác nhận</a>
+          <a class="button" href="../admin/contracts/index.html">Lưu hợp đồng</a>
+        </div>
+        <span class="helper">Luồng hoàn chỉnh: chọn mẫu → auto-fill → chỉnh điều khoản → preview PDF → gửi cho worker → ký điện tử hoặc upload scan → lưu trạng thái có hiệu lực.</span>
+      </section>
+
+      <footer class="page-footer"><span class="footer-label">C26 - Tạo hợp đồng (wizard)</span></footer>
+    </main>
+    <script src="../assets/app.js"></script>
+  </body>
+</html>

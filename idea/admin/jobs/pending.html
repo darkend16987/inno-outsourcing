@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C14 - Job chờ duyệt | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../../index.html">INNO Jobs</a>
+            <span class="brand-note">Admin phê duyệt</span>
+          </div>
+          <a class="nav-link" href="../index.html">Dashboard</a>
+          <a class="nav-link" href="new.html">Quản lý job</a>
+          <a class="nav-link active" href="pending.html">Chờ duyệt <span>12</span></a>
+          <a class="nav-link" href="applications.html">Ứng tuyển</a>
+          <a class="nav-link" href="../contracts/index.html">Hợp đồng</a>
+          <a class="nav-link" href="../progress/index.html">Tiến độ</a>
+          <a class="nav-link" href="../users/index.html">Người dùng</a>
+          <a class="nav-link" href="../reports/index.html">Báo cáo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <div class="section-heading"><h1 class="page-title">Job chờ duyệt</h1><span class="badge status-review">12 job</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th></th><th>Tên job</th><th>Level</th><th>Lĩnh vực</th><th>Người tạo</th><th>Ngày tạo</th><th>Thù lao</th><th>Hành động</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><input type="checkbox"></td><td>Triển khai Revit khối văn phòng 12 tầng</td><td>L3</td><td>BIM</td><td>Nguyễn Hữu Phúc</td><td>31/03/2026</td><td>48.000.000</td><td><a class="button primary" href="review.html">Xem chi tiết</a></td></tr>
+                  <tr><td><input type="checkbox"></td><td>Thẩm tra PCCC logistics</td><td>L5</td><td>Thẩm tra</td><td>Lê Minh Thảo</td><td>31/03/2026</td><td>88.000.000</td><td><a class="button primary" href="review.html">Xem chi tiết</a></td></tr>
+                  <tr><td><input type="checkbox"></td><td>Dự toán nhà xưởng logistic</td><td>L2</td><td>Dự toán</td><td>Đỗ Quốc Anh</td><td>30/03/2026</td><td>22.500.000</td><td><a class="button primary" href="review.html">Xem chi tiết</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-actions">
+              <a class="button success" href="../index.html">Duyệt nhanh</a>
+              <a class="button danger" href="../index.html">Từ chối nhanh</a>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C14 - Danh sách job chờ duyệt</span></footer>
+    </main>
+    <script src="../../assets/app.js"></script>
+  </body>
+</html>

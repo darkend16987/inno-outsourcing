@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C9 - Việc của tôi | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../index.html">INNO Jobs</a>
+            <span class="brand-note">Worker area</span>
+          </div>
+          <a class="nav-link" href="../dashboard/index.html">Dashboard</a>
+          <a class="nav-link" href="../profile/index.html">Hồ sơ</a>
+          <a class="nav-link active" href="index.html">Việc của tôi</a>
+          <a class="nav-link" href="../my-contracts/index.html">Hợp đồng</a>
+          <a class="nav-link" href="../components/notifications.html">Thông báo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <h1 class="page-title">Việc của tôi</h1>
+            <div class="tab-row">
+              <span class="tab active">Đã ứng tuyển <span>3</span></span>
+              <span class="tab">Chốt kèo</span>
+              <span class="tab">Đang thực hiện</span>
+              <span class="tab">Đang nghiệm thu</span>
+              <span class="tab">Đã thanh toán</span>
+              <span class="tab">Hoàn thành</span>
+            </div>
+          </article>
+
+          <!-- Tab: Đã ứng tuyển — hiển thị mặc định -->
+          <article class="job-card">
+            <div class="job-head">
+              <div class="stack" style="gap:4px;">
+                <strong>Thiết kế kết cấu khung thép nhà xưởng Bình Dương</strong>
+                <div class="badge-row"><span class="badge level-l3">L3</span><span class="badge">Kết cấu</span></div>
+              </div>
+              <span class="badge status-review">Đang chờ xét duyệt</span>
+            </div>
+            <div class="list-row">
+              <span class="muted">Thù lao: 38.000.000 VND · Nộp đơn: 30/03/2026</span>
+              <a class="button ghost" href="../jobs/job-detail.html">Xem job</a>
+            </div>
+          </article>
+
+          <article class="job-card">
+            <div class="job-head">
+              <div class="stack" style="gap:4px;">
+                <strong>Lập dự toán hệ MEP tòa nhà hỗn hợp</strong>
+                <div class="badge-row"><span class="badge level-l2">L2</span><span class="badge">Dự toán</span></div>
+              </div>
+              <span class="badge status-review">Đang chờ xét duyệt</span>
+            </div>
+            <div class="list-row">
+              <span class="muted">Thù lao: 18.000.000 VND · Nộp đơn: 28/03/2026</span>
+              <a class="button ghost" href="../jobs/job-detail.html">Xem job</a>
+            </div>
+          </article>
+
+          <article class="job-card">
+            <div class="job-head">
+              <div class="stack" style="gap:4px;">
+                <strong>Kiểm tra va chạm mô hình BIM bệnh viện đa khoa</strong>
+                <div class="badge-row"><span class="badge level-l4">L4</span><span class="badge">BIM Modeling</span></div>
+              </div>
+              <span class="badge status-danger">Không được chọn</span>
+            </div>
+            <div class="list-row">
+              <span class="muted">Thù lao: 72.000.000 VND · Nộp đơn: 20/03/2026</span>
+              <a class="button ghost" href="../jobs/job-detail.html">Xem job</a>
+            </div>
+            <span class="muted" style="font-size:12px;">Lý do: Admin chọn ứng viên có kinh nghiệm MEP/HVAC sâu hơn.</span>
+          </article>
+
+          <!-- Ghi chú: các tab còn lại (Chốt kèo → Hoàn thành) hiển thị job theo trạng thái tương ứng -->
+          <span class="helper" style="text-align:center;">Chọn tab "Chốt kèo", "Đang thực hiện"... để xem job theo từng giai đoạn</span>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C9 - Danh sách việc của tôi</span></footer>
+    </main>
+    <script src="../assets/app.js"></script>
+  </body>
+</html>

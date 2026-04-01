@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C12 - Dashboard Admin | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../index.html">INNO Jobs</a>
+            <span class="brand-note">Admin dashboard</span>
+          </div>
+          <a class="nav-link active" href="index.html">Dashboard</a>
+          <a class="nav-link" href="jobs/new.html">Quản lý job</a>
+          <a class="nav-link" href="jobs/pending.html">Chờ duyệt <span>12</span></a>
+          <a class="nav-link" href="jobs/applications.html">Ứng tuyển</a>
+          <a class="nav-link" href="contracts/index.html">Hợp đồng</a>
+          <a class="nav-link" href="progress/index.html">Tiến độ</a>
+          <a class="nav-link" href="users/index.html">Người dùng</a>
+          <a class="nav-link" href="reports/index.html">Báo cáo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <h1 class="page-title">Tổng quan hệ thống</h1>
+            <div class="metrics">
+              <article class="metric-card"><span class="fact-label">Job đang mở</span><strong class="metric-value">142</strong></article>
+              <article class="metric-card"><span class="fact-label">Job chờ duyệt</span><strong class="metric-value">12</strong></article>
+              <article class="metric-card"><span class="fact-label">HĐ hiệu lực</span><strong class="metric-value">57</strong></article>
+              <article class="metric-card"><span class="fact-label">Giá trị HĐ tháng này</span><strong class="metric-value">3,4 tỷ VND</strong></article>
+              <article class="metric-card"><span class="fact-label">Worker active</span><strong class="metric-value">186</strong></article>
+              <article class="metric-card"><span class="fact-label">Đúng hạn</span><strong class="metric-value">92%</strong></article>
+            </div>
+          </article>
+
+          <article class="card chart-card">
+            <h2 class="card-title">Số job theo lĩnh vực</h2>
+            <div class="bar-chart">
+              <div class="bar" style="height: 65%;"></div>
+              <div class="bar" style="height: 88%;"></div>
+              <div class="bar" style="height: 54%;"></div>
+              <div class="bar" style="height: 72%;"></div>
+              <div class="bar" style="height: 47%;"></div>
+            </div>
+            <div class="stats-inline">
+              <span class="helper">Kiến trúc</span>
+              <span class="helper">Kết cấu</span>
+              <span class="helper">MEP</span>
+              <span class="helper">BIM</span>
+              <span class="helper">Dự toán</span>
+            </div>
+          </article>
+
+          <article class="card chart-card">
+            <h2 class="card-title">Doanh thu 6 tháng gần nhất</h2>
+            <div class="line-chart">
+              <svg class="line-svg" viewBox="0 0 300 150" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="20,120 70,90 120,95 170,60 220,78 280,35"></polyline>
+                <circle cx="20" cy="120" r="5"></circle>
+                <circle cx="70" cy="90" r="5"></circle>
+                <circle cx="120" cy="95" r="5"></circle>
+                <circle cx="170" cy="60" r="5"></circle>
+                <circle cx="220" cy="78" r="5"></circle>
+                <circle cx="280" cy="35" r="5"></circle>
+              </svg>
+            </div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Job gần đây</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Tên job</th><th>Level</th><th>Trạng thái</th><th>Worker</th><th>Tiến độ</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Triển khai BIM khối đế thương mại</td><td>L3</td><td><span class="badge status-progress">Đang thực hiện</span></td><td>Trần Bảo Thy</td><td>58%</td></tr>
+                  <tr><td>Thẩm tra kết cấu khối học đường</td><td>L4</td><td><span class="badge status-deal">Chốt kèo</span></td><td>Phạm Hoàng Quân</td><td>0%</td></tr>
+                  <tr><td>Lập dự toán khối phụ trợ nhà máy</td><td>L2</td><td><span class="badge status-review">Đang nghiệm thu</span></td><td>Lê Gia Nhi</td><td>100%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Top worker tháng</h2>
+            <article class="list-card"><div class="job-head"><strong>Nguyễn Minh An</strong><span class="badge level-l4">L4</span></div><span class="muted">Doanh thu: 186.000.000 VND · Rating 4.9</span></article>
+            <article class="list-card"><div class="job-head"><strong>Trần Bảo Thy</strong><span class="badge level-l3">L3</span></div><span class="muted">Doanh thu: 152.000.000 VND · Rating 4.9</span></article>
+            <article class="list-card"><div class="job-head"><strong>Phạm Hoàng Quân</strong><span class="badge level-l5">L5</span></div><span class="muted">Doanh thu: 148.000.000 VND · Rating 5.0</span></article>
+          </article>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C12 - Dashboard Admin</span></footer>
+    </main>
+    <script src="../assets/app.js"></script>
+  </body>
+</html>

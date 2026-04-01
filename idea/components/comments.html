@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C24 - Comment component | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <section class="card stack">
+        <div class="section-heading">
+          <div class="stack">
+            <h1 class="page-title">Comment component</h1>
+            <span class="muted">Mẫu dùng lại cho trang chi tiết job, trao đổi nghiệm thu và hợp đồng.</span>
+          </div>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </div>
+        <div class="comment">
+          <div class="comment-top">
+            <div class="avatar">BT</div>
+            <div class="comment-body">
+              <strong>Trần Bảo Thy</strong>
+              <textarea>Nội dung comment mới...</textarea>
+            </div>
+          </div>
+          <div class="upload-box">Đính kèm 1 ảnh cho comment</div>
+          <div class="form-actions"><button type="button" class="button primary">Gửi</button></div>
+        </div>
+        <div class="comment-stream">
+          <article class="comment highlight">
+            <div class="comment-top">
+              <div class="avatar">AD</div>
+              <div class="comment-body">
+                <div class="meta-row"><strong>Trần Nhật Minh</strong><span class="badge status-review">INNO Admin</span></div>
+                <span class="timeline-time">31/03/2026 14:20</span>
+                <p>Nội dung comment mẫu từ admin, có nền highlight và badge vai trò.</p>
+                <div class="preview-box">Ảnh đính kèm</div>
+                <div class="comment-actions"><span>Thích</span><span>Trả lời</span></div>
+              </div>
+            </div>
+          </article>
+          <article class="comment highlight">
+            <div class="comment-top">
+              <div class="avatar">LT</div>
+              <div class="comment-body">
+                <div class="meta-row"><strong>Lê Thanh Tùng</strong><span class="badge status-purple">Quản lý</span></div>
+                <span class="timeline-time">31/03/2026 15:05</span>
+                <p>Comment từ quản lý job, cũng có nền nhấn nhẹ để phân biệt.</p>
+                <div class="comment-actions"><span>Thích</span><span>Trả lời</span></div>
+              </div>
+            </div>
+          </article>
+          <article class="comment">
+            <div class="comment-top">
+              <div class="avatar">BT</div>
+              <div class="comment-body">
+                <strong>Trần Bảo Thy</strong>
+                <span class="timeline-time">31/03/2026 17:00</span>
+                <p>Comment worker thường không có badge vai trò.</p>
+                <div class="comment-actions"><span>Thích</span><span>Trả lời</span></div>
+              </div>
+            </div>
+          </article>
+          <article class="comment reply">
+            <div class="comment-top">
+              <div class="avatar small">LT</div>
+              <div class="comment-body">
+                <strong>Lê Thanh Tùng</strong>
+                <span class="timeline-time">31/03/2026 17:04</span>
+                <p>Reply nested 1 cấp, indent 40px.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <footer class="page-footer"><span class="footer-label">C24 - Comment component</span></footer>
+    </main>
+    <script src="../assets/app.js"></script>
+  </body>
+</html>

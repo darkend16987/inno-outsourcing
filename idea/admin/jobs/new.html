@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>C13 - Tạo hoặc sửa công việc | INNO Jobs Wireframe</title>
+    <link rel="stylesheet" href="../../assets/styles.css">
+  </head>
+  <body>
+    <main class="frame">
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <a class="brand" href="../../index.html">INNO Jobs</a>
+            <span class="brand-note">Admin nhập liệu</span>
+          </div>
+          <a class="nav-link" href="../index.html">Dashboard</a>
+          <a class="nav-link active" href="new.html">Quản lý job</a>
+          <a class="nav-link" href="pending.html">Chờ duyệt</a>
+          <a class="nav-link" href="applications.html">Ứng tuyển</a>
+          <a class="nav-link" href="../contracts/index.html">Hợp đồng</a>
+          <a class="nav-link" href="../progress/index.html">Tiến độ</a>
+          <a class="nav-link" href="../users/index.html">Người dùng</a>
+          <a class="nav-link" href="../reports/index.html">Báo cáo</a>
+          <button type="button" data-theme-toggle>Chế độ tối</button>
+        </aside>
+
+        <section class="stack">
+          <article class="card stack">
+            <h1 class="page-title">Tạo / sửa công việc</h1>
+            <div class="two-col">
+              <input type="text" value="Tên công việc *">
+              <input type="text" value="Mã job: INJ-2026-041">
+            </div>
+            <div class="three-col">
+              <div class="fake-input">Lĩnh vực: BIM</div>
+              <div class="fake-input">Level: L3</div>
+              <div class="fake-input">Loại công trình: Văn phòng</div>
+            </div>
+            <div class="two-col">
+              <div class="fake-input">Địa điểm: Hybrid</div>
+              <input type="text" value="Địa chỉ: Quận 7, TP.HCM">
+            </div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Phạm vi và yêu cầu</h2>
+            <textarea>Phạm vi công việc *: triển khai model, xuất sheet, phối hợp clash và cập nhật issue log...</textarea>
+            <div class="two-col">
+              <input type="text" value="Tiêu chuẩn áp dụng: TCVN 5574, QCVN 02">
+              <input type="text" value="Kinh nghiệm: 4 năm + mô tả">
+            </div>
+            <div class="two-col">
+              <input type="text" value="Yêu cầu chứng chỉ">
+              <input type="text" value="Phần mềm: Revit, Navisworks, AutoCAD">
+            </div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Tài chính và thời hạn</h2>
+            <div class="three-col">
+              <input type="text" value="Thù lao worker: 48.000.000">
+              <div class="fake-input">Thanh toán: Theo giai đoạn</div>
+              <input type="text" value="Thời hạn thực hiện: 35 ngày">
+            </div>
+            <input type="text" value="Hạn nộp hồ sơ: 08/04/2026">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Đợt</th><th>%</th><th>Điều kiện</th><th>Số tiền</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Đợt 1</td><td>50%</td><td>Đạt 50% tiến độ</td><td>24.000.000 VND</td></tr>
+                  <tr><td>Đợt 2</td><td>50%</td><td>Nghiệm thu hoàn tất</td><td>24.000.000 VND</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="button">Thêm đợt</button>
+              <span class="helper">Validation: tổng % = 100%</span>
+            </div>
+          </article>
+
+          <article class="card stack">
+            <h2 class="card-title">Người quản lý và file đính kèm</h2>
+            <div class="two-col">
+              <div class="fake-input">Chọn người quản lý: Lê Thanh Tùng</div>
+              <div class="detail-item"><span class="fact-label">Preview</span><strong>Lê Thanh Tùng · BIM Manager</strong><span class="helper">tung.lt@inno.vn</span></div>
+            </div>
+            <div class="upload-box">Upload PDF, DWG, RVT, hình ảnh</div>
+          </article>
+
+          <article class="internal-note stack">
+            <h2 class="card-title">Thông tin nội bộ (chỉ admin thấy)</h2>
+            <div class="two-col">
+              <input type="text" value="Chi phí dự kiến nội bộ: 33.500.000">
+              <input type="text" value="Lợi nhuận dự kiến: 14.500.000">
+            </div>
+            <textarea>Lý do / mục đích tạo job</textarea>
+            <textarea>Ghi chú nội bộ</textarea>
+          </article>
+
+          <div class="form-actions">
+            <a class="button" href="pending.html">Lưu nháp</a>
+            <a class="button primary" href="pending.html">Gửi phê duyệt</a>
+          </div>
+        </section>
+      </div>
+
+      <footer class="page-footer"><span class="footer-label">C13 - Tạo/sửa công việc</span></footer>
+    </main>
+    <script src="../../assets/app.js"></script>
+  </body>
+</html>
