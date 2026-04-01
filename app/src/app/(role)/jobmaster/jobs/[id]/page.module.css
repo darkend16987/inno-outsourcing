@@ -1,0 +1,105 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-2);
+}
+.hLeft { display: flex; flex-direction: column; gap: var(--space-3); }
+.backLink {
+  display: flex; align-items: center; gap: 4px; color: var(--color-text-muted); font-size: 14px; font-weight: 500;
+  transition: color 0.2s; text-decoration: none;
+}
+.backLink:hover { color: var(--color-primary); }
+.hTitleArea { display: flex; align-items: center; gap: var(--space-4); }
+.title { font-family: var(--font-heading); font-size: 24px; font-weight: 800; }
+.hMeta { display: flex; gap: var(--space-4); font-size: 14px; color: var(--color-text-muted); }
+.hMeta span { display: flex; align-items: center; gap: 4px; }
+.hRight { display: flex; gap: var(--space-3); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.mainCol { display: flex; flex-direction: column; gap: var(--space-6); }
+.sideCol { display: flex; flex-direction: column; gap: var(--space-6); position: sticky; top: 84px; }
+
+.sectionCard { padding: var(--space-5); background: var(--color-surface); }
+.secHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); padding-bottom: var(--space-3); border-bottom: 2px solid var(--color-bg); }
+.secTitle { font-family: var(--font-heading); font-size: 18px; font-weight: 700; }
+.progressText { font-size: 14px; font-weight: 700; color: var(--color-primary); }
+
+.milestoneList {
+  display: flex; flex-direction: column; gap: var(--space-6); position: relative;
+}
+/* line connecting milestones */
+.milestoneList::before {
+  content: ''; position: absolute; left: 11px; top: 10px; bottom: 30px; width: 2px; background: var(--color-bg); z-index: 1;
+}
+
+.milestoneItem {
+  display: flex; gap: var(--space-4); position: relative; z-index: 2;
+}
+.mStatus {
+  width: 24px; height: 24px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; background: var(--color-surface);
+}
+.dot { width: 12px; height: 12px; background: var(--color-warning); border-radius: 50%; box-shadow: 0 0 0 4px rgba(244, 157, 37, 0.2); }
+.dotEmpty { width: 12px; height: 12px; background: var(--color-border); border-radius: 50%; }
+
+.mContent {
+  flex: 1; background: var(--color-bg); padding: var(--space-4); border: 1.5px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+}
+.activeMilestone .mContent { border-color: var(--color-warning); }
+.op50 { opacity: 0.5; }
+
+.mHead { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.mHead h4 { font-size: 15px; font-weight: 700; color: var(--color-charcoal); }
+.mAmount { font-size: 14px; font-weight: 700; color: var(--color-text); }
+.mDesc { font-size: 13px; color: var(--color-text-muted); margin-bottom: var(--space-4); }
+
+.submissionBox {
+  background: var(--color-surface); padding: var(--space-3); border-radius: var(--radius-sm); border: 1px dashed var(--color-border); margin-bottom: var(--space-4);
+}
+.submissionBox h5 { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--color-charcoal); margin-bottom: var(--space-2); }
+.fileList { display: flex; flex-direction: column; gap: 4px; }
+.fileLink { font-size: 13px; color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; }
+
+.mActions { display: flex; gap: var(--space-3); }
+.rejectBtn { color: var(--color-error); border-color: var(--color-error); }
+.rejectBtn:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* Team List */
+.teamList { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-4); }
+.teamMember { display: flex; align-items: center; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1.5px solid var(--color-bg); }
+.tmInfo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.tmName { font-size: 14px; font-weight: 600; color: var(--color-charcoal); }
+.tmRole { font-size: 12px; color: var(--color-text-muted); }
+.chatBtn { background: var(--color-bg); border: 1px solid var(--color-border); padding: 6px; border-radius: 50%; color: var(--color-text-muted); cursor: pointer; transition: all 0.2s; }
+.chatBtn:hover { color: var(--color-primary); border-color: var(--color-primary); }
+.addBtn { font-size: 13px; border: 1px dashed var(--color-border); }
+
+/* Budget Box */
+.budgetBox { display: flex; flex-direction: column; gap: var(--space-3); }
+.bRow { display: flex; justify-content: space-between; font-size: 14px; }
+.bRow span { color: var(--color-text-muted); }
+.bRow strong { color: var(--color-charcoal); }
+.succ { color: var(--color-success) !important; }
+
+@media (max-width: 1024px) {
+  .grid { grid-template-columns: 1fr; }
+  .sideCol { position: static; }
+}
+@media (max-width: 768px) {
+  .header { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .hRight { width: 100%; justify-content: space-between; }
+  .mActions { flex-direction: column; }
+}

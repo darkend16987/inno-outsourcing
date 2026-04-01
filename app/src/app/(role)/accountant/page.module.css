@@ -1,0 +1,109 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: var(--space-2);
+}
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+.bottomGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+}
+
+.sectionCard {
+  padding: var(--space-6);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Pay List */
+.payList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  flex: 1;
+}
+.payItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+.pInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.pHeader { display: flex; align-items: center; gap: var(--space-3); }
+.pHeader h4 { font-size: 14px; font-weight: 600; color: var(--color-charcoal); }
+.pMeta { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--color-text-muted); width: 80%; }
+.pAmount { font-weight: 700; color: var(--color-error); font-size: 14px; }
+
+/* Issue List */
+.issueList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.issueItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1.5px solid var(--color-bg);
+}
+.warnIcon { color: var(--color-warning); flex-shrink: 0; }
+.issueContent h4 { font-size: 14px; font-weight: 600; color: var(--color-charcoal); margin-bottom: 4px; }
+.issueContent p { font-size: 13px; color: var(--color-text-muted); line-height: 1.4; }
+
+.viewMoreBtn { margin-top: auto; }
+
+@media (max-width: 1024px) {
+  .metricsGrid { grid-template-columns: repeat(2, 1fr); }
+  .bottomGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .metricsGrid { grid-template-columns: 1fr; }
+  .payItem { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .pMeta { width: 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
+}

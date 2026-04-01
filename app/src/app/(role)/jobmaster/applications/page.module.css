@@ -1,0 +1,158 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: var(--space-2);
+}
+.title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: var(--space-2);
+}
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--color-border);
+}
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  width: 300px;
+}
+.searchBox svg { color: var(--color-text-muted); }
+.searchBox input { border: none; background: transparent; outline: none; font-size: 14px; width: 100%; }
+
+.filters {
+  display: flex;
+  gap: var(--space-2);
+}
+.filterBtn {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.filterBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.active {
+  background: var(--color-charcoal);
+  border-color: var(--color-charcoal);
+  color: #fff;
+}
+.active:hover { color: #fff; }
+
+.appList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.appCard {
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.appHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg);
+  border-bottom: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.jobInfo { display: flex; align-items: center; gap: var(--space-2); }
+.jLabel { font-size: 13px; color: var(--color-text-muted); }
+.jTitle { font-size: 14px; font-weight: 600; color: var(--color-charcoal); }
+.timeInfo { font-size: 13px; color: var(--color-text-muted); font-style: italic; }
+
+.appBody {
+  display: flex;
+  padding: var(--space-5);
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.candidateCol {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 2;
+}
+.cInfo { display: flex; flex-direction: column; gap: 6px; }
+.cName { font-size: 18px; font-weight: 700; color: var(--color-charcoal); }
+.cTags { display: flex; gap: var(--space-2); }
+.viewProfileBtn {
+  display: flex; align-items: center; gap: 4px; border: none; background: none;
+  font-size: 13px; color: var(--color-primary); font-weight: 600; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+  margin-top: 4px;
+}
+
+.proposalCol {
+  display: flex;
+  gap: var(--space-6);
+  flex: 2;
+  padding: 0 var(--space-6);
+  border-left: 2px dashed var(--color-border);
+  border-right: 2px dashed var(--color-border);
+}
+.pItem { display: flex; flex-direction: column; gap: 4px; }
+.pLabel { font-size: 13px; color: var(--color-text-muted); }
+.pVal { font-size: 16px; font-weight: 700; color: var(--color-text); }
+
+.actionCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+.approveBtn { background: var(--color-success); border-color: var(--color-success); }
+.approveBtn:hover { opacity: 0.9; }
+.rejectBtn { color: var(--color-error); border-color: var(--color-error); }
+.rejectBtn:hover { background: rgba(239, 68, 68, 0.08); }
+
+.empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--color-border);
+}
+
+@media (max-width: 1024px) {
+  .appBody { flex-direction: column; align-items: flex-start; gap: var(--space-5); }
+  .candidateCol, .proposalCol, .actionCol { width: 100%; border: none; padding: 0; }
+  .proposalCol { border-top: 2px dashed var(--color-border); padding-top: var(--space-4); }
+  .actionCol { border-top: 2px dashed var(--color-border); padding-top: var(--space-4); flex-direction: row; flex-wrap: wrap; }
+}

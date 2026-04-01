@@ -1,0 +1,111 @@
+.card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.pad_none { padding: 0; }
+.pad_sm { padding: var(--space-3); }
+.pad_md { padding: var(--space-5); }
+.pad_lg { padding: var(--space-8); }
+
+/* Variants */
+.default {
+  box-shadow: var(--shadow-xs);
+}
+
+.metric {
+  box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.elevated {
+  box-shadow: var(--shadow-md);
+  border-color: transparent;
+}
+
+.bordered {
+  border-width: 2px;
+  border-color: var(--color-charcoal);
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.accent {
+  border-color: var(--color-primary);
+  border-width: 2px;
+  box-shadow: var(--shadow-neo-sm);
+}
+
+/* Interactive */
+.hover:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:active {
+  transform: scale(0.99);
+}
+
+/* Metric Card */
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metricTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metricIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.metricValue {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.metricBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.metricTrend {
+  font-weight: 600;
+}
+
+.trendUp { color: var(--color-success); }
+.trendDown { color: var(--color-danger); }
+
+.metricSubtitle {
+  color: var(--color-text-muted);
+}

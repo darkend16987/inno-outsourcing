@@ -1,0 +1,53 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.sm { padding: 3px 8px; font-size: 10px; }
+.md { padding: 5px 10px; font-size: 11px; }
+
+/* Default */
+.default {
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+/* Level badges */
+.levelL1 { background: var(--level-l1-bg); color: var(--level-l1); border-color: var(--level-l1); }
+.levelL2 { background: var(--level-l2-bg); color: var(--level-l2); border-color: var(--level-l2); }
+.levelL3 { background: var(--level-l3-bg); color: var(--level-l3); border-color: var(--level-l3); }
+.levelL4 { background: var(--level-l4-bg); color: var(--level-l4); border-color: var(--level-l4); }
+.levelL5 { background: var(--level-l5-bg); color: var(--level-l5); border-color: var(--level-l5); }
+
+/* Status badges */
+.status_open, .status_completed, .status_paid { background: var(--color-success-bg); color: var(--color-success); border-color: var(--color-success); }
+.status_assigned { background: var(--color-primary-bg); color: var(--color-primary); border-color: var(--color-primary); }
+.status_in_progress { background: var(--color-purple-bg); color: var(--color-purple); border-color: var(--color-purple); }
+.status_review, .status_pending_approval, .status_pending { background: var(--color-warning-bg); color: var(--color-warning); border-color: var(--color-warning); }
+.status_draft { background: var(--color-surface-2); color: var(--color-text-muted); border-color: var(--color-border); }
+.status_cancelled, .status_rejected { background: var(--color-danger-bg); color: var(--color-danger); border-color: var(--color-danger); }
+
+/* Role badge */
+.role {
+  background: var(--color-purple-bg);
+  color: var(--color-purple);
+  border-color: var(--color-purple);
+}
+
+/* Dot indicator */
+.withDot { padding-left: 8px; }
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}

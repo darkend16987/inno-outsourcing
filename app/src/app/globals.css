@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+
+/* ============================================
+   VAA JOB — Design System Tokens
+   ============================================ */
+
+:root {
+  /* ---- Brand Colors ---- */
+  --color-primary: #0d7c66;
+  --color-primary-light: #12a085;
+  --color-primary-dark: #095e4d;
+  --color-primary-bg: #e8f5f1;
+  --color-primary-bg-hover: #d0ebe3;
+
+  --color-accent: #f49d25;
+  --color-accent-light: #fbb756;
+  --color-accent-dark: #d4860f;
+  --color-accent-bg: #fef3e2;
+
+  --color-success: #1a8a3e;
+  --color-success-bg: #e6f4ec;
+
+  --color-warning: #c47a0a;
+  --color-warning-bg: #fef3e2;
+
+  --color-danger: #c93b28;
+  --color-danger-bg: #fce8e5;
+
+  --color-purple: #6c5ce7;
+  --color-purple-bg: #eeecfd;
+
+  --color-pink: #d63384;
+  --color-pink-bg: #fce4ef;
+
+  /* ---- Neutral Colors ---- */
+  --color-charcoal: #1a1d1e;
+  --color-text: #1a1d1e;
+  --color-text-secondary: #5a6368;
+  --color-text-muted: #8b959a;
+  --color-border: #d8dee3;
+  --color-border-light: #e8edf1;
+  --color-surface: #ffffff;
+  --color-surface-2: #f6f8fa;
+  --color-bg: #f0f3f5;
+
+  /* ---- Level Badge Colors ---- */
+  --level-l1: #1a8a3e; --level-l1-bg: #e6f4ec;
+  --level-l2: #0d7c66; --level-l2-bg: #e8f5f1;
+  --level-l3: #6c5ce7; --level-l3-bg: #eeecfd;
+  --level-l4: #c47a0a; --level-l4-bg: #fef3e2;
+  --level-l5: #c93b28; --level-l5-bg: #fce8e5;
+
+  /* ---- Typography ---- */
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+
+  /* ---- Spacing ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Radius ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* ---- Shadows ---- */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+  --shadow-neo: 3px 3px 0px 0px var(--color-charcoal);
+  --shadow-neo-sm: 2px 2px 0px 0px var(--color-charcoal);
+
+  /* ---- Transitions ---- */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Z-Index ---- */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="dark"] {
+  --color-primary: #2dd4a8;
+  --color-primary-light: #5eecc6;
+  --color-primary-dark: #1eb890;
+  --color-primary-bg: #0d2e26;
+  --color-primary-bg-hover: #123d33;
+
+  --color-accent: #fbb756;
+  --color-accent-bg: #3d2e10;
+
+  --color-success: #4ade80;
+  --color-success-bg: #132a1c;
+
+  --color-warning: #fbbf24;
+  --color-warning-bg: #3d2e10;
+
+  --color-danger: #f87171;
+  --color-danger-bg: #3b1515;
+
+  --color-purple: #a78bfa;
+  --color-purple-bg: #1e1842;
+
+  --color-pink: #f472b6;
+  --color-pink-bg: #3b1230;
+
+  --color-charcoal: #e8edf1;
+  --color-text: #e8edf1;
+  --color-text-secondary: #a3b1ba;
+  --color-text-muted: #6b7a82;
+  --color-border: #2a3438;
+  --color-border-light: #222c30;
+  --color-surface: #141a1d;
+  --color-surface-2: #1a2225;
+  --color-bg: #0e1315;
+
+  --level-l1: #4ade80; --level-l1-bg: #132a1c;
+  --level-l2: #2dd4a8; --level-l2-bg: #0d2e26;
+  --level-l3: #a78bfa; --level-l3-bg: #1e1842;
+  --level-l4: #fbbf24; --level-l4-bg: #3d2e10;
+  --level-l5: #f87171; --level-l5-bg: #3b1515;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.3);
+  --shadow-neo: 3px 3px 0px 0px rgba(255,255,255,0.15);
+  --shadow-neo-sm: 2px 2px 0px 0px rgba(255,255,255,0.12);
+}
+
+/* ============================================
+   Reset & Base
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img, video, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in { animation: fadeIn var(--transition-base) ease-out; }
+.animate-fade-in-up { animation: fadeInUp var(--transition-base) ease-out; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* ============================================
+   Skeleton Loading
+   ============================================ */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-border-light) 50%, var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}

@@ -1,0 +1,45 @@
+.roleLayout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  height: 60px;
+  background: var(--color-surface);
+  border-bottom: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.routeDesc {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contentArea {
+  flex: 1;
+  padding: var(--space-6);
+  max-width: 1400px; /* Admin might need a wider view for tables */
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .contentArea { padding: var(--space-4); }
+  .topbar { padding: 0 var(--space-4); }
+}

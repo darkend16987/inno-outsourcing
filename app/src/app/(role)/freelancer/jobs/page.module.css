@@ -1,0 +1,56 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); padding-bottom: var(--space-8); }
+
+.header { display: flex; justify-content: space-between; align-items: flex-end; }
+.title { font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: var(--space-2); }
+.subtitle { color: var(--color-text-muted); font-size: 15px; }
+
+.filterTabs {
+  display: flex; gap: var(--space-2);
+  padding-bottom: var(--space-4); margin-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-border);
+}
+.tab {
+  padding: 8px 16px; border-radius: var(--radius-full);
+  background: var(--color-surface); border: 1.5px solid var(--color-border);
+  font-size: 14px; font-weight: 600; color: var(--color-text-muted);
+  cursor: pointer; transition: all var(--transition-fast);
+}
+.tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.activeTab {
+  background: var(--color-charcoal); border-color: var(--color-charcoal);
+  color: #fff;
+}
+.activeTab:hover { color: #fff; }
+
+.jobList { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.jobCard {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-5);
+}
+
+.jobMain { display: flex; flex-direction: column; gap: var(--space-2); flex: 1; }
+.jobTags { display: flex; gap: var(--space-2); margin-bottom: 4px; }
+.jobTitle { font-size: 18px; font-weight: 700; color: var(--color-charcoal); }
+.jobMeta { display: flex; gap: var(--space-4); align-items: center; font-size: 13px; color: var(--color-text-muted); margin-top: 4px; }
+.jobMeta span { display: flex; align-items: center; gap: 4px; }
+.fee { font-weight: 700; color: var(--color-accent) !important; font-size: 14px; }
+
+.jobAction {
+  width: 200px; display: flex; flex-direction: column; gap: var(--space-4);
+  align-items: flex-end; padding-left: var(--space-6);
+  border-left: 2px dashed var(--color-border); margin-left: var(--space-6);
+}
+
+.progressBlock { width: 100%; }
+.pHeader { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.pBar { width: 100%; height: 6px; background: var(--color-bg); border-radius: 3px; overflow: hidden; }
+.pFill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+
+.empty { padding: var(--space-8); text-align: center; color: var(--color-text-muted); font-size: 14px; background: var(--color-surface); border-radius: var(--radius-lg); border: 2px dashed var(--color-border); }
+
+@media (max-width: 768px) {
+  .header { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .jobCard { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .jobAction { width: 100%; padding-left: 0; margin-left: 0; border-left: none; border-top: 2px dashed var(--color-border); padding-top: var(--space-4); align-items: flex-start; }
+}

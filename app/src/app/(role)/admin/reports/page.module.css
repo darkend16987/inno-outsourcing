@@ -1,0 +1,108 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: var(--space-2);
+}
+.title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: var(--space-2);
+}
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+.reportSelect {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  font-size: 14px;
+  background: var(--color-surface);
+  outline: none;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+}
+.chartCard {
+  background: var(--color-surface);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+}
+.chartTitle {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+  color: var(--color-charcoal);
+  border-bottom: 2px solid var(--color-bg);
+  padding-bottom: var(--space-3);
+}
+.placeholderChart {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-light);
+  min-height: 250px;
+  font-size: 13px;
+}
+
+.topUsersCard {
+  background: var(--color-surface);
+  padding: var(--space-6);
+}
+.tTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tTable th, .tTable td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1.5px solid var(--color-bg);
+  font-size: 14px;
+}
+.tTable th {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.rev {
+  color: var(--color-success);
+}
+
+@media (max-width: 1024px) {
+  .metricsGrid { grid-template-columns: repeat(2, 1fr); }
+  .chartsGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .metricsGrid { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .actions { width: 100%; justify-content: space-between; }
+}

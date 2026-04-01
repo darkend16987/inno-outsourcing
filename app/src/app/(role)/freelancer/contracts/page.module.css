@@ -1,0 +1,46 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); padding-bottom: var(--space-8); }
+
+.header { display: flex; justify-content: space-between; align-items: flex-end; }
+.title { font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: var(--space-2); }
+.subtitle { color: var(--color-text-muted); font-size: 15px; }
+
+.toolbar { display: flex; padding-bottom: var(--space-4); margin-bottom: var(--space-2); border-bottom: 2px solid var(--color-border); }
+.searchBox {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--color-surface); border: 1.5px solid var(--color-border);
+  padding: 8px 12px; border-radius: var(--radius-md); width: 100%; max-width: 400px;
+}
+.searchBox svg { color: var(--color-text-muted); }
+.searchBox input { border: none; background: transparent; outline: none; font-size: 14px; width: 100%; }
+
+.list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.contractCard {
+  display: flex; align-items: center; gap: var(--space-5);
+  padding: var(--space-5);
+  transition: border-color var(--transition-fast);
+}
+.contractCard:hover { border-color: var(--color-primary); }
+
+.iconBox {
+  width: 48px; height: 48px; border-radius: var(--radius-md);
+  background: var(--color-primary-bg); color: var(--color-primary);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+.cMain { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.cHeader { display: flex; align-items: center; gap: var(--space-3); }
+.cNumber { font-size: 16px; font-weight: 700; color: var(--color-charcoal); }
+.cJob { font-size: 14px; font-weight: 500; color: var(--color-text); margin-top: 2px; }
+.cMeta { display: flex; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--color-text-muted); margin-top: 4px; }
+.sep { opacity: 0.3; }
+
+.cActions { display: flex; align-items: center; margin-left: var(--space-4); }
+
+.empty { padding: var(--space-8); text-align: center; color: var(--color-text-muted); font-size: 14px; background: var(--color-surface); border-radius: var(--radius-lg); border: 2px dashed var(--color-border); }
+
+@media (max-width: 768px) {
+  .contractCard { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .cActions { margin-left: 0; margin-top: var(--space-2); width: 100%; }
+  .cActions button { width: 100%; }
+}
