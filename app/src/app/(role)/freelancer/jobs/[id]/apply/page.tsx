@@ -7,7 +7,7 @@ import { CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle, Loader2, Inbox } fr
 import { Button, Card } from '@/components/ui';
 import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { formatFriendlyMoney } from '@/lib/formatters';
+import { formatFriendlyMoney, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import type { Job } from '@/types';
 import styles from './page.module.css';
 
@@ -85,8 +85,9 @@ export default function ApplyPage() {
   };
 
   const handleFeeChange = (val: string) => {
-    setExpectedFee(val);
-    validateFee(val);
+    const formatted = formatCurrencyInput(val);
+    setExpectedFee(formatted);
+    validateFee(formatted);
   };
 
   const handleNext = () => {
@@ -125,7 +126,7 @@ export default function ApplyPage() {
         applicantLevel: userProfile.currentLevel || userProfile.selfAssessedLevel || 'L1',
         applicantSpecialties: userProfile.specialties || [],
         availableDate: new Date().toISOString().split('T')[0],
-        expectedFee: expectedFee ? parseInt(expectedFee.replace(/\D/g, ''), 10) : undefined,
+        expectedFee: expectedFee ? parseCurrencyInput(expectedFee) : undefined,
         coverLetter,
         portfolioLink: portfolioLink || '',
       });
@@ -303,7 +304,7 @@ export default function ApplyPage() {
                     <strong>Dự án:</strong> {job.title}
                   </div>
                   <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
-                    <strong>Mức phí đề xuất:</strong> {expectedFee ? `${parseInt(expectedFee.replace(/\D/g, ''), 10).toLocaleString('vi-VN')}₫` : `Theo ngân sách (${formatFriendlyMoney(budget)})`}
+                    <strong>Mức phí đề xuất:</strong> {expectedFee ? `${parseCurrencyInput(expectedFee).toLocaleString('vi-VN')}₫` : `Theo ngân sách (${formatFriendlyMoney(budget)})`}
                   </div>
                   <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
                     <strong>Thời gian dự kiến:</strong> {estimatedDays ? `${estimatedDays} ngày` : `Theo yêu cầu (${job.duration || '-'} ngày)`}

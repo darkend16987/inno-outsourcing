@@ -8,14 +8,15 @@ import {
   ArrowLeft, Clock, Briefcase, Calendar, 
   Sparkles, Zap, Star, Target, Send,
   FileText, MessageSquare, Info, X,
-  CheckCircle, ExternalLink, AlertCircle
+  CheckCircle, ExternalLink, AlertCircle,
+  Share2, Copy, Check
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { CompletionChecklist, ChecklistItemData } from '@/components/checklist/CompletionChecklist';
 import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { formatFriendlyMoney, formatDate } from '@/lib/formatters';
+import { formatFriendlyMoney, formatDate, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import styles from './page.module.css';
 
 const fadeUp = {
@@ -61,6 +62,7 @@ function ApplyModal({ isOpen, onClose, job, onSuccess }: ApplyModalProps) {
   const { userProfile } = useAuth();
   const [availableDate, setAvailableDate] = useState('');
   const [expectedFee, setExpectedFee] = useState('');
+  const [useBudget, setUseBudget] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
   const [portfolioLink, setPortfolioLink] = useState('');
   const [agreedScope, setAgreedScope] = useState(false);
@@ -84,7 +86,7 @@ function ApplyModal({ isOpen, onClose, job, onSuccess }: ApplyModalProps) {
         applicantLevel: userProfile.currentLevel || 'L1',
         applicantSpecialties: userProfile.specialties || [],
         availableDate,
-        expectedFee: expectedFee ? parseInt(expectedFee.replace(/\D/g, '')) : undefined,
+        expectedFee: useBudget ? job.totalFee : (expectedFee ? parseCurrencyInput(expectedFee) : undefined),
         coverLetter,
         portfolioLink,
       });
@@ -181,13 +183,25 @@ function ApplyModal({ isOpen, onClose, job, onSuccess }: ApplyModalProps) {
                 </div>
                 <div className={styles.formField}>
                   <label className={styles.formLabel}>Mức thù lao kỳ vọng (VND)</label>
-                  <input 
-                    type="text" 
-                    className={styles.formInput} 
-                    placeholder={`Đồng ý: ${formatFriendlyMoney(job.totalFee)}`}
-                    value={expectedFee}
-                    onChange={e => setExpectedFee(e.target.value)}
-                  />
+                  <div className={styles.feeInputGroup}>
+                    <button
+                      type="button"
+                      className={`${styles.budgetBtn} ${useBudget ? styles.budgetBtnActive : ''}`}
+                      onClick={() => { setUseBudget(!useBudget); if (!useBudget) setExpectedFee(''); }}
+                    >
+                      {useBudget ? <Check size={14} /> : null}
+                      Đồng ý theo budget ({formatFriendlyMoney(job.totalFee)})
+                    </button>
+                    {!useBudget && (
+                      <input 
+                        type="text" 
+                        className={styles.formInput} 
+                        placeholder="VD: 120.000.000"
+                        value={expectedFee}
+                        onChange={e => setExpectedFee(formatCurrencyInput(e.target.value))}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -607,6 +621,41 @@ export default function JobDetailPage() {
                   <div className={styles.contactRow}><span>Hỗ trợ:</span> <strong>Chat ngay</strong></div>
                   <Button variant="outline" size="sm" fullWidth className={styles.contactBtn} icon={<MessageSquare size={14}/>}>Nhắn trao đổi</Button>
                 </div>
+              </div>
+            </Card>
+
+            {/* Social Share */}
+            <Card className={styles.infoCard}>
+              <h3 className={styles.infoTitle}><Share2 size={18} color="var(--color-primary)"/> Chia sẻ công việc</h3>
+              <div className={styles.shareRow}>
+                <button
+                  className={styles.shareBtn}
+                  data-type="facebook"
+                  onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank', 'width=600,height=400')}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Facebook
+                </button>
+                <button
+                  className={styles.shareBtn}
+                  data-type="zalo"
+                  onClick={() => window.open(`https://zalo.me/share/phone?link=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(job.title)}`, '_blank')}
+                >
+                  💬 Zalo
+                </button>
+                <button
+                  className={styles.shareBtn}
+                  data-type="linkedin"
+                  onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank', 'width=600,height=400')}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> LinkedIn
+                </button>
+                <button
+                  className={styles.shareBtn}
+                  data-type="copy"
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Đã copy link!'); }}
+                >
+                  <Copy size={16} /> Copy link
+                </button>
               </div>
             </Card>
 

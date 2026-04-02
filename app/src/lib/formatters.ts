@@ -79,3 +79,22 @@ export function formatDate(date: Date | string | number | { toDate: () => Date }
     year: 'numeric'
   });
 }
+
+/**
+ * Formats a raw number string into Vietnamese thousands-separated format.
+ * e.g. "4000000" → "4.000.000"
+ * Strips non-digit characters first, then formats.
+ */
+export function formatCurrencyInput(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+/**
+ * Parses a formatted currency string back to a number.
+ * e.g. "4.000.000" → 4000000
+ */
+export function parseCurrencyInput(value: string): number {
+  return parseInt(value.replace(/\D/g, ''), 10) || 0;
+}

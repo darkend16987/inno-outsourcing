@@ -8,6 +8,7 @@ import { getConfigItems, type SystemConfigItem, type ConfigCategory } from '@/li
 import { createJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { cache } from '@/lib/cache/swr-cache';
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import styles from './page.module.css';
 
 interface MilestoneForm {
@@ -116,7 +117,7 @@ export default function CreateJobPage() {
 
     setSaving(true);
     try {
-      const feeNumber = Number(totalFee.replace(/[^0-9]/g, ''));
+      const feeNumber = parseCurrencyInput(totalFee);
       const jobData = {
         title: title.trim(),
         description: description.trim(),
@@ -244,9 +245,9 @@ export default function CreateJobPage() {
                 <input
                   type="text"
                   className={styles.input}
-                  placeholder="Ví dụ: 120000000"
+                  placeholder="VD: 120.000.000"
                   value={totalFee}
-                  onChange={e => setTotalFee(e.target.value)}
+                  onChange={e => setTotalFee(formatCurrencyInput(e.target.value))}
                 />
               </div>
               <div className={styles.formGroup}>

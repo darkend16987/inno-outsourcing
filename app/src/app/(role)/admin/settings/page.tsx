@@ -8,8 +8,8 @@ import {
 import { Button, Badge, Card } from '@/components/ui';
 import {
   getConfigItems, saveConfigItems, addConfigItem, deleteConfigItem,
-  getBanners, deleteBanner,
-  getTestimonials, deleteTestimonial,
+  getBanners, saveBanner, deleteBanner,
+  getTestimonials, saveTestimonial, deleteTestimonial,
   type SystemConfigItem, type BannerItem, type TestimonialItem, type ConfigCategory
 } from '@/lib/firebase/system-config';
 import styles from './page.module.css';
@@ -35,6 +35,16 @@ export default function AdminSettingsPage() {
   const [newLabel, setNewLabel] = useState('');
   const [newColor, setNewColor] = useState('#0d7c66');
   const [newDesc, setNewDesc] = useState('');
+  // Banner form
+  const [bnTitle, setBnTitle] = useState('');
+  const [bnImageUrl, setBnImageUrl] = useState('');
+  const [bnLinkUrl, setBnLinkUrl] = useState('');
+  // Testimonial form
+  const [tmName, setTmName] = useState('');
+  const [tmRole, setTmRole] = useState('');
+  const [tmCompany, setTmCompany] = useState('');
+  const [tmContent, setTmContent] = useState('');
+  const [tmRating, setTmRating] = useState('5');
 
   useEffect(() => {
     loadData();
@@ -223,7 +233,25 @@ export default function AdminSettingsPage() {
           {/* Banners Tab */}
           {activeTab === 'banners' && (
             <div className={styles.configSection}>
-              <p className={styles.tabHint}>Quản lý banner hiển thị trên trang chủ. Hỗ trợ hình ảnh full-width.</p>
+              <p className={styles.tabHint}>Quản lý banner hiển thị trên trang chủ. <strong>Khuyến nghị:</strong> Ảnh kích thước 1200×400px, định dạng JPG/PNG, tối đa 5 banner.</p>
+              <Card className={styles.addForm}>
+                <div className={styles.addRow}>
+                  <input type="text" placeholder="Tiêu đề banner..." value={bnTitle} onChange={e => setBnTitle(e.target.value)} className={styles.input} />
+                  <input type="url" placeholder="URL hình ảnh (1200×400px)" value={bnImageUrl} onChange={e => setBnImageUrl(e.target.value)} className={styles.input} />
+                </div>
+                <div className={styles.addRow} style={{marginTop: 8}}>
+                  <input type="url" placeholder="Link khi click (tuỳ chọn)" value={bnLinkUrl} onChange={e => setBnLinkUrl(e.target.value)} className={styles.input} />
+                  <Button variant="primary" size="sm" icon={<Plus size={14} />} disabled={saving || !bnImageUrl.trim()} onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await saveBanner({ imageUrl: bnImageUrl.trim(), title: bnTitle.trim() || undefined, linkUrl: bnLinkUrl.trim() || undefined, isActive: true, order: banners.length });
+                      setBnTitle(''); setBnImageUrl(''); setBnLinkUrl('');
+                      await loadData();
+                    } catch (err) { console.error(err); }
+                    setSaving(false);
+                  }}>Thêm banner</Button>
+                </div>
+              </Card>
               {banners.map(b => (
                 <div key={b.id} className={styles.bannerItem}>
                   <div className={styles.bannerPreview}>
@@ -238,14 +266,39 @@ export default function AdminSettingsPage() {
                   </button>
                 </div>
               ))}
-              {banners.length === 0 && <p className={styles.emptyMsg}>Chưa có banner nào.</p>}
+              {banners.length === 0 && <p className={styles.emptyMsg}>Chưa có banner nào. Thêm banner đầu tiên ở trên.</p>}
             </div>
           )}
 
           {/* Testimonials Tab */}
           {activeTab === 'testimonials' && (
             <div className={styles.configSection}>
-              <p className={styles.tabHint}>Quản lý nhận xét hiển thị trên trang chủ.</p>
+              <p className={styles.tabHint}>Quản lý nhận xét hiển thị trên trang chủ. <strong>Khuyến nghị:</strong> Nội dung 50–200 ký tự, tối đa 6 nhận xét.</p>
+              <Card className={styles.addForm}>
+                <div className={styles.addRow}>
+                  <input type="text" placeholder="Tên người nhận xét" value={tmName} onChange={e => setTmName(e.target.value)} className={styles.input} />
+                  <input type="text" placeholder="Vai trò (KTS, PM...)" value={tmRole} onChange={e => setTmRole(e.target.value)} className={styles.inputSmall} />
+                  <input type="text" placeholder="Công ty" value={tmCompany} onChange={e => setTmCompany(e.target.value)} className={styles.inputSmall} />
+                </div>
+                <div className={styles.addRow} style={{marginTop: 8}}>
+                  <input type="text" placeholder="Nội dung nhận xét (50–200 ký tự)" value={tmContent} onChange={e => setTmContent(e.target.value)} className={styles.input} maxLength={200} />
+                  <select value={tmRating} onChange={e => setTmRating(e.target.value)} className={styles.inputSmall} style={{maxWidth: 80}}>
+                    <option value="5">⭐ 5</option>
+                    <option value="4">⭐ 4</option>
+                    <option value="3">⭐ 3</option>
+                  </select>
+                  <Button variant="primary" size="sm" icon={<Plus size={14} />} disabled={saving || !tmName.trim() || !tmContent.trim()} onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await saveTestimonial({ name: tmName.trim(), role: tmRole.trim(), company: tmCompany.trim(), avatarUrl: '', content: tmContent.trim(), rating: parseInt(tmRating), isActive: true, order: testimonials.length });
+                      setTmName(''); setTmRole(''); setTmCompany(''); setTmContent(''); setTmRating('5');
+                      await loadData();
+                    } catch (err) { console.error(err); }
+                    setSaving(false);
+                  }}>Thêm</Button>
+                </div>
+                <p style={{fontSize: 12, color: 'var(--color-text-muted)', marginTop: 6}}>Đã nhập {tmContent.length}/200 ký tự</p>
+              </Card>
               {testimonials.map(t => (
                 <div key={t.id} className={styles.testimonialItem}>
                   <div className={styles.testInfo}>
@@ -259,7 +312,7 @@ export default function AdminSettingsPage() {
                   </button>
                 </div>
               ))}
-              {testimonials.length === 0 && <p className={styles.emptyMsg}>Chưa có nhận xét nào.</p>}
+              {testimonials.length === 0 && <p className={styles.emptyMsg}>Chưa có nhận xét nào. Thêm nhận xét đầu tiên ở trên.</p>}
             </div>
           )}
         </>
