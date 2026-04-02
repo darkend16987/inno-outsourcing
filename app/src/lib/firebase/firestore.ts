@@ -545,31 +545,36 @@ export const getUserBadges = async (uid: string): Promise<UserBadge[]> => {
  */
 const computeLeaderboardFromUsers = async (): Promise<LeaderboardEntry[]> => {
   if (!db) return [];
-  const q = query(
-    collection(db, 'users'),
-    where('role', '==', 'freelancer'),
-    orderBy('createdAt', 'desc'),
-    limit(50)
-  );
-  const snapshot = await getDocs(q);
-  const entries: LeaderboardEntry[] = snapshot.docs
-    .map(d => {
-      const data = d.data();
-      const stats = data.stats || {};
-      return {
-        uid: d.id,
-        name: data.displayName || 'Chưa cập nhật',
-        avatar: data.photoURL || undefined,
-        level: data.currentLevel || 'L1',
-        specialty: (data.specialties && data.specialties[0]) || 'Chưa chọn',
-        earnings: stats.totalEarnings || 0,
-        rating: stats.avgRating || 0,
-        completedJobs: stats.completedJobs || 0,
-        badges: [],
-      } as LeaderboardEntry;
-    })
-    .sort((a, b) => b.earnings - a.earnings || b.rating - a.rating);
-  return entries;
+  try {
+    // Simple query — no composite index needed
+    const q = query(
+      collection(db, 'users'),
+      where('role', '==', 'freelancer'),
+      limit(50)
+    );
+    const snapshot = await getDocs(q);
+    const entries: LeaderboardEntry[] = snapshot.docs
+      .map(d => {
+        const data = d.data();
+        const stats = data.stats || {};
+        return {
+          uid: d.id,
+          name: data.displayName || 'Chưa cập nhật',
+          avatar: data.photoURL || undefined,
+          level: data.currentLevel || 'L1',
+          specialty: (data.specialties && data.specialties[0]) || 'Chưa chọn',
+          earnings: stats.totalEarnings || 0,
+          rating: stats.avgRating || 0,
+          completedJobs: stats.completedJobs || 0,
+          badges: [],
+        } as LeaderboardEntry;
+      })
+      .sort((a, b) => b.earnings - a.earnings || b.rating - a.rating);
+    return entries;
+  } catch (err) {
+    console.error('computeLeaderboardFromUsers failed:', err);
+    return [];
+  }
 };
 
 export const getLeaderboard = async (period?: string): Promise<LeaderboardEntry[]> => {

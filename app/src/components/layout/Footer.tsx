@@ -29,7 +29,7 @@ export function Footer() {
           <div className={styles.linkCol}>
             <h4 className={styles.colTitle}>Nền tảng</h4>
             <Link href="/jobs" className={styles.link}>Việc làm</Link>
-            <Link href="/leaderboard" className={styles.link}>Bảng xếp hạng</Link>
+            <Link href="/vinh-danh" className={styles.link}>Bảng xếp hạng</Link>
             <Link href="/badges" className={styles.link}>Huy hiệu</Link>
             <Link href="/register" className={styles.link}>Đăng ký</Link>
           </div>
