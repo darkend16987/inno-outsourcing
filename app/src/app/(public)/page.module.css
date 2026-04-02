@@ -101,7 +101,7 @@
 /* ── Activity Feed ── */
 .activityFeedWrapper {
   position: sticky;
-  top: 64px;
+  top: 64px; /* stick right below the 64px header when scrolling */
   z-index: 10;
   overflow: hidden;
   background: var(--color-surface);

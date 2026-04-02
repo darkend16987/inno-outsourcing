@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ls /d/GitHub/inno-outsourcing/*.md /d/GitHub/inno-outsourcing/app/*.md)",
+      "Bash(ls /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/admin/)",
+      "Bash(ls -d /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/admin/)",
+      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)/jobmaster/\")"
     ]
   }
 }
