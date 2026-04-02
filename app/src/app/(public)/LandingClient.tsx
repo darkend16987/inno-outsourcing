@@ -11,41 +11,20 @@ import {
 } from 'lucide-react';
 import { Button, Badge, Card, MetricCard, Avatar, LevelBadge } from '@/components/ui';
 import { formatFriendlyMoney } from '@/lib/formatters';
-import { getJobs } from '@/lib/firebase/firestore';
+import { getJobs, getLeaderboard } from '@/lib/firebase/firestore';
 import { getTestimonials, type TestimonialItem } from '@/lib/firebase/system-config';
+import type { LeaderboardEntry, Job } from '@/types';
 import styles from './page.module.css';
-
-const MOCK_ACTIVITIES = [
-  { id: 1, type: 'assign', user: 'Trần Minh Tuấn', job: 'BIM Modeling tổ hợp văn phòng', time: '10 phút trước' },
-  { id: 2, type: 'payment', user: 'Lê Thị Hoa', job: 'Hệ thống MEP chung cư', time: '1 giờ trước', note: 'nhận thanh toán 100%' },
-  { id: 3, type: 'complete', user: 'Nguyễn Thanh Hùng', job: 'Thiết kế kiến trúc Nhà xưởng', time: '3 giờ trước', note: 'vừa hoàn thành xuất sắc' },
-  { id: 4, type: 'assign', user: 'Phạm Đức Anh', job: 'Dự toán công trình trường học', time: '5 giờ trước' },
-  { id: 5, type: 'new', job: 'Thẩm tra PCCC tòa nhà hỗn hợp Hà Nội', time: 'Vừa xong', note: 'mới được đăng tải' },
-];
-
-const MOCK_STATS = [
-  { label: 'Dự án đang mở', value: '42', icon: <Briefcase size={20} /> },
-  { label: 'Freelancers', value: '186', icon: <Users size={20} /> },
-  { label: 'Tổng giá trị HĐ', value: '2.8 tỏi', icon: <TrendingUp size={20} /> },
-  { label: 'Hoàn thành đúng hạn', value: '94%', icon: <Clock size={20} /> },
-];
-
-const MOCK_TOP_WORKERS = [
-  { rank: 1, name: 'Nguyễn Thanh Hùng', level: 'L5' as const, specialty: 'BIM', rating: 4.9, jobs: 32, earnings: 680000000 },
-  { rank: 2, name: 'Trần Minh Tuấn', level: 'L4' as const, specialty: 'Kết cấu', rating: 4.8, jobs: 28, earnings: 520000000 },
-  { rank: 3, name: 'Lê Thị Hoa', level: 'L4' as const, specialty: 'MEP', rating: 4.9, jobs: 25, earnings: 480000000 },
-  { rank: 4, name: 'Phạm Đức Anh', level: 'L3' as const, specialty: 'Kiến trúc', rating: 4.7, jobs: 21, earnings: 350000000 },
-];
 
 // Category icons using distinct Lucide icons with playful colors
 const CATEGORIES = [
-  { name: 'Kiến trúc', icon: Building2, count: 12, color: '#0d7c66', emoji: '🏛️' },
-  { name: 'Kết cấu', icon: Shield, count: 8, color: '#6c5ce7', emoji: '🏗️' },
-  { name: 'MEP', icon: Cable, count: 10, color: '#f49d25', emoji: '⚡' },
-  { name: 'BIM', icon: Sparkles, count: 6, color: '#c93b28', emoji: '🧊' },
-  { name: 'Dự toán', icon: FileSpreadsheet, count: 4, color: '#1a8a3e', emoji: '📊' },
-  { name: 'Giám sát', icon: Eye, count: 3, color: '#c47a0a', emoji: '👁️' },
-  { name: 'Thẩm tra', icon: Ruler, count: 2, color: '#d63384', emoji: '📐' },
+  { name: 'Kiến trúc', icon: Building2, color: '#0d7c66', emoji: '🏛️' },
+  { name: 'Kết cấu', icon: Shield, color: '#6c5ce7', emoji: '🏗️' },
+  { name: 'MEP', icon: Cable, color: '#f49d25', emoji: '⚡' },
+  { name: 'BIM', icon: Sparkles, color: '#c93b28', emoji: '🧊' },
+  { name: 'Dự toán', icon: FileSpreadsheet, color: '#1a8a3e', emoji: '📊' },
+  { name: 'Giám sát', icon: Eye, color: '#c47a0a', emoji: '👁️' },
+  { name: 'Thẩm tra', icon: Ruler, color: '#d63384', emoji: '📐' },
 ];
 
 const fadeUp = {
@@ -53,34 +32,63 @@ const fadeUp = {
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } }),
 };
 
-function getJobFee(job: Record<string, unknown>): number {
-  if (typeof job.totalFee === 'number') return job.totalFee;
-  if (typeof job.fee === 'number') return job.fee;
-  return 0;
+function getJobFee(job: Job): number {
+  return job.totalFee || 0;
 }
 
-function getJobDuration(job: Record<string, unknown>): string {
+function getJobDuration(job: Job): string {
   if (typeof job.duration === 'number') return `${job.duration} ngày`;
-  if (typeof job.duration === 'string') return job.duration;
   return '';
 }
 
 export default function LandingClient() {
   const [jobTab, setJobTab] = useState<'latest' | 'hot'>('latest');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [liveJobs, setLiveJobs] = useState<any[]>([]);
+  const [liveJobs, setLiveJobs] = useState<Job[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [topWorkers, setTopWorkers] = useState<LeaderboardEntry[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
+
+  // Computed stats from real data
+  const [stats, setStats] = useState([
+    { label: 'Dự án đang mở', value: '…', icon: <Briefcase size={20} /> },
+    { label: 'Freelancers', value: '…', icon: <Users size={20} /> },
+    { label: 'Tổng giá trị HĐ', value: '…', icon: <TrendingUp size={20} /> },
+    { label: 'Top Rating', value: '…', icon: <Star size={20} /> },
+  ]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [jobRes, testRes] = await Promise.all([
+        const [jobResult, testResult, leaderboardResult] = await Promise.allSettled([
           getJobs(),
           getTestimonials(),
+          getLeaderboard(),
         ]);
-        setLiveJobs(jobRes.items || []);
+
+        const jobs = jobResult.status === 'fulfilled' ? (jobResult.value.items || []) : [];
+        const testRes = testResult.status === 'fulfilled' ? testResult.value : [];
+        const leaderboardRes = leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [];
+
+        if (jobResult.status === 'rejected') console.warn('Landing: getJobs failed:', jobResult.reason);
+        if (testResult.status === 'rejected') console.warn('Landing: getTestimonials failed:', testResult.reason);
+        if (leaderboardResult.status === 'rejected') console.warn('Landing: getLeaderboard failed:', leaderboardResult.reason);
+
+        setLiveJobs(jobs);
         setTestimonials(testRes.filter(t => t.isActive));
+        setTopWorkers(leaderboardRes.slice(0, 4));
+
+        // Compute stats from real data
+        const openJobs = jobs.filter(j => j.status === 'draft' || j.status === 'pending_approval' || !j.assignedTo).length;
+        const totalValue = jobs.reduce((sum, j) => sum + getJobFee(j), 0);
+        const topRating = leaderboardRes.length > 0
+          ? Math.max(...leaderboardRes.map(w => w.rating || 0)).toFixed(1)
+          : '-';
+        setStats([
+          { label: 'Dự án đang mở', value: String(openJobs), icon: <Briefcase size={20} /> },
+          { label: 'Tổng dự án', value: String(jobs.length), icon: <Users size={20} /> },
+          { label: 'Tổng giá trị', value: formatFriendlyMoney(totalValue), icon: <TrendingUp size={20} /> },
+          { label: 'Top Rating', value: `${topRating}⭐`, icon: <Star size={20} /> },
+        ]);
       } catch (err) {
         console.error('Error fetching landing data:', err);
       }
@@ -89,49 +97,75 @@ export default function LandingClient() {
     fetchData();
   }, []);
 
+  // Compute category counts from real jobs
+  const categoryCounts: Record<string, number> = {};
+  liveJobs.forEach(j => {
+    const cat = j.category;
+    if (cat) categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+
   // Split jobs: "Latest" = sorted by createdAt desc, "Hot" = jobs with highlight tags
   const latestJobs = [...liveJobs].sort((a, b) => {
-    const aTime = a.createdAt?.seconds || 0;
-    const bTime = b.createdAt?.seconds || 0;
-    return bTime - aTime;
+    const aDate = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+    const bDate = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+    return bDate - aDate;
   }).slice(0, 6);
 
   const hotJobs = liveJobs.filter(j =>
-    j.highlightTags?.some((t: string) => ['HOT', 'Siêu tốc'].includes(t)) || getJobFee(j) >= 50_000_000
+    j.highlightTags?.some(t => ['HOT', 'Siêu tốc'].includes(t)) || getJobFee(j) >= 50_000_000
   ).slice(0, 6);
 
   const displayJobs = jobTab === 'hot' ? hotJobs : latestJobs;
 
+  // Build recent activities from real jobs
+  const recentActivities = liveJobs
+    .filter(j => j.assignedWorkerName || j.status === 'pending_approval')
+    .slice(0, 5)
+    .map((j, idx) => ({
+      id: idx + 1,
+      type: !j.assignedTo ? 'new' as const : j.status === 'completed' ? 'complete' as const : 'assign' as const,
+      user: j.assignedWorkerName || '',
+      job: j.title || '',
+      time: 'Gần đây',
+      note: j.status === 'completed' ? 'đã hoàn thành' : !j.assignedTo ? 'vừa được đăng tải' : '',
+    }));
+
+  // Current month string
+  const now = new Date();
+  const monthStr = `${now.getMonth() + 1}/${now.getFullYear()}`;
+
   return (
     <div className={styles.page}>
       {/* ── Activity Feed ── */}
-      <section className={styles.activityFeedWrapper}>
-        <div className={styles.activityFeedLabel}>
-          <Zap size={16} /> Hoạt động mới:
-        </div>
-        <div className={styles.activityMarquee}>
-          <div className={styles.activityTrack}>
-            {[...MOCK_ACTIVITIES, ...MOCK_ACTIVITIES].map((activity, idx) => (
-              <div key={`${activity.id}-${idx}`} className={styles.activityItem}>
-                <span className={styles.activityTime}>{activity.time}</span>
-                {activity.type === 'new' ? (
-                  <>
-                    Dự án <span className={styles.activityHighlight}>{activity.job}</span> {activity.note}
-                  </>
-                ) : activity.type === 'assign' ? (
-                  <>
-                    <span className={styles.activityHighlight}>{activity.user}</span> đã nhận dự án <span className={styles.activityHighlight}>{activity.job}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className={styles.activityHighlight}>{activity.user}</span> {activity.note} dự án <span className={styles.activityHighlight}>{activity.job}</span>
-                  </>
-                )}
-              </div>
-            ))}
+      {recentActivities.length > 0 && (
+        <section className={styles.activityFeedWrapper}>
+          <div className={styles.activityFeedLabel}>
+            <Zap size={16} /> Hoạt động mới:
           </div>
-        </div>
-      </section>
+          <div className={styles.activityMarquee}>
+            <div className={styles.activityTrack}>
+              {[...recentActivities, ...recentActivities].map((activity, idx) => (
+                <div key={`${activity.id}-${idx}`} className={styles.activityItem}>
+                  <span className={styles.activityTime}>{activity.time}</span>
+                  {activity.type === 'new' ? (
+                    <>
+                      Dự án <span className={styles.activityHighlight}>{activity.job}</span> {activity.note}
+                    </>
+                  ) : activity.type === 'assign' ? (
+                    <>
+                      <span className={styles.activityHighlight}>{activity.user}</span> đã nhận dự án <span className={styles.activityHighlight}>{activity.job}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={styles.activityHighlight}>{activity.user}</span> {activity.note} dự án <span className={styles.activityHighlight}>{activity.job}</span>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Hero Section ── */}
       <section className={styles.hero}>
@@ -165,7 +199,7 @@ export default function LandingClient() {
       <section className={styles.statsSection}>
         <div className={styles.container}>
           <div className={styles.statsGrid}>
-            {MOCK_STATS.map((stat, i) => (
+            {stats.map((stat, i) => (
               <motion.div key={stat.label} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
                 <MetricCard label={stat.label} value={stat.value} icon={stat.icon} />
               </motion.div>
@@ -193,7 +227,7 @@ export default function LandingClient() {
                       <cat.icon size={20} />
                     </div>
                     <h3 className={styles.catName}>{cat.name}</h3>
-                    <span className={styles.catCount}>{cat.count} dự án</span>
+                    <span className={styles.catCount}>{categoryCounts[cat.name] || 0} dự án</span>
                     <span className={styles.catArrow}><ArrowRight size={14} /></span>
                   </Card>
                 </Link>
@@ -299,38 +333,44 @@ export default function LandingClient() {
           <div className={styles.sectionHeader}>
             <div>
               <h2 className={styles.sectionTitle}>Vinh danh tháng này</h2>
-              <p className={styles.sectionDesc}>Top freelancers xuất sắc nhất tháng 4/2026</p>
+              <p className={styles.sectionDesc}>Top freelancers xuất sắc nhất tháng {monthStr}</p>
             </div>
             <Link href="/vinh-danh">
               <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />}>Xem bảng xếp hạng</Button>
             </Link>
           </div>
           <div className={styles.honorGrid}>
-            {MOCK_TOP_WORKERS.map((worker, i) => (
-              <motion.div key={worker.rank} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
-                <Card variant={worker.rank === 1 ? 'accent' : 'default'} hover className={styles.honorCard}>
-                  {worker.rank <= 3 && (
-                    <span className={`${styles.rankBadge} ${styles[`rank${worker.rank}`]}`}>
-                      {worker.rank === 1 ? '🥇' : worker.rank === 2 ? '🥈' : '🥉'}
-                    </span>
-                  )}
-                  <Avatar name={worker.name} size="lg" level={worker.level} />
-                  <h4 className={styles.honorName}>{worker.name}</h4>
-                  <Badge variant="default">{worker.specialty}</Badge>
-                  <div className={styles.honorStats}>
-                    <div>
-                      <Star size={12} className={styles.starIcon} />
-                      <span>{worker.rating}</span>
+            {topWorkers.length > 0 ? (
+              topWorkers.map((worker, i) => (
+                <motion.div key={worker.uid || i} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
+                  <Card variant={i === 0 ? 'accent' : 'default'} hover className={styles.honorCard}>
+                    {i < 3 && (
+                      <span className={`${styles.rankBadge} ${styles[`rank${i + 1}`]}`}>
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                      </span>
+                    )}
+                    <Avatar name={worker.name} size="lg" level={worker.level} />
+                    <h4 className={styles.honorName}>{worker.name}</h4>
+                    <Badge variant="default">{worker.specialty}</Badge>
+                    <div className={styles.honorStats}>
+                      <div>
+                        <Star size={12} className={styles.starIcon} />
+                        <span>{worker.rating?.toFixed(1) || '-'}</span>
+                      </div>
+                      <div>
+                        <Briefcase size={12} />
+                        <span>{worker.completedJobs || 0} jobs</span>
+                      </div>
                     </div>
-                    <div>
-                      <Briefcase size={12} />
-                      <span>{worker.jobs} jobs</span>
-                    </div>
-                  </div>
-                  <span className={styles.honorEarnings}>{formatFriendlyMoney(worker.earnings)}</span>
-                </Card>
-              </motion.div>
-            ))}
+                    <span className={styles.honorEarnings}>{formatFriendlyMoney(worker.earnings || 0)}</span>
+                  </Card>
+                </motion.div>
+              ))
+            ) : (
+              <div className={styles.noJobs}>
+                <p>Bảng xếp hạng sẽ được cập nhật khi có dữ liệu.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

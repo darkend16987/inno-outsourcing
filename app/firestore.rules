@@ -161,5 +161,63 @@ service cloud.firestore {
       allow read: if true;
       allow write: if hasRole('admin');
     }
+
+    // ──── TESTIMONIALS ────
+    match /testimonials/{itemId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // ──── BANNERS ────
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // ──── SYSTEM CONFIG ────
+    match /system_config/{configId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // ──── BADGE DEFINITIONS ────
+    match /badge_definitions/{badgeId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // ──── REVIEWS ────
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && request.resource.data.reviewerId == request.auth.uid;
+      allow update, delete: if hasRole('admin');
+    }
+
+    // ──── DISPUTES ────
+    match /disputes/{disputeId} {
+      allow read: if isAuthenticated()
+        && (request.auth.uid in resource.data.participants || hasRole('admin'));
+      allow create: if isAuthenticated()
+        && request.resource.data.initiatorId == request.auth.uid;
+      allow update: if hasRole('admin')
+        || (isAuthenticated() && request.auth.uid in resource.data.participants);
+      allow delete: if false;
+    }
+
+    // ──── AUDIT LOGS ────
+    match /auditLogs/{logId} {
+      allow read: if hasRole('admin');
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // ──── COMMENTS (top-level) ────
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      allow delete: if hasRole('admin') || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+    }
   }
 }

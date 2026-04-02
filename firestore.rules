@@ -44,9 +44,11 @@ service cloud.firestore {
       allow create: if isOwner(uid)
                     && request.resource.data.role == 'freelancer';
 
-      // Users can update their OWN profile but CANNOT change their role
+      // Users can update their OWN profile but CANNOT change protected fields
+      // stats, trustScore, trustBadge are managed by Cloud Functions only
       allow update: if isOwner(uid)
-                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+                    && (!request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['role', 'stats', 'trustScore', 'trustBadge', 'createdAt']));
 
       // Admins can update ANY user (including role changes)
       allow update: if isAdmin();

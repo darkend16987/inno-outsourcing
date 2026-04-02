@@ -154,7 +154,16 @@ export async function middleware(request: NextRequest) {
 
   // --- CSRF Protection (S6) ---
   // For API mutating requests, validate CSRF token
-  if (path.startsWith('/api/') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+  // EXEMPT: /api/auth/session — this endpoint self-authenticates via Firebase ID token
+  // verification, so CSRF is redundant and would block session creation during login flow.
+  const csrfExemptPaths = ['/api/auth/session'];
+  const isCsrfExempt = csrfExemptPaths.some(p => path.startsWith(p));
+
+  if (
+    path.startsWith('/api/') &&
+    ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method) &&
+    !isCsrfExempt
+  ) {
     const csrfCookie = request.cookies.get('csrf_token')?.value;
     const csrfHeader = request.headers.get('x-csrf-token');
 

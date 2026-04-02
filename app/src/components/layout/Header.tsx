@@ -106,7 +106,7 @@ export function Header() {
                 className={styles.userMenuBtn}
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
-                <Avatar name={userProfile.displayName || userProfile.email} size="sm" />
+                <Avatar src={userProfile.photoURL} name={userProfile.displayName || userProfile.email} size="sm" />
                 <div className={styles.userMenuInfo}>
                   <span className={styles.userName}>{userProfile.displayName || 'Người dùng'}</span>
                   <span className={styles.userRole}>{ROLE_LABEL[userProfile.role] || userProfile.role}</span>

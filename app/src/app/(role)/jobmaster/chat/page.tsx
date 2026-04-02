@@ -1,27 +1,75 @@
 'use client';
 
-import React, { useState } from 'react';
-import { MessageSquare, Search, Briefcase } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Search, Briefcase, Loader2, Inbox } from 'lucide-react';
 import { ChatPanel } from '@/components/chat';
 import { Avatar, Badge } from '@/components/ui';
+import { subscribeToConversations } from '@/lib/firebase/firestore';
+import { useAuth } from '@/lib/firebase/auth-context';
+import type { Conversation } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_CONVERSATIONS = [
-  { id: 'conv-1', participantName: 'Nguyễn Thanh Hùng', jobTitle: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', lastMessage: 'Em đã upload bản vẽ phương án 2 rồi ạ.', lastTime: '10:30', unread: 2 },
-  { id: 'conv-2', participantName: 'Trần Minh Tuấn', jobTitle: 'BIM Modeling tổ hợp văn phòng Q7', lastMessage: 'Anh ơi, file Revit model ở link GDrive em gửi nhé.', lastTime: 'Hôm qua', unread: 0 },
-  { id: 'conv-3', participantName: 'Lê Thị Hoa', jobTitle: 'Hệ thống MEP chung cư Thủ Đức', lastMessage: 'OK em xác nhận milestone 1 đạt rồi.', lastTime: '28/03', unread: 0 },
-  { id: 'conv-4', participantName: 'Phạm Đức Anh', jobTitle: 'Dự toán trường học TPHCM', lastMessage: 'Dạ em đang làm đợt cuối, khoảng 3 ngày nữa xong ạ.', lastTime: '25/03', unread: 1 },
-];
+// Helper: format lastMessageAt timestamp
+function formatTime(d: unknown): string {
+  if (!d) return '';
+  let date: Date;
+  if (typeof d === 'object' && d !== null && 'toDate' in d) {
+    date = (d as { toDate: () => Date }).toDate();
+  } else if (d instanceof Date) {
+    date = d;
+  } else {
+    return '';
+  }
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
+  if (diffDays === 0) return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 1) return 'Hôm qua';
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+}
 
 export default function JobMasterChatPage() {
-  const [selectedConv, setSelectedConv] = useState<string | null>(MOCK_CONVERSATIONS[0]?.id || null);
+  const { userProfile } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  const selected = MOCK_CONVERSATIONS.find(c => c.id === selectedConv);
-  const filtered = MOCK_CONVERSATIONS.filter(c =>
-    c.participantName.toLowerCase().includes(search.toLowerCase()) ||
-    c.jobTitle.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (!userProfile) return;
+    setLoading(true);
+    const unsub = subscribeToConversations(userProfile.uid, (convs) => {
+      setConversations(convs);
+      setLoading(false);
+      // Auto-select first conversation if none selected
+      if (!selectedConv && convs.length > 0) {
+        setSelectedConv(convs[0].id);
+      }
+    });
+    return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile]);
+
+  const selected = conversations.find(c => c.id === selectedConv);
+
+  // Get the "other participant" name — for display, we'd need to fetch user profiles
+  // For now, show participant IDs or use a simple approach
+  const getParticipantName = (conv: Conversation): string => {
+    if (!userProfile) return '';
+    const otherId = conv.participants.find(p => p !== userProfile.uid);
+    return otherId || 'Đối tác';
+  };
+
+  const myUnread = (conv: Conversation): number => {
+    if (!userProfile) return 0;
+    return conv.unreadCount?.[userProfile.uid] || 0;
+  };
+
+  const filtered = conversations.filter(c => {
+    if (!search) return true;
+    const name = getParticipantName(c).toLowerCase();
+    const msg = (c.lastMessage || '').toLowerCase();
+    return name.includes(search.toLowerCase()) || msg.includes(search.toLowerCase());
+  });
 
   return (
     <div className={styles.chatPage}>
@@ -41,26 +89,41 @@ export default function JobMasterChatPage() {
           />
         </div>
         <div className={styles.convList}>
-          {filtered.map(conv => (
-            <button
-              key={conv.id}
-              className={`${styles.convItem} ${selectedConv === conv.id ? styles.convActive : ''}`}
-              onClick={() => setSelectedConv(conv.id)}
-            >
-              <Avatar name={conv.participantName} size="sm" />
-              <div className={styles.convInfo}>
-                <div className={styles.convName}>{conv.participantName}</div>
-                <div className={styles.convJob}><Briefcase size={12} /> {conv.jobTitle}</div>
-                <div className={styles.convLast}>{conv.lastMessage}</div>
-              </div>
-              <div className={styles.convMeta}>
-                <span className={styles.convTime}>{conv.lastTime}</span>
-                {conv.unread > 0 && <span className={styles.unreadBadge}>{conv.unread}</span>}
-              </div>
-            </button>
-          ))}
-          {filtered.length === 0 && (
-            <div className={styles.emptyConv}>Không có cuộc trò chuyện nào.</div>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '2rem', color: 'var(--text-secondary)' }}>
+              <Loader2 size={18} /> Đang tải...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className={styles.emptyConv}>
+              <Inbox size={24} />
+              <p>{conversations.length === 0 ? 'Chưa có cuộc trò chuyện nào.' : 'Không tìm thấy kết quả.'}</p>
+            </div>
+          ) : (
+            filtered.map(conv => {
+              const participantName = getParticipantName(conv);
+              const unread = myUnread(conv);
+
+              return (
+                <button
+                  key={conv.id}
+                  className={`${styles.convItem} ${selectedConv === conv.id ? styles.convActive : ''}`}
+                  onClick={() => setSelectedConv(conv.id)}
+                >
+                  <Avatar name={participantName} size="sm" />
+                  <div className={styles.convInfo}>
+                    <div className={styles.convName}>{participantName}</div>
+                    {conv.jobId && (
+                      <div className={styles.convJob}><Briefcase size={12} /> Job #{conv.jobId.slice(0, 8)}</div>
+                    )}
+                    <div className={styles.convLast}>{conv.lastMessage || 'Bắt đầu trò chuyện...'}</div>
+                  </div>
+                  <div className={styles.convMeta}>
+                    <span className={styles.convTime}>{formatTime(conv.lastMessageAt)}</span>
+                    {unread > 0 && <span className={styles.unreadBadge}>{unread}</span>}
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </div>
@@ -70,12 +133,12 @@ export default function JobMasterChatPage() {
         {selectedConv && selected ? (
           <ChatPanel
             conversationId={selectedConv}
-            participantName={selected.participantName}
+            participantName={getParticipantName(selected)}
           />
         ) : (
           <div className={styles.noChatSelected}>
             <MessageSquare size={48} />
-            <p>Chọn một cuộc trò chuyện để bắt đầu.</p>
+            <p>{conversations.length === 0 ? 'Bạn chưa có cuộc trò chuyện nào.' : 'Chọn một cuộc trò chuyện để bắt đầu.'}</p>
           </div>
         )}
       </div>

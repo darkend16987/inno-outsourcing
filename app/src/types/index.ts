@@ -105,14 +105,14 @@ export type JobStatus =
   | 'paid'
   | 'cancelled';
 
-export type MilestoneStatus = 'pending' | 'approved' | 'paid' | 'locked' | 'released';
+export type MilestoneStatus = 'pending' | 'approved' | 'paid' | 'locked' | 'released' | 'in_progress' | 'review';
 
 export interface PaymentMilestone {
   id: string;
   name: string;
   percentage: number;
   amount: number;
-  condition: string;
+  condition?: string;
   status: MilestoneStatus;
   approvedAt?: Date;
   paidAt?: Date;
@@ -154,6 +154,8 @@ export interface Job {
   workMode: WorkMode;
   level: JobLevel;
   totalFee: number;
+  /** Maximum fee a freelancer can propose. Set by jobmaster. Defaults to totalFee * 1.2 if not set. */
+  maxFeeLimit?: number;
   currency: 'VND';
   duration: number;
   deadline: Date;

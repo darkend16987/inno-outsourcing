@@ -92,6 +92,7 @@ export function Sidebar({ role }: SidebarProps) {
         
         <div className={styles.profile}>
           <Avatar
+            src={userProfile?.photoURL}
             name={userProfile?.displayName || role.toUpperCase()}
             level={userProfile?.currentLevel || 'L1'}
             size="sm"

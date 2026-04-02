@@ -46,23 +46,56 @@ export function useAuth() {
   return ctx;
 }
 
+// Helper: Get CSRF token from cookie
+function getCsrfTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 // Helper: Set server-side session cookie via API
 async function setServerSession(user: FirebaseUser, profile: UserProfile) {
-  const idToken = await user.getIdToken();
-  await fetch('/api/auth/session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      idToken,
-      role: profile.role,
-      uid: profile.uid,
-      displayName: profile.displayName,
-    }),
-  });
+  try {
+    const idToken = await user.getIdToken();
+    const csrfToken = getCsrfTokenFromCookie();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (csrfToken) headers['x-csrf-token'] = csrfToken;
+
+    const res = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers,
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        idToken,
+        role: profile.role,
+        uid: profile.uid,
+        displayName: profile.displayName,
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn('[Auth] Session creation failed:', res.status, await res.text().catch(() => ''));
+    }
+  } catch (err) {
+    // Don't crash the UI if session API fails — Firebase client auth still works
+    console.warn('[Auth] Failed to set server session:', err);
+  }
 }
 
 async function clearServerSession() {
-  await fetch('/api/auth/session', { method: 'DELETE' });
+  try {
+    const csrfToken = getCsrfTokenFromCookie();
+    const headers: Record<string, string> = {};
+    if (csrfToken) headers['x-csrf-token'] = csrfToken;
+
+    await fetch('/api/auth/session', {
+      method: 'DELETE',
+      headers,
+      credentials: 'same-origin',
+    });
+  } catch (err) {
+    console.warn('[Auth] Failed to clear server session:', err);
+  }
 }
 
 // Helper: Create or update user profile in Firestore

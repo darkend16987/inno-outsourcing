@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -8,6 +8,13 @@ import { Mail, Lock, Phone, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-
 import { Button } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './page.module.css';
+
+const ROLE_DASHBOARD: Record<string, string> = {
+  admin: '/admin',
+  jobmaster: '/jobmaster',
+  freelancer: '/freelancer',
+  accountant: '/accountant',
+};
 
 export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
@@ -18,8 +25,16 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { signInWithEmail, signInWithGoogle } = useAuth();
+  const { signInWithEmail, signInWithGoogle, userProfile, loading } = useAuth();
   const router = useRouter();
+
+  // Redirect when auth state settles and profile is loaded
+  useEffect(() => {
+    if (!loading && userProfile && isSubmitting) {
+      const target = ROLE_DASHBOARD[userProfile.role] || '/freelancer';
+      router.push(target);
+    }
+  }, [loading, userProfile, isSubmitting, router]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,12 +47,7 @@ export default function LoginPage() {
       setIsSubmitting(true);
       setErrorMsg('');
       await signInWithEmail(email, password);
-      
-      // Note: Because of how useAuth is set up, userProfile might not update immediately 
-      // in this execution context, but we will redirect to / (dashboard) and layout will handle 
-      // or we can just push to '/' and let the middleware/layout decide. 
-      // For now, let's just push to '/'.
-      router.push('/');
+      // Redirect will be handled by useEffect once userProfile loads
     } catch (err: unknown) {
       if (err instanceof Error) {
         const error = err as Error & { code?: string };
@@ -58,7 +68,7 @@ export default function LoginPage() {
       setIsSubmitting(true);
       setErrorMsg('');
       await signInWithGoogle();
-      router.push('/');
+      // Redirect will be handled by useEffect once userProfile loads
     } catch (err: unknown) {
       if (err instanceof Error) {
         setErrorMsg(err.message || 'Đã có lỗi khi đăng nhập bằng Google');

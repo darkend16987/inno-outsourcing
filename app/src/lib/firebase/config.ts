@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,12 +13,13 @@ const firebaseConfig = {
 };
 
 // Conditionally initialize Firebase to avoid crash without env vars during UI dev
-let app: FirebaseApp, auth: Auth, db: Firestore;
+let app: FirebaseApp, auth: Auth, db: Firestore, storage: FirebaseStorage;
 
 if (firebaseConfig.apiKey) {
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  storage = getStorage(app);
 } else {
   console.warn('Firebase config missing, using mock instances for UI development.');
   app = {} as FirebaseApp;
@@ -25,6 +27,7 @@ if (firebaseConfig.apiKey) {
     onAuthStateChanged: (cb: any) => { cb(null); return () => {}; },
   } as unknown as Auth;
   db = {} as Firestore;
+  storage = {} as FirebaseStorage;
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };
