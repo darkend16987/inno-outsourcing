@@ -1,43 +1,68 @@
 'use client';
 
-import React, { useState } from 'react';
-import { CheckCircle, XCircle, Star, Briefcase, User, Calendar, ExternalLink, Eye } from 'lucide-react';
-import { Button, Card, Badge, Avatar, LevelBadge } from '@/components/ui';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, XCircle, Star, Briefcase, Calendar, ExternalLink, Eye, Inbox, RefreshCw } from 'lucide-react';
+import { Button, Card, Badge, Avatar, LevelBadge, Skeleton } from '@/components/ui';
+import { getAllApplications, updateApplication } from '@/lib/firebase/firestore';
+import type { JobApplication } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_APPLICATIONS = [
-  {
-    id: 'a1', jobId: '1', jobTitle: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương',
-    applicantName: 'Nguyễn Thanh Hùng', applicantLevel: 'L4' as const,
-    specialties: ['Kiến trúc', 'BIM'], rating: 4.9, completedJobs: 32,
-    coverLetter: 'Với 8 năm kinh nghiệm thiết kế nhà xưởng công nghiệp, tôi tự tin hoàn thành dự án đúng hạn và chất lượng cao...',
-    expectedFee: 48000000, availableDate: '10/04/2026', status: 'pending' as const,
-    portfolioLink: 'https://portfolio.example.com/hung',
-  },
-  {
-    id: 'a2', jobId: '1', jobTitle: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương',
-    applicantName: 'Trần Minh Tuấn', applicantLevel: 'L3' as const,
-    specialties: ['Kiến trúc'], rating: 4.5, completedJobs: 15,
-    coverLetter: 'Tôi đã hoàn thành nhiều dự án nhà xưởng tương tự tại KCN Tân Bình và Long An...',
-    expectedFee: 45000000, availableDate: '15/04/2026', status: 'pending' as const,
-    portfolioLink: 'https://portfolio.example.com/tuan',
-  },
-  {
-    id: 'a3', jobId: '2', jobTitle: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7',
-    applicantName: 'Lê Thị Hoa', applicantLevel: 'L5' as const,
-    specialties: ['BIM', 'MEP'], rating: 4.8, completedJobs: 25,
-    coverLetter: 'Chuyên gia BIM 10+ năm, đã thực hiện nhiều dự án cao tầng phức tạp tại TPHCM...',
-    expectedFee: 60000000, availableDate: '05/04/2026', status: 'shortlisted' as const,
-    portfolioLink: 'https://portfolio.example.com/hoa',
-  },
-];
+const STATUS_LABELS: Record<string, string> = { 
+  pending: 'Chờ duyệt', 
+  shortlisted: 'Vào vòng trong', 
+  accepted: 'Đã chọn', 
+  rejected: 'Từ chối' 
+};
 
-const STATUS_LABELS: Record<string, string> = { pending: 'Chờ duyệt', shortlisted: 'Vào vòng trong', accepted: 'Đã chọn', rejected: 'Từ chối' };
+const STATUS_BADGE_VARIANT: Record<string, string> = {
+  pending: 'default',
+  shortlisted: 'warning',
+  accepted: 'success',
+  rejected: 'danger',
+};
 
 export default function AdminApplicationsPage() {
   const [filter, setFilter] = useState('all');
+  const [applications, setApplications] = useState<(JobApplication & { jobTitle?: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const filtered = MOCK_APPLICATIONS.filter(a => filter === 'all' || a.status === filter);
+  const fetchApplications = useCallback(async () => {
+    try {
+      setLoading(true);
+      const filters: { status?: string } = {};
+      if (filter !== 'all') filters.status = filter;
+      const result = await getAllApplications(filters);
+      setApplications(result.items);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
+
+  const handleUpdateStatus = async (appId: string, newStatus: string) => {
+    try {
+      setActionLoading(appId);
+      await updateApplication(appId, { status: newStatus } as Partial<JobApplication>);
+      // Update local state
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus as JobApplication['status'] } : a));
+    } catch (error) {
+      console.error('Error updating application:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const statusCounts = applications.reduce((acc, a) => {
+    acc[a.status] = (acc[a.status] || 0) + 1;
+    acc['all'] = (acc['all'] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className={styles.page}>
@@ -46,6 +71,9 @@ export default function AdminApplicationsPage() {
           <h1 className={styles.pageTitle}>Duyệt Ứng tuyển</h1>
           <p className={styles.pageSubtitle}>Xem xét và chọn ứng viên phù hợp cho các dự án.</p>
         </div>
+        <Button variant="outline" size="sm" onClick={fetchApplications} icon={<RefreshCw size={14} />}>
+          Làm mới
+        </Button>
       </div>
 
       <div className={styles.filterRow}>
@@ -53,58 +81,122 @@ export default function AdminApplicationsPage() {
           <button key={key} className={`${styles.filterBtn} ${filter === key ? styles.filterActive : ''}`}
             onClick={() => setFilter(key)}>
             {key === 'all' ? 'Tất cả' : STATUS_LABELS[key]}
+            {statusCounts[key] ? ` (${statusCounts[key]})` : ''}
           </button>
         ))}
       </div>
 
-      <div className={styles.appGrid}>
-        {filtered.map(app => (
-          <Card key={app.id} variant="bordered" className={styles.appCard}>
-            <div className={styles.appHeader}>
-              <Avatar name={app.applicantName} level={app.applicantLevel} size="md" />
-              <div className={styles.appInfo}>
-                <h3 className={styles.appName}>{app.applicantName}</h3>
-                <div className={styles.appMeta}>
-                  <LevelBadge level={app.applicantLevel} />
-                  <span className={styles.rating}><Star size={14} fill="var(--color-warning)" stroke="var(--color-warning)" /> {app.rating}</span>
-                  <span><Briefcase size={14} /> {app.completedJobs} jobs</span>
+      {loading ? (
+        <div className={styles.appGrid}>
+          {[1,2,3].map(i => (
+            <Card key={i} variant="bordered" className={styles.appCard}>
+              <div className={styles.appHeader}>
+                <Skeleton width="48px" height="48px" />
+                <div className={styles.appInfo}>
+                  <Skeleton width="200px" height="20px" />
+                  <Skeleton width="120px" height="16px" />
                 </div>
               </div>
-              <Badge variant={(app.status as string) === 'shortlisted' ? 'warning' : (app.status as string) === 'accepted' ? 'success' : 'default'}>
-                {STATUS_LABELS[app.status]}
-              </Badge>
-            </div>
+              <Skeleton width="100%" height="60px" />
+              <Skeleton width="100%" height="40px" />
+            </Card>
+          ))}
+        </div>
+      ) : applications.length === 0 ? (
+        <div className={styles.emptyState}>
+          <Inbox size={48} className={styles.emptyIcon} />
+          <h3>Chưa có đơn ứng tuyển nào</h3>
+          <p>Các đơn ứng tuyển từ freelancer sẽ hiển thị tại đây khi có người nộp hồ sơ.</p>
+        </div>
+      ) : (
+        <div className={styles.appGrid}>
+          {applications.map(app => (
+            <Card key={app.id} variant="bordered" className={styles.appCard}>
+              <div className={styles.appHeader}>
+                <Avatar name={app.applicantName || 'Ứng viên'} level={(app.applicantLevel || 'L1') as 'L1'|'L2'|'L3'|'L4'|'L5'} size="md" />
+                <div className={styles.appInfo}>
+                  <h3 className={styles.appName}>{app.applicantName || 'Ứng viên'}</h3>
+                  <div className={styles.appMeta}>
+                    <LevelBadge level={(app.applicantLevel || 'L1') as 'L1'|'L2'|'L3'|'L4'|'L5'} />
+                    {app.applicantSpecialties?.length > 0 && (
+                      <span><Briefcase size={14} /> {app.applicantSpecialties.join(', ')}</span>
+                    )}
+                  </div>
+                </div>
+                <Badge variant={STATUS_BADGE_VARIANT[app.status] as 'default' | 'warning' | 'success' || 'default'}>
+                  {STATUS_LABELS[app.status] || app.status}
+                </Badge>
+              </div>
 
-            <div className={styles.jobRef}>
-              <span className={styles.forLabel}>Ứng tuyển cho:</span> {app.jobTitle}
-            </div>
-
-            <div className={styles.specialties}>
-              {app.specialties.map(s => <Badge key={s} variant="default">{s}</Badge>)}
-            </div>
-
-            <p className={styles.coverLetter}>{app.coverLetter}</p>
-
-            <div className={styles.appDetails}>
-              <div className={styles.detailItem}><Calendar size={14} /> Có thể bắt đầu: {app.availableDate}</div>
-              <div className={styles.detailItem}><strong>Thù lao mong muốn:</strong> {(app.expectedFee / 1000000).toFixed(0)}M ₫</div>
-              {app.portfolioLink && (
-                <a href={app.portfolioLink} target="_blank" rel="noopener noreferrer" className={styles.portfolioLink}>
-                  <ExternalLink size={14} /> Xem Portfolio
-                </a>
+              {(app as JobApplication & { jobTitle?: string }).jobTitle && (
+                <div className={styles.jobRef}>
+                  <span className={styles.forLabel}>Ứng tuyển cho:</span> {(app as JobApplication & { jobTitle?: string }).jobTitle}
+                </div>
               )}
-            </div>
 
-            <div className={styles.appActions}>
-              <Button variant="success" size="sm" icon={<CheckCircle size={14} />}>
-                {app.status === 'shortlisted' ? 'Chọn' : 'Shortlist'}
-              </Button>
-              <Button variant="danger" size="sm" icon={<XCircle size={14} />}>Từ chối</Button>
-              <Button variant="ghost" size="sm" icon={<Eye size={14} />}>Chi tiết</Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+              {app.applicantSpecialties?.length > 0 && (
+                <div className={styles.specialties}>
+                  {app.applicantSpecialties.map(s => <Badge key={s} variant="default">{s}</Badge>)}
+                </div>
+              )}
+
+              {app.coverLetter && (
+                <p className={styles.coverLetter}>{app.coverLetter}</p>
+              )}
+
+              <div className={styles.appDetails}>
+                {app.availableDate && (
+                  <div className={styles.detailItem}><Calendar size={14} /> Có thể bắt đầu: {typeof app.availableDate === 'string' ? app.availableDate : 'N/A'}</div>
+                )}
+                {app.expectedFee && (
+                  <div className={styles.detailItem}><strong>Thù lao mong muốn:</strong> {(app.expectedFee / 1000000).toFixed(0)}M ₫</div>
+                )}
+                {app.portfolioLink && (
+                  <a href={app.portfolioLink} target="_blank" rel="noopener noreferrer" className={styles.portfolioLink}>
+                    <ExternalLink size={14} /> Xem Portfolio
+                  </a>
+                )}
+              </div>
+
+              <div className={styles.appActions}>
+                {app.status === 'pending' && (
+                  <>
+                    <Button 
+                      variant="success" size="sm" 
+                      icon={<Star size={14} />} 
+                      loading={actionLoading === app.id}
+                      onClick={() => handleUpdateStatus(app.id, 'shortlisted')}
+                    >Shortlist</Button>
+                    <Button 
+                      variant="danger" size="sm" 
+                      icon={<XCircle size={14} />}
+                      loading={actionLoading === app.id}
+                      onClick={() => handleUpdateStatus(app.id, 'rejected')}
+                    >Từ chối</Button>
+                  </>
+                )}
+                {app.status === 'shortlisted' && (
+                  <>
+                    <Button 
+                      variant="success" size="sm" 
+                      icon={<CheckCircle size={14} />}
+                      loading={actionLoading === app.id}
+                      onClick={() => handleUpdateStatus(app.id, 'accepted')}
+                    >Chọn</Button>
+                    <Button 
+                      variant="danger" size="sm" 
+                      icon={<XCircle size={14} />}
+                      loading={actionLoading === app.id}
+                      onClick={() => handleUpdateStatus(app.id, 'rejected')}
+                    >Từ chối</Button>
+                  </>
+                )}
+                <Button variant="ghost" size="sm" icon={<Eye size={14} />}>Chi tiết</Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

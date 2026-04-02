@@ -162,13 +162,41 @@ export const updateJob = async (id: string, data: Partial<Job>) => {
 // =====================
 // APPLICATIONS
 // =====================
-export const applyForJob = async (jobId: string, freelancerId: string, proposal: Omit<JobApplication, 'id' | 'createdAt' | 'status'>) => {
+
+/**
+ * Check if a freelancer has already applied for a specific job.
+ * Returns the existing application or null.
+ */
+export const checkExistingApplication = async (jobId: string, applicantId: string): Promise<JobApplication | null> => {
+  if (!db) return null;
+  const q = query(
+    collection(db, 'applications'),
+    where('jobId', '==', jobId),
+    where('applicantId', '==', applicantId),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as JobApplication;
+};
+
+export const applyForJob = async (data: {
+  jobId: string;
+  jobTitle: string;
+  applicantId: string;
+  applicantName: string;
+  applicantLevel: string;
+  applicantSpecialties: string[];
+  availableDate: string;
+  expectedFee?: number;
+  coverLetter: string;
+  portfolioLink: string;
+}) => {
   if (!db) return;
   const newAppRef = doc(collection(db, 'applications'));
   await setDoc(newAppRef, {
-    jobId,
-    freelancerId,
-    ...proposal,
+    ...data,
+    attachments: [],
     status: 'pending',
     createdAt: serverTimestamp(),
   });
@@ -186,15 +214,39 @@ export const getApplicationsForJob = async (jobId: string): Promise<JobApplicati
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as JobApplication));
 };
 
-export const getApplicationsForFreelancer = async (freelancerId: string): Promise<JobApplication[]> => {
+export const getApplicationsForFreelancer = async (applicantId: string): Promise<JobApplication[]> => {
   if (!db) return [];
   const q = query(
     collection(db, 'applications'),
-    where('freelancerId', '==', freelancerId),
+    where('applicantId', '==', applicantId),
     orderBy('createdAt', 'desc')
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as JobApplication));
+};
+
+export const getAllApplications = async (
+  filters: { status?: string; jobId?: string } = {},
+  pageSize = 50,
+  cursor?: DocumentSnapshot
+): Promise<PaginatedResult<JobApplication & { jobTitle?: string }>> => {
+  if (!db) return { items: [], lastDoc: null, hasMore: false };
+  const constraints: QueryConstraint[] = [];
+  if (filters.status) constraints.push(where('status', '==', filters.status));
+  if (filters.jobId) constraints.push(where('jobId', '==', filters.jobId));
+  constraints.push(orderBy('createdAt', 'desc'));
+  constraints.push(limit(pageSize + 1));
+  if (cursor) constraints.push(startAfter(cursor));
+
+  const q = query(collection(db, 'applications'), ...constraints);
+  const snapshot = await getDocs(q);
+  const docs = snapshot.docs;
+  const hasMore = docs.length > pageSize;
+  return {
+    items: docs.slice(0, pageSize).map(d => ({ id: d.id, ...d.data() } as JobApplication & { jobTitle?: string })),
+    lastDoc: docs[pageSize - 1] || null,
+    hasMore,
+  };
 };
 
 export const updateApplication = async (id: string, data: Partial<JobApplication>) => {

@@ -95,6 +95,131 @@
 .contactRow span { color: var(--color-text-muted); }
 .contactRow strong { color: var(--color-charcoal); }
 .contactBtn { margin-top: var(--space-2); }
+.masterLabel { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: var(--space-3); letter-spacing: 0.5px; }
+.masterName { font-weight: 600; }
+
+/* Applied Status */
+.appliedStatus {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border); background: var(--color-bg);
+}
+.appliedIcon { flex-shrink: 0; }
+.appliedLabel { font-weight: 700; font-size: 14px; }
+.appliedHint { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+
+/* Error State */
+.errorState { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; gap: var(--space-4); text-align: center; }
+.errorIcon { color: var(--color-text-muted); }
+
+/* ============================
+   APPLY MODAL
+   ============================ */
+.modalOverlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.modal {
+  background: var(--color-surface); border-radius: var(--radius-xl);
+  width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-neo-lg, 0 20px 60px rgba(0,0,0,0.3));
+  border: 2px solid var(--color-border);
+}
+.modalHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 2px solid var(--color-border);
+  position: sticky; top: 0; background: var(--color-surface);
+  z-index: 2; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+.modalTitle { font-family: var(--font-heading); font-size: 22px; font-weight: 800; }
+.modalSubtitle { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
+.modalClose {
+  background: none; border: none; cursor: pointer; padding: var(--space-2);
+  border-radius: var(--radius-md); color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+}
+.modalClose:hover { background: var(--color-bg); color: var(--color-charcoal); }
+
+.modalBody { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* Job Summary in Modal */
+.jobSummaryCard {
+  padding: var(--space-4); border: 2px solid var(--color-primary);
+  border-radius: var(--radius-lg); background: var(--color-primary-bg);
+}
+.jobSummaryTop { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-3); }
+.jobSummaryTitle { font-family: var(--font-heading); font-size: 16px; font-weight: 700; margin-bottom: var(--space-2); }
+.jobSummaryTags { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.jobSummaryFee { font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: var(--color-accent); white-space: nowrap; }
+.jobSummaryMeta { display: flex; gap: var(--space-4); font-size: 13px; color: var(--color-text-muted); }
+.jobSummaryMeta span { display: flex; align-items: center; gap: 4px; }
+
+/* Form Sections */
+.formSection { display: flex; flex-direction: column; gap: var(--space-3); }
+.formSection h3 { font-family: var(--font-heading); font-size: 16px; font-weight: 700; }
+.formSectionHeader { display: flex; justify-content: space-between; align-items: center; }
+.editProfileLink { font-size: 13px; color: var(--color-primary); display: flex; align-items: center; gap: 4px; font-weight: 500; }
+
+/* Applicant Grid */
+.applicantGrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.applicantItem { display: flex; flex-direction: column; gap: 4px; padding: var(--space-3); background: var(--color-bg); border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+.applicantLabel { font-size: 12px; color: var(--color-text-muted); font-weight: 500; }
+.applicantItem strong { font-size: 14px; }
+.profileNote { font-size: 12px; color: var(--color-text-muted); font-style: italic; }
+
+/* Form Fields */
+.formRow { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.formField { display: flex; flex-direction: column; gap: 6px; }
+.formLabel { font-size: 13px; font-weight: 600; }
+.required { color: var(--color-error); }
+.formInput {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface); font-size: 14px; font-family: inherit;
+  transition: border-color var(--transition-fast);
+}
+.formInput:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
+.formTextarea {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-surface); font-size: 14px; font-family: inherit;
+  resize: vertical; transition: border-color var(--transition-fast);
+}
+.formTextarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
+
+/* Checkboxes */
+.checkboxList { display: flex; flex-direction: column; gap: var(--space-2); }
+.checkboxRow {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3); border-radius: var(--radius-md);
+  cursor: pointer; font-size: 14px; line-height: 1.5;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+.checkboxRow:hover { border-color: var(--color-primary); }
+.checkboxRow input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--color-primary); }
+
+/* Error Bar */
+.errorBar {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md);
+  background: #FEE2E2; color: var(--color-error); font-size: 14px;
+}
+
+/* Modal Footer */
+.modalFooter {
+  display: flex; justify-content: flex-end; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 2px solid var(--color-border);
+  background: var(--color-bg);
+}
+.modalDisclaimer {
+  padding: 0 var(--space-6) var(--space-4);
+  font-size: 12px; color: var(--color-text-muted); text-align: center;
+}
 
 @media (max-width: 1024px) {
   .layout { grid-template-columns: 1fr; }
@@ -108,4 +233,8 @@
   .milestone { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
   .mRight { text-align: left; display: flex; align-items: center; gap: var(--space-3); }
   .mPercent { margin-bottom: 0; }
+  .modal { max-height: 95vh; }
+  .formRow { grid-template-columns: 1fr; }
+  .applicantGrid { grid-template-columns: 1fr; }
+  .jobSummaryTop { flex-direction: column; }
 }

@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Clock, Briefcase, Calendar, 
   Sparkles, Zap, Star, Target, Send,
-  FileText, MessageSquare, Info
+  FileText, MessageSquare, Info, X,
+  CheckCircle, ExternalLink, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
-import { getJobById } from '@/lib/firebase/firestore';
+import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { formatFriendlyMoney, formatDate } from '@/lib/formatters';
 import styles from './page.module.css';
 
@@ -25,10 +27,6 @@ const WORK_MODE_LABELS: Record<string, string> = {
   hybrid: 'Kết hợp 🏢',
 };
 
-/**
- * Safely extract values from Firestore data that may have different field names.
- * Handles both the full Job interface and the simplified seed data.
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeJob(raw: any) {
   return {
@@ -46,13 +44,238 @@ function normalizeJob(raw: any) {
   };
 }
 
+// =====================
+// APPLY MODAL COMPONENT
+// =====================
+interface ApplyModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  job: any;
+  onSuccess: () => void;
+}
+
+function ApplyModal({ isOpen, onClose, job, onSuccess }: ApplyModalProps) {
+  const { userProfile } = useAuth();
+  const [availableDate, setAvailableDate] = useState('');
+  const [expectedFee, setExpectedFee] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
+  const [portfolioLink, setPortfolioLink] = useState('');
+  const [agreedScope, setAgreedScope] = useState(false);
+  const [agreedProfile, setAgreedProfile] = useState(false);
+  const [agreedContract, setAgreedContract] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const canSubmit = agreedScope && agreedProfile && agreedContract && coverLetter.trim().length > 10 && availableDate;
+
+  const handleSubmit = async () => {
+    if (!userProfile || !canSubmit) return;
+    try {
+      setIsSubmitting(true);
+      setErrorMsg('');
+      await applyForJob({
+        jobId: job.id,
+        jobTitle: job.title,
+        applicantId: userProfile.uid,
+        applicantName: userProfile.displayName || userProfile.email,
+        applicantLevel: userProfile.currentLevel || 'L1',
+        applicantSpecialties: userProfile.specialties || [],
+        availableDate,
+        expectedFee: expectedFee ? parseInt(expectedFee.replace(/\D/g, '')) : undefined,
+        coverLetter,
+        portfolioLink,
+      });
+      onSuccess();
+    } catch (err) {
+      console.error('Apply error:', err);
+      setErrorMsg('Có lỗi xảy ra khi gửi đơn. Vui lòng thử lại.');
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className={styles.modalOverlay} onClick={onClose}>
+        <motion.div 
+          className={styles.modal}
+          onClick={e => e.stopPropagation()}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.25 }}
+        >
+          {/* Modal Header */}
+          <div className={styles.modalHeader}>
+            <div>
+              <h2 className={styles.modalTitle}>Ứng tuyển nhận việc</h2>
+              <p className={styles.modalSubtitle}>Gửi hồ sơ ứng tuyển đến Job Master</p>
+            </div>
+            <button className={styles.modalClose} onClick={onClose}><X size={20} /></button>
+          </div>
+
+          <div className={styles.modalBody}>
+            {/* Job Summary */}
+            <div className={styles.jobSummaryCard}>
+              <div className={styles.jobSummaryTop}>
+                <div>
+                  <h3 className={styles.jobSummaryTitle}>{job.title}</h3>
+                  <div className={styles.jobSummaryTags}>
+                    <Badge variant="default" size="sm">{job.category}</Badge>
+                    <LevelBadge level={job.level} />
+                    <Badge variant="outline" size="sm">{WORK_MODE_LABELS[job.workMode] || job.workMode}</Badge>
+                  </div>
+                </div>
+                <div className={styles.jobSummaryFee}>{formatFriendlyMoney(job.totalFee)}</div>
+              </div>
+              <div className={styles.jobSummaryMeta}>
+                {job.deadline && <span><Calendar size={14} /> Hạn nộp: {formatDate(job.deadline)}</span>}
+                <span><Clock size={14} /> Thời hạn: {job.durationDisplay}</span>
+              </div>
+            </div>
+
+            {/* Applicant Info (auto-filled from profile) */}
+            <div className={styles.formSection}>
+              <div className={styles.formSectionHeader}>
+                <h3>Thông tin ứng viên</h3>
+                <Link href="/freelancer/profile" className={styles.editProfileLink}><ExternalLink size={14} /> Chỉnh sửa hồ sơ</Link>
+              </div>
+              <div className={styles.applicantGrid}>
+                <div className={styles.applicantItem}>
+                  <span className={styles.applicantLabel}>Họ tên</span>
+                  <strong>{userProfile?.displayName || 'Chưa cập nhật'}</strong>
+                </div>
+                <div className={styles.applicantItem}>
+                  <span className={styles.applicantLabel}>Level</span>
+                  <strong><LevelBadge level={(userProfile?.currentLevel || 'L1') as 'L1'|'L2'|'L3'|'L4'|'L5'} /></strong>
+                </div>
+                <div className={styles.applicantItem}>
+                  <span className={styles.applicantLabel}>Chuyên môn</span>
+                  <strong>{(userProfile?.specialties || []).join(', ') || 'Chưa cập nhật'}</strong>
+                </div>
+                <div className={styles.applicantItem}>
+                  <span className={styles.applicantLabel}>Kinh nghiệm</span>
+                  <strong>{userProfile?.experience || 0} năm · {userProfile?.stats?.completedJobs || 0} job</strong>
+                </div>
+              </div>
+              <p className={styles.profileNote}>Thông tin lấy từ hồ sơ năng lực. Admin sẽ xem toàn bộ khi xét duyệt.</p>
+            </div>
+
+            {/* Additional Info Form */}
+            <div className={styles.formSection}>
+              <h3>Thông tin bổ sung cho Admin</h3>
+              
+              <div className={styles.formRow}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Ngày có thể bắt đầu <span className={styles.required}>*</span></label>
+                  <input 
+                    type="date" 
+                    className={styles.formInput} 
+                    value={availableDate} 
+                    onChange={e => setAvailableDate(e.target.value)} 
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Mức thù lao kỳ vọng (VND)</label>
+                  <input 
+                    type="text" 
+                    className={styles.formInput} 
+                    placeholder={`Đồng ý: ${formatFriendlyMoney(job.totalFee)}`}
+                    value={expectedFee}
+                    onChange={e => setExpectedFee(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formField}>
+                <label className={styles.formLabel}>Lý do ứng tuyển / giới thiệu ngắn <span className={styles.required}>*</span></label>
+                <textarea 
+                  className={styles.formTextarea} 
+                  rows={4}
+                  placeholder="Mô tả kinh nghiệm liên quan, lý do phù hợp với công việc này..."
+                  value={coverLetter}
+                  onChange={e => setCoverLetter(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.formField}>
+                <label className={styles.formLabel}>Portfolio liên quan (link)</label>
+                <input 
+                  type="url" 
+                  className={styles.formInput} 
+                  placeholder="https://drive.google.com/..."
+                  value={portfolioLink}
+                  onChange={e => setPortfolioLink(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Confirmation Checkboxes */}
+            <div className={styles.formSection}>
+              <h3>Xác nhận trước khi gửi</h3>
+              <div className={styles.checkboxList}>
+                <label className={styles.checkboxRow}>
+                  <input type="checkbox" checked={agreedScope} onChange={e => setAgreedScope(e.target.checked)} />
+                  <span>Tôi đã đọc kỹ phạm vi công việc, yêu cầu năng lực và các điều khoản thanh toán</span>
+                </label>
+                <label className={styles.checkboxRow}>
+                  <input type="checkbox" checked={agreedProfile} onChange={e => setAgreedProfile(e.target.checked)} />
+                  <span>Tôi xác nhận thông tin hồ sơ năng lực là trung thực và cập nhật</span>
+                </label>
+                <label className={styles.checkboxRow}>
+                  <input type="checkbox" checked={agreedContract} onChange={e => setAgreedContract(e.target.checked)} />
+                  <span>Tôi hiểu rằng việc được chọn sẽ yêu cầu ký hợp đồng điện tử trước khi bắt đầu</span>
+                </label>
+              </div>
+            </div>
+
+            {errorMsg && (
+              <div className={styles.errorBar}>
+                <AlertCircle size={16} /> {errorMsg}
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className={styles.modalFooter}>
+            <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Hủy, quay lại</Button>
+            <Button 
+              variant="primary" 
+              size="lg" 
+              disabled={!canSubmit || isSubmitting}
+              loading={isSubmitting}
+              onClick={handleSubmit}
+              icon={<Send size={16} />}
+            >
+              Gửi đơn ứng tuyển
+            </Button>
+          </div>
+
+          <p className={styles.modalDisclaimer}>
+            Sau khi gửi, đơn sẽ xuất hiện trong tab &quot;Đã ứng tuyển&quot; của mục Việc của tôi. Admin sẽ thông báo kết quả qua email và in-app.
+          </p>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}
+
+// =====================
+// MAIN PAGE COMPONENT
+// =====================
 export default function JobDetailPage() {
   const params = useParams();
+  const { userProfile, firebaseUser } = useAuth();
   const jobId = params.id as string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isApplying, setIsApplying] = useState(false);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
+  const [checkingApplication, setCheckingApplication] = useState(false);
 
   useEffect(() => {
     async function fetchJob() {
@@ -73,12 +296,51 @@ export default function JobDetailPage() {
     if (jobId) fetchJob();
   }, [jobId]);
 
-  const handleApply = () => {
-    setIsApplying(true);
-    setTimeout(() => {
-      setIsApplying(false);
-      alert('Đã gửi yêu cầu nhận việc thành công! Hệ thống sẽ thông báo kết quả cho bạn sớm nhất.');
-    }, 1500);
+  // Check if user has already applied
+  const checkApplication = useCallback(async () => {
+    if (!firebaseUser?.uid || !jobId) return;
+    try {
+      setCheckingApplication(true);
+      const existing = await checkExistingApplication(jobId, firebaseUser.uid);
+      if (existing) {
+        setHasApplied(true);
+        setApplicationStatus(existing.status);
+      }
+    } catch (err) {
+      console.error('Error checking application:', err);
+    } finally {
+      setCheckingApplication(false);
+    }
+  }, [firebaseUser?.uid, jobId]);
+
+  useEffect(() => {
+    checkApplication();
+  }, [checkApplication]);
+
+  const handleApplyClick = () => {
+    if (!firebaseUser) {
+      // Not logged in - redirect to login
+      window.location.href = '/login';
+      return;
+    }
+    if (userProfile?.role !== 'freelancer') {
+      alert('Chỉ tài khoản Freelancer mới có thể ứng tuyển.');
+      return;
+    }
+    setShowApplyModal(true);
+  };
+
+  const handleApplySuccess = () => {
+    setShowApplyModal(false);
+    setHasApplied(true);
+    setApplicationStatus('pending');
+  };
+
+  const STATUS_MAP: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+    pending: { label: 'Đã gửi — Đang chờ duyệt', color: 'var(--color-warning)', icon: <Clock size={16} /> },
+    shortlisted: { label: 'Vào vòng trong', color: 'var(--color-info, #3b82f6)', icon: <Star size={16} /> },
+    accepted: { label: 'Đã được chọn!', color: 'var(--color-success)', icon: <CheckCircle size={16} /> },
+    rejected: { label: 'Không được chọn', color: 'var(--color-error)', icon: <AlertCircle size={16} /> },
   };
 
   if (loading) {
@@ -181,7 +443,6 @@ export default function JobDetailPage() {
               </div>
             </section>
 
-            {/* Requirements - only show if data exists */}
             {job.requirements && (
               <section className={styles.section}>
                 <h2 className={styles.sectionTitle}><Zap size={20} /> Yêu cầu công việc</h2>
@@ -200,7 +461,6 @@ export default function JobDetailPage() {
               </section>
             )}
 
-            {/* Milestones - only show if data exists */}
             {job.milestones.length > 0 && (
               <section className={styles.section}>
                 <h2 className={styles.sectionTitle}><Star size={20} /> Giai đoạn thanh toán (Milestones)</h2>
@@ -280,26 +540,42 @@ export default function JobDetailPage() {
               </div>
 
               <div className={styles.actionBlock}>
-                <Button 
-                  fullWidth 
-                  size="lg" 
-                  onClick={handleApply} 
-                  loading={isApplying}
-                  icon={<Sparkles size={18} />}
-                >
-                  Nộp hồ sơ ứng tuyển
-                </Button>
-                <div className={styles.actionHint}>
-                  Yêu cầu Level {job.level} để tối ưu cơ hội trúng tuyển.
-                </div>
+                {hasApplied && applicationStatus ? (
+                  <div className={styles.appliedStatus} style={{ borderColor: STATUS_MAP[applicationStatus]?.color }}>
+                    <div className={styles.appliedIcon} style={{ color: STATUS_MAP[applicationStatus]?.color }}>
+                      {STATUS_MAP[applicationStatus]?.icon}
+                    </div>
+                    <div>
+                      <div className={styles.appliedLabel} style={{ color: STATUS_MAP[applicationStatus]?.color }}>
+                        {STATUS_MAP[applicationStatus]?.label}
+                      </div>
+                      <div className={styles.appliedHint}>Bạn đã ứng tuyển công việc này</div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Button 
+                      fullWidth 
+                      size="lg" 
+                      onClick={handleApplyClick} 
+                      loading={checkingApplication}
+                      icon={<Sparkles size={18} />}
+                    >
+                      Nộp hồ sơ ứng tuyển
+                    </Button>
+                    <div className={styles.actionHint}>
+                      Yêu cầu Level {job.level} để tối ưu cơ hội trúng tuyển.
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className={styles.masterInfo}>
-                <div className={styles.mLabel}>Người quản lý công việc</div>
+                <div className={styles.masterLabel}>Người quản lý công việc</div>
                 <div className={styles.mProfile}>
                   <Avatar name={job.jobMasterName} level={job.level} size="md" />
                   <div className={styles.mDetails}>
-                    <div className={styles.mName}>{job.jobMasterName}</div>
+                    <div className={styles.masterName}>{job.jobMasterName}</div>
                     <div className={styles.mRole}>Job Master @ INNO</div>
                   </div>
                 </div>
@@ -322,6 +598,14 @@ export default function JobDetailPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Apply Modal */}
+      <ApplyModal 
+        isOpen={showApplyModal}
+        onClose={() => setShowApplyModal(false)}
+        job={job}
+        onSuccess={handleApplySuccess}
+      />
     </div>
   );
 }

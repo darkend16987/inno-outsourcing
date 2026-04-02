@@ -169,6 +169,8 @@ export type ApplicationStatus = 'pending' | 'shortlisted' | 'accepted' | 'reject
 
 export interface JobApplication {
   id: string;
+  jobId: string;
+  jobTitle: string;
   applicantId: string;
   applicantName: string;
   applicantLevel: JobLevel;
