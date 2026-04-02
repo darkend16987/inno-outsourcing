@@ -5,3 +5,4 @@ export { Avatar } from './Avatar';
 export { Progress } from './Progress';
 export { Skeleton } from './Skeleton';
 export { ThemeToggle } from './ThemeToggle';
+export { ErrorBoundary } from './ErrorBoundary';

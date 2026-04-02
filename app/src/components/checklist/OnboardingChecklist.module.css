@@ -1,0 +1,159 @@
+.container {
+  background: var(--color-surface, #1e1e30);
+  border: 1px solid var(--color-border, rgba(255,255,255,0.08));
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text, #e2e8f0);
+  margin: 0 0 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #94a3b8);
+  margin: 0;
+}
+
+.progressCircle {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.progressSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progressBg {
+  fill: none;
+  stroke: rgba(255,255,255,0.06);
+  stroke-width: 3;
+}
+
+.progressFill {
+  fill: none;
+  stroke: var(--color-primary, #6c5ce7);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.progressText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-primary, #6c5ce7);
+}
+
+.progressBar {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFillBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary, #6c5ce7), #a29bfe);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.progressLabel {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #64748b);
+  margin: 0.4rem 0 1rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.item:hover:not(.completed) {
+  background: rgba(255,255,255,0.03);
+}
+
+.completed {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.completed .checkbox {
+  color: #4ade80;
+}
+
+.emptyCheck {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 50%;
+}
+
+.itemContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemLabel {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text, #e2e8f0);
+  font-weight: 500;
+}
+
+.completed .itemLabel {
+  text-decoration: line-through;
+}
+
+.itemDesc {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 2px;
+}
+
+.arrow {
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}

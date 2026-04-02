@@ -366,3 +366,82 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   paid: 'Đã thanh toán',
   cancelled: 'Đã hủy',
 };
+
+// ---- Reviews / Ratings (P2) ----
+export interface Review {
+  id?: string;
+  jobId: string;
+  jobTitle: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewerRole: UserRole;
+  revieweeId: string;
+  revieweeName: string;
+  rating: number; // 1-5
+  comment: string;
+  categories?: {
+    quality?: number;       // Chất lượng công việc
+    communication?: number; // Giao tiếp
+    timeliness?: number;    // Đúng hạn
+    professionalism?: number; // Chuyên nghiệp
+  };
+  createdAt: Date;
+}
+
+export const REVIEW_RATING_LABELS: Record<number, string> = {
+  1: 'Rất kém',
+  2: 'Kém',
+  3: 'Trung bình',
+  4: 'Tốt',
+  5: 'Xuất sắc',
+};
+
+// ---- Disputes (P4) ----
+export type DisputeStatus = 'open' | 'under_review' | 'resolved' | 'escalated' | 'closed';
+
+export type DisputeReason =
+  | 'quality_issue'       // Chất lượng không đạt
+  | 'missed_deadline'     // Trễ deadline
+  | 'payment_dispute'     // Tranh chấp thanh toán
+  | 'scope_change'        // Thay đổi phạm vi
+  | 'communication'       // Vấn đề giao tiếp
+  | 'other';              // Khác
+
+export interface Dispute {
+  id?: string;
+  jobId: string;
+  jobTitle: string;
+  initiatorId: string;
+  initiatorName: string;
+  initiatorRole: UserRole;
+  respondentId: string;
+  respondentName: string;
+  participants: string[]; // [initiatorId, respondentId] for Firestore rules
+  reason: DisputeReason;
+  description: string;
+  evidence?: string[]; // URLs to uploaded evidence files
+  status: DisputeStatus;
+  resolution?: string;
+  resolvedBy?: string;
+  resolvedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
+  open: 'Đang mở',
+  under_review: 'Đang xem xét',
+  resolved: 'Đã giải quyết',
+  escalated: 'Đã leo thang',
+  closed: 'Đã đóng',
+};
+
+export const DISPUTE_REASON_LABELS: Record<DisputeReason, string> = {
+  quality_issue: 'Chất lượng không đạt',
+  missed_deadline: 'Trễ deadline',
+  payment_dispute: 'Tranh chấp thanh toán',
+  scope_change: 'Thay đổi phạm vi',
+  communication: 'Vấn đề giao tiếp',
+  other: 'Khác',
+};
+

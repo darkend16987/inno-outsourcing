@@ -3,6 +3,14 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 // =====================
+// CSRF TOKEN GENERATOR
+// =====================
+function generateCsrfToken(): string {
+  // Use crypto.randomUUID (available in Edge Runtime)
+  return crypto.randomUUID();
+}
+
+// =====================
 // SESSION SECRET
 // =====================
 function getSessionSecret() {
@@ -144,6 +152,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // --- CSRF Protection (S6) ---
+  // For API mutating requests, validate CSRF token
+  if (path.startsWith('/api/') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const csrfCookie = request.cookies.get('csrf_token')?.value;
+    const csrfHeader = request.headers.get('x-csrf-token');
+
+    if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid CSRF token' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   // --- Prevent logged-in users from seeing login/register ---
   if (path === '/login' || path === '/register') {
     const session = await getSessionPayload(request);
@@ -152,7 +174,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // Set CSRF token cookie on GET requests (if not already set)
+  if (request.method === 'GET' && !request.cookies.get('csrf_token')?.value) {
+    const csrfToken = generateCsrfToken();
+    response.cookies.set('csrf_token', csrfToken, {
+      httpOnly: false, // Must be readable by JS to send in header
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24, // 24 hours
+    });
+  }
+
+  return response;
 }
 
 export const config = {

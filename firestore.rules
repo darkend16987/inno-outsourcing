@@ -187,5 +187,55 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // =====================
+    // AUDIT LOGS
+    // =====================
+    match /auditLogs/{logId} {
+      // Only admins can read audit logs
+      allow read: if isAdmin();
+
+      // Any authenticated user can write (logging their own actions)
+      allow create: if isSignedIn();
+
+      // Nobody can update or delete audit logs
+      allow update, delete: if false;
+    }
+
+    // =====================
+    // REVIEWS (Rating/Review System)
+    // =====================
+    match /reviews/{reviewId} {
+      // Anyone can read reviews (public)
+      allow read: if true;
+
+      // Authenticated users can create reviews with their own reviewerId
+      allow create: if isSignedIn()
+                    && request.resource.data.reviewerId == request.auth.uid;
+
+      // Admins can update/delete reviews (moderation)
+      allow update, delete: if isAdmin();
+    }
+
+    // =====================
+    // DISPUTES
+    // =====================
+    match /disputes/{disputeId} {
+      // Participants and admins can read disputes
+      allow read: if isSignedIn()
+                  && (request.auth.uid in resource.data.participants
+                      || isAdmin());
+
+      // Authenticated users can create disputes (with themselves as initiator)
+      allow create: if isSignedIn()
+                    && request.resource.data.initiatorId == request.auth.uid;
+
+      // Only admins can update disputes (resolution)
+      allow update: if isAdmin()
+                    || (isSignedIn() && request.auth.uid in resource.data.participants);
+
+      // Nobody can delete disputes
+      allow delete: if false;
+    }
   }
 }

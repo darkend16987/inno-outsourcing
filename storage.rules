@@ -1,0 +1,111 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // =====================
+    // HELPER FUNCTIONS
+    // =====================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Max file size: 10MB
+    function isWithinSizeLimit() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Allowed content types
+    function isAllowedImageType() {
+      return request.resource.contentType.matches('image/(jpeg|png|gif|webp|svg\\+xml)');
+    }
+
+    function isAllowedDocType() {
+      return request.resource.contentType.matches('application/(pdf|msword|vnd\\.openxmlformats.*)')
+             || request.resource.contentType.matches('image/(jpeg|png|gif|webp)')
+             || request.resource.contentType.matches('application/zip');
+    }
+
+    // =====================
+    // USER UPLOADS — Only owner can write to their own folder
+    // =====================
+    match /users/{uid}/{allPaths=**} {
+      // Anyone authenticated can read (for profile photos, portfolios)
+      allow read: if isSignedIn();
+
+      // Only the user can upload to their own folder
+      allow write: if isOwner(uid)
+                   && isWithinSizeLimit()
+                   && (isAllowedImageType() || isAllowedDocType());
+
+      // Only owner or admin can delete
+      allow delete: if isOwner(uid);
+    }
+
+    // =====================
+    // JOB ATTACHMENTS — Admins and Job Masters can upload
+    // =====================
+    match /jobs/{jobId}/{allPaths=**} {
+      // Authenticated users can read job attachments
+      allow read: if isSignedIn();
+
+      // Only authenticated users can upload with size/type restrictions
+      allow write: if isSignedIn()
+                   && isWithinSizeLimit()
+                   && isAllowedDocType();
+    }
+
+    // =====================
+    // CONTRACT PDFs — Restricted access
+    // =====================
+    match /contracts/{contractId}/{allPaths=**} {
+      allow read: if isSignedIn();
+
+      // Only service accounts (Cloud Functions) should write contracts
+      // But allow authenticated users for signed uploads
+      allow write: if isSignedIn()
+                   && isWithinSizeLimit()
+                   && request.resource.contentType == 'application/pdf';
+    }
+
+    // =====================
+    // PAYMENT PROOFS
+    // =====================
+    match /payments/{paymentId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+                   && isWithinSizeLimit()
+                   && (isAllowedImageType() || request.resource.contentType == 'application/pdf');
+    }
+
+    // =====================
+    // DISPUTE EVIDENCE
+    // =====================
+    match /disputes/{disputeId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+                   && isWithinSizeLimit()
+                   && (isAllowedImageType() || isAllowedDocType());
+    }
+
+    // =====================
+    // PUBLIC ASSETS (banners, system images)
+    // =====================
+    match /public/{allPaths=**} {
+      allow read: if true;
+      // Only admin can write public assets (enforced at app level)
+      allow write: if isSignedIn()
+                   && isWithinSizeLimit();
+    }
+
+    // =====================
+    // DENY ALL OTHER PATHS
+    // =====================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

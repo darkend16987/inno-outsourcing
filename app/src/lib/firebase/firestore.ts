@@ -18,6 +18,9 @@ import {
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, app } from './config';
+import { logAuditEvent } from './audit-log';
+import { validateTransition } from '@/lib/state/job-state-machine';
+import { withRetry } from '@/lib/utils/retry';
 import type {
   Job, UserProfile, JobApplication, Contract, Payment,
   Notification, Conversation, Message, LeaderboardEntry,
@@ -151,12 +154,34 @@ export const getJobById = async (id: string): Promise<Job | null> => {
   return { id: snap.id, ...snap.data() } as Job;
 };
 
-export const updateJob = async (id: string, data: Partial<Job>) => {
+export const updateJob = async (id: string, data: Partial<Job>, actor?: { uid: string; name: string; role: string }) => {
   if (!db) return;
+
+  // If status is changing, validate the transition via state machine (A7)
+  if (data.status) {
+    const currentJob = await getJobById(id);
+    if (currentJob?.status) {
+      validateTransition(currentJob.status, data.status);
+    }
+  }
+
   await updateDoc(doc(db, 'jobs', id), {
     ...data,
     updatedAt: serverTimestamp(),
   });
+
+  // Audit log (A3) — fire and forget
+  if (actor) {
+    logAuditEvent({
+      action: data.status ? 'job.status_changed' : 'job.updated',
+      actorId: actor.uid,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'job',
+      targetId: id,
+      after: data as Record<string, unknown>,
+    });
+  }
 };
 
 // =====================
@@ -249,9 +274,22 @@ export const getAllApplications = async (
   };
 };
 
-export const updateApplication = async (id: string, data: Partial<JobApplication>) => {
+export const updateApplication = async (id: string, data: Partial<JobApplication>, actor?: { uid: string; name: string; role: string }) => {
   if (!db) return;
-  await updateDoc(doc(db, 'applications', id), { ...data });
+  await updateDoc(doc(db, 'applications', id), { ...data, updatedAt: serverTimestamp() });
+
+  // Audit log (A3)
+  if (actor && data.status) {
+    logAuditEvent({
+      action: 'application.status_changed',
+      actorId: actor.uid,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'application',
+      targetId: id,
+      after: { status: data.status },
+    });
+  }
 };
 
 // =====================
@@ -330,9 +368,25 @@ export const getAllPayments = async (filters: { status?: string } = {}, pageSize
   };
 };
 
-export const updatePayment = async (id: string, data: Partial<Payment>) => {
+export const updatePayment = async (id: string, data: Partial<Payment>, actor?: { uid: string; name: string; role: string }) => {
   if (!db) return;
-  await updateDoc(doc(db, 'payments', id), { ...data, updatedAt: serverTimestamp() });
+  // Wrap payment updates in retry logic (S9) for resilience
+  await withRetry(async () => {
+    await updateDoc(doc(db!, 'payments', id), { ...data, updatedAt: serverTimestamp() });
+  });
+
+  // Audit log (A3)
+  if (actor && data.status) {
+    logAuditEvent({
+      action: data.status === 'paid' ? 'payment.paid' : data.status === 'approved' ? 'payment.approved' : 'payment.created',
+      actorId: actor.uid,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'payment',
+      targetId: id,
+      after: { status: data.status, amount: (data as Record<string, unknown>).amount },
+    });
+  }
 };
 
 // =====================

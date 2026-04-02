@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import styles from './layout.module.css';
 
 export default function AccountantLayout({ children }: { children: React.ReactNode }) {
@@ -11,7 +14,9 @@ export default function AccountantLayout({ children }: { children: React.ReactNo
           <h2 className={styles.routeDesc}>Accounting Portal</h2>
         </header>
         <main className={styles.contentArea}>
-          {children}
+          <ErrorBoundary sectionName="Accounting Dashboard">
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

@@ -1,10 +1,27 @@
 /**
  * Input sanitization utilities to prevent XSS and injection attacks.
+ * Uses DOMPurify for robust HTML sanitization instead of regex.
  */
 
-/** Strip HTML tags from user input */
+import DOMPurify from 'isomorphic-dompurify';
+
+/** Strip all HTML tags from user input (safe against encoded XSS) */
 export function stripHtml(input: string): string {
-  return input.replace(/<[^>]*>/g, '');
+  // DOMPurify with no allowed tags = strips everything
+  return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+}
+
+/**
+ * Sanitize HTML content, allowing safe tags only.
+ * Use for rich text fields (e.g., job descriptions).
+ */
+export function sanitizeHtml(input: string): string {
+  if (!input) return '';
+  return DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'span', 'div', 'blockquote', 'code', 'pre'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    ALLOW_DATA_ATTR: false,
+  });
 }
 
 /** Sanitize user text input (comments, bios, etc) */
@@ -48,7 +65,7 @@ export function sanitizeUrl(url: string): string {
   }
 }
 
-/** Rate limit tracker (client-side) */
+/** Rate limit tracker (client-side — UX improvement only, NOT security) */
 const actionTimestamps = new Map<string, number[]>();
 
 export function isRateLimited(
