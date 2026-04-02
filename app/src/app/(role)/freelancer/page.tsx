@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Briefcase, CheckCircle, Clock, Star, TrendingUp, Loader2, Inbox } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
 import { RecommendedJobs } from '@/components/jobs/RecommendedJobs';
+import { EarningsChart } from '@/components/analytics/EarningsChart';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getApplicationsForFreelancer, getJobById, getJobs } from '@/lib/firebase/firestore';
 import { subscribeToNotifications } from '@/lib/firebase/firestore';
@@ -197,6 +198,12 @@ export default function FreelancerDashboard() {
           )}
         </Card>
       </div>
+
+      {/* Earnings Chart */}
+      <EarningsChart
+        totalEarnings={userProfile?.stats?.totalEarnings || 0}
+        currentMonthEarnings={userProfile?.stats?.currentMonthEarnings || 0}
+      />
 
       {/* AI Recommended Jobs */}
       {recommendedJobs.length > 0 && (

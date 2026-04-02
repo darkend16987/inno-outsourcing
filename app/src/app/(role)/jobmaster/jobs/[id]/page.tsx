@@ -6,6 +6,8 @@ import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, 
 import { Button, Card, Badge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
+import { MutualReviewForm } from '@/components/reviews/MutualReview';
+import { submitReview } from '@/lib/firebase/firestore-extended';
 import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
 import styles from './page.module.css';
 
@@ -201,6 +203,29 @@ export default function JobMasterJobDetailPage() {
               { id: '5', type: 'comment_added' as const, title: 'Bình luận mới', description: 'Bản vẽ mặt bằng cần chỉnh sửa theo góp ý...', actor: 'Jobmaster', timestamp: new Date(2026, 2, 16) },
             ]).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())}
             maxVisible={4}
+          />
+
+          {/* MutualReview — shown when job is completed */}
+          <MutualReviewForm
+            jobTitle="Thiết kế kiến trúc Nhà xưởng KCN Bình Dương"
+            targetUserName="Nguyễn Văn A"
+            reviewerRole="jobmaster"
+            onSubmit={async (data) => {
+              await submitReview({
+                jobId: 'demo-job-id',
+                jobTitle: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương',
+                reviewerId: 'jobmaster-uid',
+                reviewerName: 'Job Master',
+                reviewerRole: 'jobmaster',
+                revieweeId: 'freelancer-uid',
+                revieweeName: 'Nguyễn Văn A',
+                rating: data.rating,
+                communication: data.communication,
+                quality: data.quality,
+                timeliness: data.timeliness,
+                comment: data.comment,
+              });
+            }}
           />
         </div>
       </div>

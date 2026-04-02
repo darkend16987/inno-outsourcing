@@ -329,3 +329,67 @@ export const updateJobProgress = async (
   if (!db) return;
   await updateDoc(doc(db, 'jobs', jobId), { progress });
 };
+
+// =====================
+// REVIEWS
+// =====================
+
+/**
+ * Submit a review for a completed job
+ */
+export const submitReview = async (review: {
+  jobId: string;
+  jobTitle: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewerRole: 'freelancer' | 'jobmaster';
+  revieweeId: string;
+  revieweeName: string;
+  rating: number;
+  communication: number;
+  quality: number;
+  timeliness: number;
+  comment: string;
+}): Promise<string | null> => {
+  if (!db) return null;
+  const ref = await addDoc(collection(db, 'reviews'), {
+    ...review,
+    visible: false,
+    createdAt: serverTimestamp(),
+  });
+
+  // Check if both sides have reviewed -> make both visible
+  const existingReviews = await getDocs(
+    query(
+      collection(db, 'reviews'),
+      where('jobId', '==', review.jobId),
+    )
+  );
+
+  const reviewerRoles = new Set(existingReviews.docs.map(d => d.data().reviewerRole));
+  if (reviewerRoles.has('freelancer') && reviewerRoles.has('jobmaster')) {
+    const batch = writeBatch(db);
+    existingReviews.docs.forEach(d => batch.update(d.ref, { visible: true }));
+    await batch.commit();
+  }
+
+  return ref.id;
+};
+
+/**
+ * Check if a user has already reviewed a job
+ */
+export const hasUserReviewedJob = async (
+  jobId: string,
+  reviewerId: string,
+): Promise<boolean> => {
+  if (!db) return false;
+  const q = query(
+    collection(db, 'reviews'),
+    where('jobId', '==', jobId),
+    where('reviewerId', '==', reviewerId),
+    limit(1),
+  );
+  const snap = await getDocs(q);
+  return !snap.empty;
+};

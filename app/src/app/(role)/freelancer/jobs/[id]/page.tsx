@@ -8,7 +8,9 @@ import { ArrowLeft, Clock, MessageSquare, UploadCloud, CheckCircle2, X, Loader2,
 import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
+import { MutualReviewForm } from '@/components/reviews/MutualReview';
 import { getJobById } from '@/lib/firebase/firestore';
+import { submitReview, hasUserReviewedJob } from '@/lib/firebase/firestore-extended';
 import type { Job } from '@/types';
 import styles from './page.module.css';
 
@@ -32,6 +34,7 @@ export default function FreelancerJobDetail() {
   const [loading, setLoading] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submittingMilestone, setSubmittingMilestone] = useState<string | null>(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -39,6 +42,11 @@ export default function FreelancerJobDetail() {
       const result = await getJobById(params.id as string);
       setJob(result);
       setLoading(false);
+      // Check if already reviewed (mock userId for now)
+      if (result && (result.status === 'completed' || result.status === 'paid') && result.assignedTo) {
+        const reviewed = await hasUserReviewedJob(result.id, result.assignedTo);
+        setHasReviewed(reviewed);
+      }
     };
     fetchJob().catch(() => setLoading(false));
   }, [params.id]);
@@ -206,6 +214,33 @@ export default function FreelancerJobDetail() {
               totalFee={job.totalFee || 0}
               milestones={job.milestones}
               compact
+            />
+          )}
+
+          {/* MutualReview for completed jobs */}
+          {(job.status === 'completed' || job.status === 'paid') && !hasReviewed && (
+            <MutualReviewForm
+              jobTitle={job.title}
+              targetUserName={job.jobMasterName || 'Job Master'}
+              reviewerRole="freelancer"
+              onSubmit={async (data) => {
+                if (!job.assignedTo) return;
+                await submitReview({
+                  jobId: job.id,
+                  jobTitle: job.title,
+                  reviewerId: job.assignedTo,
+                  reviewerName: job.assignedWorkerName || 'Freelancer',
+                  reviewerRole: 'freelancer',
+                  revieweeId: job.jobMaster,
+                  revieweeName: job.jobMasterName || 'Job Master',
+                  rating: data.rating,
+                  communication: data.communication,
+                  quality: data.quality,
+                  timeliness: data.timeliness,
+                  comment: data.comment,
+                });
+                setHasReviewed(true);
+              }}
             />
           )}
         </motion.div>

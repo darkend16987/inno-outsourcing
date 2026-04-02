@@ -22,3 +22,9 @@ export declare const onContractStatusChange: import("firebase-functions/core").C
 }>>;
 export declare const scheduledDeadlineCheck: import("firebase-functions/v2/scheduler").ScheduleFunction;
 export declare const scheduledLeaderboard: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const generateInvoicePDF: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
+    pdfURL: string;
+}>, unknown>;
+export declare const onReviewCreated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    reviewId: string;
+}>>;
