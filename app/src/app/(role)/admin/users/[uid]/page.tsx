@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Save, UserCheck, UserX, Shield, Mail, Phone,
   Briefcase, Star, Award, Calendar, MapPin, CreditCard,
-  Loader2, AlertTriangle, Edit3
+  Loader2, AlertTriangle, Edit3, GraduationCap
 } from 'lucide-react';
 import { Button, Card, Badge, Avatar, LevelBadge } from '@/components/ui';
 import { getUserProfile, updateUserProfile } from '@/lib/firebase/firestore';
@@ -281,7 +281,7 @@ export default function AdminUserDetailPage() {
 
               <div className={styles.field}>
                 <label>Kinh nghiệm</label>
-                <span>{user.experience ? `${user.experience} năm` : '-'}</span>
+                <span>{user.yearsOfExperience ? `${user.yearsOfExperience} năm` : '-'}</span>
               </div>
             </div>
 
@@ -311,12 +311,45 @@ export default function AdminUserDetailPage() {
             </div>
 
             <div className={styles.field} style={{ marginTop: '16px' }}>
+              <label>Phần mềm thành thạo</label>
+              <div className={styles.tagsArea}>
+                {(user.software || []).map((s, i) => (
+                  <Badge key={i} variant="outline">{s}</Badge>
+                ))}
+                {(!user.software || user.software.length === 0) && <span style={{ opacity: 0.5 }}>Chưa chọn</span>}
+              </div>
+            </div>
+
+            <div className={styles.field} style={{ marginTop: '16px' }}>
               <label>Giới thiệu</label>
               {editing ? (
                 <textarea className={styles.textarea} value={editBio} onChange={e => setEditBio(e.target.value)} placeholder="Giới thiệu bản thân..." rows={3} />
               ) : (
                 <p className={styles.bioText}>{user.bio || 'Chưa có thông tin giới thiệu.'}</p>
               )}
+            </div>
+          </Card>
+
+          {/* Education Card */}
+          <Card className={styles.infoCard}>
+            <h3 className={styles.sectionTitle}><GraduationCap size={18} /> Học vấn</h3>
+            <div className={styles.fieldGrid}>
+              <div className={styles.field}>
+                <label>Trường đào tạo</label>
+                <span>{user.educationSchool || '-'}</span>
+              </div>
+              <div className={styles.field}>
+                <label>Chuyên ngành</label>
+                <span>{user.educationMajor || '-'}</span>
+              </div>
+              <div className={styles.field}>
+                <label>Năm học</label>
+                <span>{user.educationYear || '-'}</span>
+              </div>
+              <div className={styles.field}>
+                <label>Số năm kinh nghiệm</label>
+                <span>{user.yearsOfExperience ? `${user.yearsOfExperience} năm` : '-'}</span>
+              </div>
             </div>
           </Card>
 
@@ -371,6 +404,25 @@ export default function AdminUserDetailPage() {
                 </div>
               </div>
             </Card>
+
+            {/* Certificates */}
+            {(user.certificates && user.certificates.length > 0) && (
+              <Card className={styles.infoCard}>
+                <h3 className={styles.sectionTitle}><Award size={18} /> Chứng chỉ nghề nghiệp ({user.certificates.length})</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {user.certificates.map((cert, i) => (
+                    <div key={i} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', background: 'var(--color-bg, #fff)' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-charcoal, #1a1a2e)' }}>{cert.name}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #666)', marginTop: 4 }}>
+                        {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy} | </span>}
+                        {cert.issuedDate && <span>Ngày: {cert.issuedDate} | </span>}
+                        {cert.expiryDate && <span>Hết hạn: {cert.expiryDate}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
         </div>
       </div>

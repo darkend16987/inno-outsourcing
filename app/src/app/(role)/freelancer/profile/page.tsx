@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, Award, Calendar, Edit3, Loader2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Award, Calendar, Edit3, Loader2, GraduationCap, Shield, Building2, Briefcase } from 'lucide-react';
 import { Card, Badge, LevelBadge, Avatar, Button } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getUserBadges } from '@/lib/firebase/firestore';
@@ -51,6 +51,7 @@ export default function ProfilePage() {
       ? (p.createdAt as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' })
       : '')
     : '';
+  const certs = p.certificates || [];
 
   return (
     <div className={styles.page}>
@@ -112,6 +113,29 @@ export default function ProfilePage() {
             <p className={styles.bio}>{p.bio || 'Chưa cập nhật giới thiệu. Nhấn "Chỉnh sửa hồ sơ" để thêm.'}</p>
           </Card>
 
+          {/* Education */}
+          <Card className={styles.detailCard}>
+            <h3 className={styles.sectionTitle}><GraduationCap size={18} /> Học vấn & Kinh nghiệm</h3>
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Năm kinh nghiệm</span>
+                <span className={styles.infoValue}>{p.yearsOfExperience ? `${p.yearsOfExperience} năm` : 'Chưa cập nhật'}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Chuyên ngành</span>
+                <span className={styles.infoValue}>{p.educationMajor || 'Chưa cập nhật'}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Trường đào tạo</span>
+                <span className={styles.infoValue}>{p.educationSchool || 'Chưa cập nhật'}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Năm học</span>
+                <span className={styles.infoValue}>{p.educationYear || '-'}</span>
+              </div>
+            </div>
+          </Card>
+
           <Card className={styles.detailCard}>
             <h3 className={styles.sectionTitle}>Chuyên môn & Kỹ năng</h3>
             <div className={styles.skillSect}>
@@ -134,8 +158,78 @@ export default function ProfilePage() {
             </div>
           </Card>
 
+          {/* Certificates */}
+          {certs.length > 0 && (
+            <Card className={styles.detailCard}>
+              <h3 className={styles.sectionTitle}><Award size={18} /> Chứng chỉ nghề nghiệp</h3>
+              <div className={styles.certList}>
+                {certs.map((c, i) => (
+                  <div key={i} className={styles.certItem}>
+                    <div className={styles.certName}>{c.name}</div>
+                    <div className={styles.certMeta}>
+                      {c.issuedBy && <span>Cấp bởi: {c.issuedBy}</span>}
+                      {c.issuedDate && <span>Ngày: {c.issuedDate}</span>}
+                      {c.expiryDate && <span>Hết hạn: {c.expiryDate}</span>}
+                    </div>
+                    {c.imageUrl && (
+                      <a href={c.imageUrl} target="_blank" rel="noopener noreferrer" className={styles.certLink}>Xem ảnh chứng chỉ →</a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Banking */}
+          {(p.bankName || p.bankAccountNumber || p.taxId) && (
+            <Card className={styles.detailCard}>
+              <h3 className={styles.sectionTitle}><Building2 size={18} /> Thông tin ngân hàng</h3>
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Ngân hàng</span>
+                  <span className={styles.infoValue}>{p.bankName || '-'}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>STK</span>
+                  <span className={styles.infoValue}>{p.bankAccountNumber ? `****${p.bankAccountNumber.slice(-4)}` : '-'}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Chi nhánh</span>
+                  <span className={styles.infoValue}>{p.bankBranch || '-'}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>MST</span>
+                  <span className={styles.infoValue}>{p.taxId || '-'}</span>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* KYC Status */}
           <Card className={styles.detailCard}>
-            <h3 className={styles.sectionTitle}>Huy hiệu đã đạt</h3>
+            <h3 className={styles.sectionTitle}><Shield size={18} /> Xác minh danh tính (CCCD)</h3>
+            {p.idNumber ? (
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Số CCCD</span>
+                  <span className={styles.infoValue}>{`****${p.idNumber.slice(-4)}`}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Ngày cấp</span>
+                  <span className={styles.infoValue}>{p.idIssuedDate || '-'}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Nơi cấp</span>
+                  <span className={styles.infoValue}>{p.idIssuedPlace || '-'}</span>
+                </div>
+              </div>
+            ) : (
+              <p className={styles.noData}>Chưa cập nhật CCCD. Nhấn &quot;Chỉnh sửa hồ sơ&quot; để thêm.</p>
+            )}
+          </Card>
+
+          <Card className={styles.detailCard}>
+            <h3 className={styles.sectionTitle}><Briefcase size={18} /> Huy hiệu đã đạt</h3>
             <div className={styles.badgesWrap}>
               {badges.length > 0 ? badges.map(b => (
                 <div key={b.id} className={styles.honorBadge}>

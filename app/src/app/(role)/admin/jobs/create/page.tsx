@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save, ArrowLeft, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Loader2, X, ImageIcon } from 'lucide-react';
 import { Button, Card, Badge } from '@/components/ui';
 import { getConfigItems, type SystemConfigItem, type ConfigCategory } from '@/lib/firebase/system-config';
 import { createJob } from '@/lib/firebase/firestore';
@@ -47,6 +47,9 @@ export default function CreateJobPage() {
     { id: 1, name: '', percentage: 0 }
   ]);
   const [saving, setSaving] = useState(false);
+  const [projectScale, setProjectScale] = useState('');
+  const [projectImages, setProjectImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
 
   // Load system config on mount
   useEffect(() => {
@@ -158,6 +161,8 @@ export default function CreateJobPage() {
         searchKeywords: title.toLowerCase().split(' '),
         isPublic: visibility === 'public',
         highlightTags: selectedTags,
+        ...(projectScale.trim() && { projectScale: projectScale.trim() }),
+        ...(projectImages.length > 0 && { projectImages }),
       };
 
       await createJob(jobData as never);
@@ -271,6 +276,37 @@ export default function CreateJobPage() {
                 value={description}
                 onChange={e => setDescription(e.target.value)}
               />
+            </div>
+          </Card>
+
+          <Card className={styles.formCard}>
+            <h3 className={styles.sectionTitle}>📐 Quy mô dự án & Hình ảnh</h3>
+            <div className={styles.formGroup}>
+              <label>Quy mô dự án</label>
+              <textarea
+                rows={3}
+                className={styles.textarea}
+                placeholder="VD: 8 tầng, 3000m² sàn, khoảng 50 căn hộ..."
+                value={projectScale}
+                onChange={e => setProjectScale(e.target.value)}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Hình ảnh công trình <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>(URL, tùy chọn)</span></label>
+              {projectImages.length > 0 && (
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
+                  {projectImages.map((url, i) => (
+                    <div key={i} style={{position:'relative',borderRadius:8,overflow:'hidden',border:'1px solid var(--color-border)',width:120,height:80}}>
+                      <img src={url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                      <button type="button" onClick={() => setProjectImages(prev => prev.filter((_,idx) => idx !== i))} style={{position:'absolute',top:2,right:2,background:'rgba(0,0,0,.6)',color:'#fff',border:'none',borderRadius:'50%',width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:12}}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{display:'flex',gap:8}}>
+                <input type="url" className={styles.input} placeholder="https://example.com/image.jpg" value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)} />
+                <Button variant="outline" size="sm" onClick={() => { if(newImageUrl.trim()){ setProjectImages(p => [...p, newImageUrl.trim()]); setNewImageUrl(''); } }} disabled={!newImageUrl.trim()}><ImageIcon size={14} /> Thêm</Button>
+              </div>
             </div>
           </Card>
 

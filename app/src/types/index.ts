@@ -24,16 +24,26 @@ export interface UserProfile {
   currentLevel: JobLevel;
   bio: string;
 
+  // Education
+  yearsOfExperience?: number;
+  educationSchool?: string;
+  educationYear?: string;
+  educationMajor?: string;
+
   // KYC
   kycCompleted: boolean;
   idNumber: string;
   idIssuedDate: string;
   idIssuedPlace: string;
+  idCardImages?: string[];
   address: string;
   bankAccountNumber: string;
   bankName: string;
   bankBranch: string;
   taxId: string;
+
+  // Certificates
+  certificates?: UserCertificateEntry[];
 
   // Stats (denormalized)
   stats: UserStats;
@@ -57,6 +67,14 @@ export interface UserStats {
   ratingCount: number;
   onTimeRate: number;
   currentMonthEarnings: number;
+}
+
+export interface UserCertificateEntry {
+  name: string;
+  issuedBy: string;
+  issuedDate: string;
+  expiryDate?: string;
+  imageUrl?: string;
 }
 
 export interface Certificate {
@@ -187,6 +205,10 @@ export interface Job {
 
   // Escrow (Phase 1)
   escrowStatus?: EscrowStatus;
+
+  // Project info
+  projectScale?: string;
+  projectImages?: string[];
 }
 
 // ---- Applications ----

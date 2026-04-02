@@ -46,6 +46,20 @@
 .emptyState { text-align: center; padding: 4rem 2rem; color: var(--color-text-muted); }
 .noData { font-size: 13px; color: var(--color-text-muted); font-style: italic; }
 
+/* Info Grid (Edu, Banking, KYC) */
+.infoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.infoItem { display: flex; flex-direction: column; gap: 4px; }
+.infoLabel { font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.infoValue { font-size: 0.9rem; color: var(--color-charcoal); }
+
+/* Certificates */
+.certList { display: flex; flex-direction: column; gap: var(--space-3); }
+.certItem { padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-bg); }
+.certName { font-weight: 600; font-size: 0.9rem; color: var(--color-charcoal); margin-bottom: 4px; }
+.certMeta { font-size: 0.78rem; color: var(--color-text-muted); display: flex; gap: var(--space-4); flex-wrap: wrap; }
+.certLink { display: inline-block; margin-top: 6px; font-size: 0.8rem; color: var(--color-primary); text-decoration: none; font-weight: 500; }
+.certLink:hover { text-decoration: underline; }
+
 @media (max-width: 1024px) {
   .grid { grid-template-columns: 1fr; }
   .pHeader { flex-direction: row; align-items: center; gap: var(--space-4); text-align: left; }

@@ -491,6 +491,28 @@ export default function JobDetailPage() {
               </div>
             </section>
 
+            {job.projectScale && (
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>📐 Quy mô dự án</h2>
+                <div className={styles.content}>
+                  <p>{job.projectScale}</p>
+                </div>
+              </section>
+            )}
+
+            {job.projectImages && job.projectImages.length > 0 && (
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>🏗️ Hình ảnh công trình</h2>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                  {job.projectImages.map((url: string, i: number) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{borderRadius:10,overflow:'hidden',border:'1px solid var(--color-border)',aspectRatio:'4/3',display:'block'}}>
+                      <img src={url} alt={`Project ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform .3s'}} onMouseOver={e => (e.currentTarget.style.transform='scale(1.05)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')} />
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {job.requirements && (
               <section className={styles.section}>
                 <h2 className={styles.sectionTitle}><Zap size={20} /> Yêu cầu công việc</h2>
