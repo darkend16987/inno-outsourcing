@@ -1,17 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, Award, Calendar, Edit3, Loader2, GraduationCap, Shield, Building2, Briefcase } from 'lucide-react';
+import { Mail, Phone, MapPin, Award, Calendar, Edit3, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { Card, Badge, LevelBadge, Avatar, Button } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getUserBadges } from '@/lib/firebase/firestore';
-import { ProfileEditModal } from '@/components/profile/ProfileEditModal';
 import type { UserBadge } from '@/types';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
-  const { userProfile, loading, refreshProfile } = useAuth();
-  const [showEdit, setShowEdit] = useState(false);
+  const { userProfile, loading } = useAuth();
   const [badges, setBadges] = useState<UserBadge[]>([]);
 
   useEffect(() => {
@@ -19,11 +18,6 @@ export default function ProfilePage() {
       getUserBadges(userProfile.uid).then(setBadges).catch(() => {});
     }
   }, [userProfile?.uid]);
-
-  const handleSaved = async () => {
-    await refreshProfile();
-    setShowEdit(false);
-  };
 
   if (loading) {
     return (
@@ -60,9 +54,11 @@ export default function ProfilePage() {
           <h1 className={styles.title}>Hồ sơ năng lực</h1>
           <p className={styles.subtitle}>Quản lý thông tin cá nhân và chi tiết năng lực chuyên môn.</p>
         </div>
-        <Button onClick={() => setShowEdit(true)}>
-          <Edit3 size={16} /> Chỉnh sửa hồ sơ
-        </Button>
+        <Link href="/freelancer/profile/edit">
+          <Button>
+            <Edit3 size={16} /> Chỉnh sửa hồ sơ
+          </Button>
+        </Link>
       </div>
 
       <div className={styles.grid}>
@@ -83,10 +79,10 @@ export default function ProfilePage() {
             </div>
 
             <div className={styles.pContact}>
-              {p.email && <div className={styles.cItem}><Mail size={16} /> {p.email}</div>}
-              {p.phone && <div className={styles.cItem}><Phone size={16} /> {p.phone}</div>}
-              {p.address && <div className={styles.cItem}><MapPin size={16} /> {p.address}</div>}
-              {joinDate && <div className={styles.cItem}><Calendar size={16} /> Tham gia: {joinDate}</div>}
+              {p.email && <div className={styles.cItem}><Mail size={16} /> <span className={styles.cText}>{p.email}</span></div>}
+              {p.phone && <div className={styles.cItem}><Phone size={16} /> <span className={styles.cText}>{p.phone}</span></div>}
+              {p.address && <div className={styles.cItem}><MapPin size={16} /> <span className={styles.cText}>{p.address}</span></div>}
+              {joinDate && <div className={styles.cItem}><Calendar size={16} /> <span className={styles.cText}>Tham gia: {joinDate}</span></div>}
             </div>
           </Card>
 
@@ -113,9 +109,8 @@ export default function ProfilePage() {
             <p className={styles.bio}>{p.bio || 'Chưa cập nhật giới thiệu. Nhấn "Chỉnh sửa hồ sơ" để thêm.'}</p>
           </Card>
 
-          {/* Education */}
           <Card className={styles.detailCard}>
-            <h3 className={styles.sectionTitle}><GraduationCap size={18} /> Học vấn & Kinh nghiệm</h3>
+            <h3 className={styles.sectionTitle}>Học vấn & Kinh nghiệm</h3>
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Năm kinh nghiệm</span>
@@ -161,7 +156,7 @@ export default function ProfilePage() {
           {/* Certificates */}
           {certs.length > 0 && (
             <Card className={styles.detailCard}>
-              <h3 className={styles.sectionTitle}><Award size={18} /> Chứng chỉ nghề nghiệp</h3>
+              <h3 className={styles.sectionTitle}>Chứng chỉ nghề nghiệp</h3>
               <div className={styles.certList}>
                 {certs.map((c, i) => (
                   <div key={i} className={styles.certItem}>
@@ -183,7 +178,7 @@ export default function ProfilePage() {
           {/* Banking */}
           {(p.bankName || p.bankAccountNumber || p.taxId) && (
             <Card className={styles.detailCard}>
-              <h3 className={styles.sectionTitle}><Building2 size={18} /> Thông tin ngân hàng</h3>
+              <h3 className={styles.sectionTitle}>Thông tin ngân hàng</h3>
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Ngân hàng</span>
@@ -207,7 +202,7 @@ export default function ProfilePage() {
 
           {/* KYC Status */}
           <Card className={styles.detailCard}>
-            <h3 className={styles.sectionTitle}><Shield size={18} /> Xác minh danh tính (CCCD)</h3>
+            <h3 className={styles.sectionTitle}>Xác minh danh tính (CCCD)</h3>
             {p.idNumber ? (
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
@@ -229,7 +224,7 @@ export default function ProfilePage() {
           </Card>
 
           <Card className={styles.detailCard}>
-            <h3 className={styles.sectionTitle}><Briefcase size={18} /> Huy hiệu đã đạt</h3>
+            <h3 className={styles.sectionTitle}>Huy hiệu đã đạt</h3>
             <div className={styles.badgesWrap}>
               {badges.length > 0 ? badges.map(b => (
                 <div key={b.id} className={styles.honorBadge}>
@@ -243,15 +238,6 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
-
-      {/* Profile Edit Modal */}
-      {showEdit && (
-        <ProfileEditModal
-          profile={p}
-          onClose={() => setShowEdit(false)}
-          onSaved={handleSaved}
-        />
-      )}
     </div>
   );
 }
