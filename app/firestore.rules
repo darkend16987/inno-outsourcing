@@ -3,69 +3,163 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // ──── Helpers ────
     function isAuthenticated() {
       return request.auth != null;
     }
     function isUser(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
     function hasRole(role) {
-      // Role can be fetched from the custom claims OR from users collection if we cache it
-      // Let's assume we use custom claims or allow users collection lookup
-      // Since looking up costs a read, custom claims is better but for rapid proto, we lookup:
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return isAuthenticated() && getUserRole() == role;
+    }
+    function hasAnyRole(roles) {
+      return isAuthenticated() && getUserRole() in roles;
     }
 
-    // USERS COLLECTION
+    // ──── USERS ────
     match /users/{userId} {
-      // Anyone can read a user profile (for displaying avatars, public profile)
-      allow read: if true; 
-      // User can create their own profile initially, Admin can do anything
-      allow create: if isUser(userId) || hasRole('admin');
-      // User can update their own data, Admin can update anyone
-      allow update: if isUser(userId) || hasRole('admin');
-      allow delete: if hasRole('admin');
-    }
-
-    // JOBS COLLECTION
-    match /jobs/{jobId} {
-      // Everyone can view jobs
+      // Public fields only: displayName, photoURL, role, specialties, currentLevel, stats, bio
+      // Anyone can read public profile
       allow read: if true;
-      // Only Admin or JobMaster can create/update jobs
-      allow create, update: if hasRole('admin') || hasRole('jobmaster');
+
+      // User can create their own profile (with fixed role = freelancer)
+      allow create: if isUser(userId)
+        && request.resource.data.role == 'freelancer';
+
+      // User can update own profile BUT cannot change role or status
+      allow update: if (isUser(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status)
+        || hasRole('admin');
+
       allow delete: if hasRole('admin');
+
+      // Private subcollection — only owner + admin can access
+      match /private/{docId} {
+        allow read, write: if isUser(userId) || hasRole('admin');
+      }
+
+      // Certificates subcollection
+      match /certificates/{certId} {
+        allow read: if isUser(userId) || hasAnyRole(['admin', 'jobmaster']);
+        allow create, update: if isUser(userId) || hasRole('admin');
+        allow delete: if hasRole('admin');
+      }
+
+      // Portfolio subcollection
+      match /portfolio/{itemId} {
+        allow read: if true;
+        allow create, update: if isUser(userId);
+        allow delete: if isUser(userId) || hasRole('admin');
+      }
+
+      // Badges subcollection
+      match /badges/{badgeId} {
+        allow read: if true;
+        allow write: if hasRole('admin');
+      }
     }
 
-    // APPLICATIONS COLLECTION
+    // ──── JOBS ────
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if hasAnyRole(['admin', 'jobmaster']);
+      allow update: if hasAnyRole(['admin', 'jobmaster']);
+      allow delete: if hasRole('admin');
+
+      // Job comments subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+        allow delete: if hasRole('admin') || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+      }
+
+      // Progress updates subcollection
+      match /progressUpdates/{updateId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update: if hasAnyRole(['admin', 'jobmaster']);
+        allow delete: if hasRole('admin');
+      }
+
+      // Deliverables subcollection
+      match /deliverables/{delivId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update: if hasAnyRole(['admin', 'jobmaster']);
+        allow delete: if hasRole('admin');
+      }
+    }
+
+    // ──── APPLICATIONS ────
     match /applications/{applicationId} {
-      // Freelancer can read their own applications. Admin/JobMaster can read all.
-      allow read: if (isAuthenticated() && resource.data.freelancerId == request.auth.uid) || hasRole('admin') || hasRole('jobmaster');
-      // Freelancer can apply
-      allow create: if isAuthenticated() && request.resource.data.freelancerId == request.auth.uid;
-      // JobMaster/Admin can update status
-      allow update: if hasRole('admin') || hasRole('jobmaster');
+      allow read: if (isAuthenticated() && resource.data.freelancerId == request.auth.uid)
+        || hasAnyRole(['admin', 'jobmaster']);
+
+      // Freelancer can apply — must match own UID
+      allow create: if isAuthenticated()
+        && request.resource.data.freelancerId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      allow update: if hasAnyRole(['admin', 'jobmaster']);
       allow delete: if hasRole('admin');
     }
 
-    // CONTRACTS COLLECTION
+    // ──── CONTRACTS ────
     match /contracts/{contractId} {
-       // Freelancer can read their own, Admin/Accountant/JobMaster can read all
-       allow read: if (isAuthenticated() && resource.data.freelancerId == request.auth.uid) || hasRole('admin') || hasRole('jobmaster') || hasRole('accountant');
-       // Only JobMaster or Admin create it
-       allow create: if hasRole('admin') || hasRole('jobmaster');
-       // Freelancer can update (sign), Admins can update
-       allow update: if (isAuthenticated() && resource.data.freelancerId == request.auth.uid) || hasRole('admin') || hasRole('jobmaster') || hasRole('accountant');
-       allow delete: if hasRole('admin');
+      allow read: if (isAuthenticated() && resource.data.partyB.uid == request.auth.uid)
+        || hasAnyRole(['admin', 'jobmaster', 'accountant']);
+      allow create: if hasAnyRole(['admin', 'jobmaster']);
+      // Freelancer can update only for signing (limited fields)
+      allow update: if (isAuthenticated() && resource.data.partyB.uid == request.auth.uid)
+        || hasAnyRole(['admin', 'jobmaster', 'accountant']);
+      allow delete: if hasRole('admin');
     }
 
-    // TRANSACTIONS COLLECTION
-    match /transactions/{txId} {
-       // Freelancer can see their payments
-       allow read: if (isAuthenticated() && resource.data.payeeId == request.auth.uid) || hasRole('admin') || hasRole('accountant');
-       // Accountant creates/updates payments
-       allow create, update: if hasRole('accountant') || hasRole('admin');
-       allow delete: if hasRole('admin');
+    // ──── PAYMENTS (was "transactions" — FIXED) ────
+    match /payments/{paymentId} {
+      allow read: if (isAuthenticated() && resource.data.workerId == request.auth.uid)
+        || hasAnyRole(['admin', 'accountant', 'jobmaster']);
+      allow create, update: if hasAnyRole(['accountant', 'admin']);
+      allow delete: if hasRole('admin');
+    }
+
+    // ──── CONVERSATIONS ────
+    match /conversations/{convId} {
+      allow read: if isAuthenticated()
+        && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated()
+        && request.auth.uid in resource.data.participants;
+      allow delete: if hasRole('admin');
+
+      // Messages subcollection
+      match /messages/{msgId} {
+        allow read: if isAuthenticated()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+        allow create: if isAuthenticated()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+        allow update, delete: if hasRole('admin');
+      }
+    }
+
+    // ──── NOTIFICATIONS ────
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow create: if hasAnyRole(['admin', 'jobmaster', 'accountant']);
+      allow delete: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+    }
+
+    // ──── LEADERBOARD ────
+    match /leaderboard/{entryId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
     }
   }
 }

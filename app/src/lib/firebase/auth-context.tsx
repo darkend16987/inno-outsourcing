@@ -40,6 +40,25 @@ export function useAuth() {
   return ctx;
 }
 
+// Helper: Set server-side session cookie via API
+async function setServerSession(user: FirebaseUser, profile: UserProfile) {
+  const idToken = await user.getIdToken();
+  await fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      idToken,
+      role: profile.role,
+      uid: profile.uid,
+      displayName: profile.displayName,
+    }),
+  });
+}
+
+async function clearServerSession() {
+  await fetch('/api/auth/session', { method: 'DELETE' });
+}
+
 // Helper: Create or update user profile in Firestore
 async function ensureUserProfile(user: FirebaseUser, extraData?: Partial<UserProfile>): Promise<UserProfile> {
   const userRef = doc(db, 'users', user.uid);
@@ -107,15 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         try {
           const profile = await ensureUserProfile(user);
-          document.cookie = `user_role=${profile.role}; path=/; max-age=86400`; // 1 day
+          await setServerSession(user, profile);
           setState({ firebaseUser: user, userProfile: profile, loading: false, error: null });
         } catch (err) {
           console.error('Failed to load user profile:', err);
-          document.cookie = `user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          await clearServerSession();
           setState({ firebaseUser: user, userProfile: null, loading: false, error: 'Không thể tải hồ sơ.' });
         }
       } else {
-        document.cookie = `user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        await clearServerSession();
         setState({ firebaseUser: null, userProfile: null, loading: false, error: null });
       }
     });
@@ -156,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    await clearServerSession();
     await firebaseSignOut(auth);
   }, []);
 

@@ -1,61 +1,73 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
-// Matcher to protect all role-based routes
-const protectedRoutes = ['/admin', '/jobmaster', '/accountant', '/freelancer'];
+const SESSION_SECRET = new TextEncoder().encode(
+  process.env.SESSION_SECRET || 'vaa-job-session-secret-change-in-production-min-32-chars!'
+);
+const COOKIE_NAME = 'vaa_session';
 
-export function middleware(request: NextRequest) {
+async function getSessionPayload(request: NextRequest) {
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, SESSION_SECRET);
+    return payload as { uid: string; role: string; displayName: string };
+  } catch {
+    return null;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  
-  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
+  const protectedPrefixes = ['/admin', '/jobmaster', '/accountant', '/freelancer'];
+  const isProtectedRoute = protectedPrefixes.some(prefix => path.startsWith(prefix));
 
   if (isProtectedRoute) {
-    // For now, we simulate checking a role cookie. 
-    // In production Firebase setup, we verify a session cookie or a custom JWT.
-    // E.g., const session = request.cookies.get('session');
-    // For rapid integration, let's keep it simple: if no simulated role, re-route to login.
-    const userRole = request.cookies.get('user_role')?.value;
+    const session = await getSessionPayload(request);
 
-    if (!userRole) {
-      // Redirect to login if unauthenticated
-      return NextResponse.redirect(new URL('/login', request.url));
+    if (!session) {
+      // Clear invalid cookie and redirect to login
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.set(COOKIE_NAME, '', { path: '/', maxAge: 0 });
+      return response;
     }
 
-    // Role-based matching
-    // If the path is /admin/... and the user is not admin
-    if (path.startsWith('/admin') && userRole !== 'admin') {
-      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    const { role } = session;
+
+    // Role-based access control
+    if (path.startsWith('/admin') && role !== 'admin') {
+      return NextResponse.redirect(new URL(`/${role}`, request.url));
     }
-    if (path.startsWith('/jobmaster') && userRole !== 'jobmaster') {
-       return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    if (path.startsWith('/jobmaster') && role !== 'jobmaster') {
+      return NextResponse.redirect(new URL(`/${role}`, request.url));
     }
-    if (path.startsWith('/accountant') && userRole !== 'accountant') {
-       return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    if (path.startsWith('/accountant') && role !== 'accountant') {
+      return NextResponse.redirect(new URL(`/${role}`, request.url));
     }
-    if (path.startsWith('/freelancer') && userRole !== 'freelancer') {
-       return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    if (path.startsWith('/freelancer') && role !== 'freelancer') {
+      return NextResponse.redirect(new URL(`/${role}`, request.url));
     }
   }
 
-  // Prevent logged in users from seeing login/register pages
+  // Prevent logged-in users from seeing login/register
   if (path === '/login' || path === '/register') {
-     const userRole = request.cookies.get('user_role')?.value;
-     if (userRole) {
-        return NextResponse.redirect(new URL(`/${userRole}`, request.url));
-     }
+    const session = await getSessionPayload(request);
+    if (session) {
+      return NextResponse.redirect(new URL(`/${session.role}`, request.url));
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  // Apply middleware to:
   matcher: [
-    '/admin/:path*', 
-    '/jobmaster/:path*', 
-    '/accountant/:path*', 
+    '/admin/:path*',
+    '/jobmaster/:path*',
+    '/accountant/:path*',
     '/freelancer/:path*',
     '/login',
-    '/register'
+    '/register',
   ],
 };
