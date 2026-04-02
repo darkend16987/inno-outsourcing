@@ -1,21 +1,49 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Search, Download, Filter, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Download, FileText, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
+import { getAllPayments } from '@/lib/firebase/firestore';
+import type { Payment } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_PAYMENTS = [
-  { id: 'pay1', job: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', payee: 'Nguyễn Văn A', amount: '24,000,000₫', date: '01/04/2026', type: 'Tạm ứng', status: 'pending' },
-  { id: 'pay2', job: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', payee: 'Lê Thị C', amount: '42,000,000₫', date: '28/03/2026', type: 'Giai đoạn 2', status: 'completed' },
-  { id: 'pay3', job: 'Dự toán công trình trường học TPHCM', payee: 'Trần B', amount: '12,500,000₫', date: '25/03/2026', type: 'Tất toán', status: 'completed' },
-  { id: 'pay4', job: 'Thiết kế hệ thống MEP Khách sạn', payee: 'Phạm D', amount: '18,000,000₫', date: '02/04/2026', type: 'Giai đoạn 1', status: 'failed' },
-];
+const formatCurrency = (amount: number) => `${amount.toLocaleString('vi-VN')}₫`;
+
+const formatDate = (d: unknown): string => {
+  if (!d) return '-';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
+};
 
 export default function AccountantPaymentsPage() {
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredPayments = MOCK_PAYMENTS.filter(p => filter === 'all' || p.status === filter);
+  useEffect(() => {
+    const fetchPayments = async () => {
+      const result = await getAllPayments({}, 100);
+      setPayments(result.items);
+      setLoading(false);
+    };
+    fetchPayments().catch(() => setLoading(false));
+  }, []);
+
+  const filteredPayments = payments.filter(p => {
+    const matchFilter = filter === 'all' || p.status === filter;
+    const matchSearch = !search || p.reason.toLowerCase().includes(search.toLowerCase()) || p.workerName.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchSearch;
+  });
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.empty}><Loader2 size={24} className={styles.spin} /> Đang tải...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -30,13 +58,13 @@ export default function AccountantPaymentsPage() {
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
           <Search size={16} />
-          <input type="text" placeholder="Mã giao dịch, dự án, người nhận..." />
+          <input type="text" placeholder="Mã giao dịch, dự án, người nhận..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className={styles.filters}>
           <button className={`${styles.filterBtn} ${filter === 'all' ? styles.active : ''}`} onClick={() => setFilter('all')}>Tất cả</button>
           <button className={`${styles.filterBtn} ${filter === 'pending' ? styles.active : ''}`} onClick={() => setFilter('pending')}>Chưa chi</button>
-          <button className={`${styles.filterBtn} ${filter === 'completed' ? styles.active : ''}`} onClick={() => setFilter('completed')}>Đã chi</button>
-          <button className={`${styles.filterBtn} ${filter === 'failed' ? styles.active : ''}`} onClick={() => setFilter('failed')}>Lỗi đối soát</button>
+          <button className={`${styles.filterBtn} ${filter === 'paid' ? styles.active : ''}`} onClick={() => setFilter('paid')}>Đã chi</button>
+          <button className={`${styles.filterBtn} ${filter === 'cancelled' ? styles.active : ''}`} onClick={() => setFilter('cancelled')}>Đã hủy</button>
         </div>
       </div>
 
@@ -46,7 +74,7 @@ export default function AccountantPaymentsPage() {
             <thead>
               <tr>
                 <th>Mã GD</th>
-                <th>Dự án & Hạng mục</th>
+                <th>Lý do & Hạng mục</th>
                 <th>Người nhận</th>
                 <th>Số tiền</th>
                 <th>Cập nhật lúc</th>
@@ -57,18 +85,18 @@ export default function AccountantPaymentsPage() {
             <tbody>
               {filteredPayments.map(pay => (
                 <tr key={pay.id}>
-                  <td className={styles.tId}>#{pay.id.toUpperCase()}</td>
+                  <td className={styles.tId}>#{pay.id.slice(0, 8).toUpperCase()}</td>
                   <td>
-                    <div className={styles.pJob}>{pay.job}</div>
-                    <div className={styles.pType}>{pay.type}</div>
+                    <div className={styles.pJob}>{pay.reason}</div>
                   </td>
-                  <td className={styles.pPayee}>{pay.payee}</td>
-                  <td className={styles.pAmount}>{pay.amount}</td>
-                  <td className={styles.pDate}>{pay.date}</td>
+                  <td className={styles.pPayee}>{pay.workerName}</td>
+                  <td className={styles.pAmount}>{formatCurrency(pay.amount)}</td>
+                  <td className={styles.pDate}>{formatDate(pay.updatedAt || pay.createdAt)}</td>
                   <td>
-                    {pay.status === 'completed' && <Badge variant="success" size="sm">Đã chuyển khoản</Badge>}
+                    {pay.status === 'paid' && <Badge variant="success" size="sm">Đã chuyển khoản</Badge>}
                     {pay.status === 'pending' && <Badge variant="warning" size="sm">Chờ kế toán chi</Badge>}
-                    {pay.status === 'failed' && <Badge variant="error" size="sm">Lỗi thông tin</Badge>}
+                    {pay.status === 'approved' && <Badge variant="info" size="sm">Đã duyệt</Badge>}
+                    {pay.status === 'cancelled' && <Badge variant="error" size="sm">Đã hủy</Badge>}
                   </td>
                   <td className={styles.tAction}>
                      {pay.status === 'pending' ? (
@@ -83,7 +111,9 @@ export default function AccountantPaymentsPage() {
           </table>
           
           {filteredPayments.length === 0 && (
-            <div className={styles.empty}>Không có dữ liệu thanh toán.</div>
+            <div className={styles.empty}>
+              <Inbox size={24} /> Không có dữ liệu thanh toán.
+            </div>
           )}
         </div>
       </Card>

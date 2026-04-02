@@ -97,6 +97,10 @@
   color: var(--color-success);
 }
 
+.loadingWrap { display: flex; align-items: center; justify-content: center; gap: 0.75rem; min-height: 200px; color: var(--color-text-muted); font-size: 15px; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.noChart { display: flex; align-items: center; justify-content: center; min-height: 200px; color: var(--color-text-muted); font-size: 14px; background: var(--color-bg); border-radius: var(--radius-md); }
 @media (max-width: 1024px) {
   .metricsGrid { grid-template-columns: repeat(2, 1fr); }
   .chartsGrid { grid-template-columns: 1fr; }

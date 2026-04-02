@@ -189,6 +189,7 @@ export interface JobApplication {
 // ---- Comments ----
 export interface Comment {
   id: string;
+  jobId: string;
   authorId: string;
   authorName: string;
   authorRole: UserRole;

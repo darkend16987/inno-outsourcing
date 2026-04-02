@@ -201,6 +201,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
+   Global Form Element Fixes
+   ============================================ */
+
+/* Fix select dropdown arrow alignment */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b959a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 36px !important;
+  cursor: pointer;
+}
+
+/* Ensure all interactive inline elements don't wrap */
+button,
+[role="button"],
+a[class*="button"],
+a[class*="btn"] {
+  white-space: nowrap;
+}
+
+/* ============================================
    Utility Classes
    ============================================ */
 
@@ -277,10 +302,16 @@ h1, h2, h3, h4, h5, h6 {
   to { transform: rotate(360deg); }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
 .animate-fade-in { animation: fadeIn var(--transition-base) ease-out; }
 .animate-fade-in-up { animation: fadeInUp var(--transition-base) ease-out; }
 .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 .animate-spin { animation: spin 1s linear infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
 
 /* ============================================
    Skeleton Loading
@@ -291,4 +322,15 @@ h1, h2, h3, h4, h5, h6 {
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   prefers-reduced-motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,30 +1,57 @@
 'use client';
 
-import React from 'react';
-import { Mail, Phone, MapPin, Award, Star, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, Phone, MapPin, Award, Calendar, Edit3, Loader2 } from 'lucide-react';
 import { Card, Badge, LevelBadge, Avatar, Button } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getUserBadges } from '@/lib/firebase/firestore';
+import { ProfileEditModal } from '@/components/profile/ProfileEditModal';
+import type { UserBadge } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_PROFILE = {
-  name: 'Nguyễn Văn A',
-  role: 'Freelancer',
-  level: 'L3',
-  email: 'nguyenvana@example.com',
-  phone: '0901 234 567',
-  address: 'Quận 7, TP. Hồ Chí Minh',
-  bio: 'Hơn 5 năm kinh nghiệm về diễn họa kiến trúc bằng Revit và 3ds Max. Chuyên đảm nhận các dự án nhà xưởng, chung cư cao tầng. Cẩn thận, đúng tiến độ và sẵn sàng hỗ trợ sửa đổi theo yêu cầu thiết kế.',
-  joinedAt: '01/2025',
-  specialties: ['Kiến trúc', 'BIM'],
-  software: ['Revit', 'AutoCAD', '3ds Max', 'Enscape'],
-  stats: {
-    jobsDone: 15,
-    rating: 4.8,
-    onTime: '100%',
-  },
-  kyc: true,
-};
-
 export default function ProfilePage() {
+  const { userProfile, loading, refreshProfile } = useAuth();
+  const [showEdit, setShowEdit] = useState(false);
+  const [badges, setBadges] = useState<UserBadge[]>([]);
+
+  useEffect(() => {
+    if (userProfile?.uid) {
+      getUserBadges(userProfile.uid).then(setBadges).catch(() => {});
+    }
+  }, [userProfile?.uid]);
+
+  const handleSaved = async () => {
+    await refreshProfile();
+    setShowEdit(false);
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.loadingWrap}>
+          <Loader2 size={32} className={styles.spinner} />
+          <span>Đang tải hồ sơ...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.emptyState}>Không tìm thấy thông tin hồ sơ. Vui lòng đăng nhập lại.</div>
+      </div>
+    );
+  }
+
+  const p = userProfile;
+  const stats = p.stats || { completedJobs: 0, avgRating: 0, onTimeRate: 100 };
+  const joinDate = p.createdAt
+    ? (typeof p.createdAt === 'object' && 'toDate' in p.createdAt
+      ? (p.createdAt as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' })
+      : '')
+    : '';
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -32,7 +59,9 @@ export default function ProfilePage() {
           <h1 className={styles.title}>Hồ sơ năng lực</h1>
           <p className={styles.subtitle}>Quản lý thông tin cá nhân và chi tiết năng lực chuyên môn.</p>
         </div>
-        <Button>Chỉnh sửa hồ sơ</Button>
+        <Button onClick={() => setShowEdit(true)}>
+          <Edit3 size={16} /> Chỉnh sửa hồ sơ
+        </Button>
       </div>
 
       <div className={styles.grid}>
@@ -40,37 +69,37 @@ export default function ProfilePage() {
         <div className={styles.leftCol}>
           <Card className={styles.profileCard}>
             <div className={styles.pHeader}>
-              <Avatar name={MOCK_PROFILE.name} level={MOCK_PROFILE.level as never} size="lg" />
+              <Avatar name={p.displayName || 'User'} level={(p.currentLevel || 'L1') as never} size="lg" />
               <div className={styles.pNameWrap}>
-                <h2 className={styles.pName}>{MOCK_PROFILE.name}</h2>
-                <div className={styles.pRole}>{MOCK_PROFILE.role}</div>
+                <h2 className={styles.pName}>{p.displayName || 'Chưa cập nhật'}</h2>
+                <div className={styles.pRole}>{p.role === 'freelancer' ? 'Freelancer' : p.role}</div>
               </div>
             </div>
 
             <div className={styles.pTags}>
-              <LevelBadge level={MOCK_PROFILE.level as never} />
-              {MOCK_PROFILE.kyc && <Badge variant="success" size="sm">Đã xác minh KYC</Badge>}
+              <LevelBadge level={(p.currentLevel || 'L1') as never} />
+              {p.kycCompleted && <Badge variant="success" size="sm">Đã xác minh KYC</Badge>}
             </div>
 
             <div className={styles.pContact}>
-              <div className={styles.cItem}><Mail size={16} /> {MOCK_PROFILE.email}</div>
-              <div className={styles.cItem}><Phone size={16} /> {MOCK_PROFILE.phone}</div>
-              <div className={styles.cItem}><MapPin size={16} /> {MOCK_PROFILE.address}</div>
-              <div className={styles.cItem}><Calendar size={16} /> Tham gia: {MOCK_PROFILE.joinedAt}</div>
+              {p.email && <div className={styles.cItem}><Mail size={16} /> {p.email}</div>}
+              {p.phone && <div className={styles.cItem}><Phone size={16} /> {p.phone}</div>}
+              {p.address && <div className={styles.cItem}><MapPin size={16} /> {p.address}</div>}
+              {joinDate && <div className={styles.cItem}><Calendar size={16} /> Tham gia: {joinDate}</div>}
             </div>
           </Card>
 
           <Card className={styles.statsCard}>
             <div className={styles.statBox}>
-              <div className={styles.sVal}>{MOCK_PROFILE.stats.jobsDone}</div>
+              <div className={styles.sVal}>{stats.completedJobs ?? 0}</div>
               <div className={styles.sLabel}>Dự án<br/>hoàn thành</div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.sVal}>{MOCK_PROFILE.stats.rating}</div>
+              <div className={styles.sVal}>{stats.avgRating?.toFixed(1) ?? '0.0'}</div>
               <div className={styles.sLabel}>Điểm<br/>đánh giá</div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.sVal}>{MOCK_PROFILE.stats.onTime}</div>
+              <div className={styles.sVal}>{stats.onTimeRate ?? 100}%</div>
               <div className={styles.sLabel}>Tỷ lệ<br/>đúng hạn</div>
             </div>
           </Card>
@@ -80,7 +109,7 @@ export default function ProfilePage() {
         <div className={styles.rightCol}>
           <Card className={styles.detailCard}>
             <h3 className={styles.sectionTitle}>Giới thiệu bản thân</h3>
-            <p className={styles.bio}>{MOCK_PROFILE.bio}</p>
+            <p className={styles.bio}>{p.bio || 'Chưa cập nhật giới thiệu. Nhấn "Chỉnh sửa hồ sơ" để thêm.'}</p>
           </Card>
 
           <Card className={styles.detailCard}>
@@ -88,13 +117,19 @@ export default function ProfilePage() {
             <div className={styles.skillSect}>
               <h4>Lĩnh vực</h4>
               <div className={styles.tagsGroup}>
-                {MOCK_PROFILE.specialties.map(s => <Badge key={s}>{s}</Badge>)}
+                {(p.specialties || []).length > 0
+                  ? p.specialties.map(s => <Badge key={s}>{s}</Badge>)
+                  : <span className={styles.noData}>Chưa chọn lĩnh vực nào</span>
+                }
               </div>
             </div>
             <div className={styles.skillSect}>
               <h4>Phần mềm thành thạo</h4>
               <div className={styles.tagsGroup}>
-                {MOCK_PROFILE.software.map(s => <Badge key={s} variant="outline">{s}</Badge>)}
+                {(p.software || []).length > 0
+                  ? p.software.map(s => <Badge key={s} variant="outline">{s}</Badge>)
+                  : <span className={styles.noData}>Chưa chọn phần mềm nào</span>
+                }
               </div>
             </div>
           </Card>
@@ -102,18 +137,27 @@ export default function ProfilePage() {
           <Card className={styles.detailCard}>
             <h3 className={styles.sectionTitle}>Huy hiệu đã đạt</h3>
             <div className={styles.badgesWrap}>
-              <div className={styles.honorBadge}>
-                <Award size={24} className={styles.hbIcon} />
-                <div className={styles.hbName}>Đối tác tin cậy</div>
-              </div>
-              <div className={styles.honorBadge}>
-                <Star size={24} className={styles.hbIcon} />
-                <div className={styles.hbName}>Hiệu suất 5 sao</div>
-              </div>
+              {badges.length > 0 ? badges.map(b => (
+                <div key={b.id} className={styles.honorBadge}>
+                  <Award size={24} className={styles.hbIcon} />
+                  <div className={styles.hbName}>{b.badgeType}</div>
+                </div>
+              )) : (
+                <span className={styles.noData}>Chưa đạt huy hiệu nào. Hoàn thành dự án để nhận!</span>
+              )}
             </div>
           </Card>
         </div>
       </div>
+
+      {/* Profile Edit Modal */}
+      {showEdit && (
+        <ProfileEditModal
+          profile={p}
+          onClose={() => setShowEdit(false)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }

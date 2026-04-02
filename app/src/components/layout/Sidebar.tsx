@@ -27,6 +27,7 @@ const NAV_CONFIG = {
     { label: 'Hợp đồng', href: '/admin/contracts', icon: FileSignature },
     { label: 'Quản lý Users', href: '/admin/users', icon: Users },
     { label: 'Báo cáo', href: '/admin/reports', icon: FileSpreadsheet },
+    { label: 'Cấu hình hệ thống', href: '/admin/settings', icon: Settings },
   ],
   jobmaster: [
     { label: 'Tổng quan', href: '/jobmaster', icon: LayoutDashboard },

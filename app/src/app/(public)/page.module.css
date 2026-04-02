@@ -249,6 +249,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.catEmoji {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 14px;
 }
 
 .catName {
@@ -274,6 +282,68 @@
   transform: translateX(0);
 }
 
+/* ── Job Tabs ── */
+.jobTabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.jobTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.jobTab:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.jobTabActive {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 2px 8px rgba(13, 124, 102, 0.25);
+}
+
+.jobsLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-12) 0;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.noJobs {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+}
+
 /* ── Jobs Grid ── */
 .jobsGrid {
   display: grid;
@@ -290,8 +360,9 @@
 
 .jobTop {
   display: flex;
-  justify-content: space-between;
+  gap: var(--space-2);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .jobTitle {
@@ -318,8 +389,8 @@
 
 .jobFee {
   font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   color: var(--color-primary);
 }
 
@@ -339,6 +410,63 @@
   font-weight: 600;
   color: var(--color-primary);
   padding-top: var(--space-2);
+}
+
+/* ── Banner Section ── */
+.bannerSection {
+  padding: 0;
+}
+
+.bannerInner {
+  background: linear-gradient(135deg, #0d7c66, #12a085 40%, #1a8a3e);
+  padding: var(--space-12) var(--space-10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  position: relative;
+  overflow: hidden;
+}
+
+.bannerContent {
+  max-width: 600px;
+  position: relative;
+  z-index: 1;
+}
+
+.bannerTitle {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: var(--space-3);
+}
+
+.bannerDesc {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+  margin-bottom: var(--space-5);
+}
+
+.bannerDeco {
+  display: flex;
+  gap: var(--space-6);
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
+.bannerEmoji {
+  font-size: 56px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.bannerEmoji:nth-child(2) { animation-delay: 0.5s; }
+.bannerEmoji:nth-child(3) { animation-delay: 1s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 /* ── Honor / Leaderboard ── */
@@ -400,6 +528,70 @@
   color: var(--color-primary);
 }
 
+/* ── Testimonials ── */
+.testimonialsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.testimonialCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+}
+
+.quoteIcon {
+  color: var(--color-primary);
+  opacity: 0.3;
+}
+
+.testimonialText {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.testimonialAuthor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.testimonialAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  flex-shrink: 0;
+}
+
+.testimonialName {
+  font-size: 13px;
+  font-weight: 700;
+  display: block;
+}
+
+.testimonialRole {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.testimonialStars {
+  display: flex;
+  gap: 2px;
+}
+
 /* ── CTA ── */
 .ctaSection {
   padding: var(--space-16) 0;
@@ -445,6 +637,7 @@
   .jobsGrid { grid-template-columns: repeat(2, 1fr); }
   .honorGrid { grid-template-columns: repeat(2, 1fr); }
   .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .testimonialsGrid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
@@ -458,6 +651,8 @@
   .sectionHeader { flex-direction: column; align-items: flex-start; }
   .ctaCard { padding: var(--space-10) var(--space-6); }
   .ctaActions { flex-direction: column; width: 100%; }
+  .bannerInner { flex-direction: column; padding: var(--space-8) var(--space-6); }
+  .bannerDeco { display: none; }
 }
 
 @media (max-width: 480px) {
@@ -465,3 +660,4 @@
   .catGrid { grid-template-columns: 1fr 1fr; }
   .honorGrid { grid-template-columns: 1fr; }
 }
+

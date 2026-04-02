@@ -51,6 +51,10 @@ function JobsPageContent() {
   const [catFilter, setCatFilter] = useState<string>(() => searchParams.get('category') || 'all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [workModeFilter, setWorkModeFilter] = useState<string>('all');
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
+  const [durationMin, setDurationMin] = useState('');
+  const [durationMax, setDurationMax] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -80,8 +84,20 @@ function JobsPageContent() {
     const matchCat = catFilter === 'all' || category === catFilter;
     const matchLevel = levelFilter === 'all' || job.level === levelFilter;
     const matchWorkMode = workModeFilter === 'all' || job.workMode === workModeFilter;
+
+    // Budget range filter
+    const fee = getJobFee(job);
+    const bMin = budgetMin ? parseInt(budgetMin.replace(/\D/g, ''), 10) : 0;
+    const bMax = budgetMax ? parseInt(budgetMax.replace(/\D/g, ''), 10) : Infinity;
+    const matchBudget = fee >= bMin && fee <= bMax;
+
+    // Duration range filter
+    const dur = typeof job.duration === 'number' ? job.duration : parseInt(job.duration || '0', 10);
+    const dMin = durationMin ? parseInt(durationMin, 10) : 0;
+    const dMax = durationMax ? parseInt(durationMax, 10) : Infinity;
+    const matchDuration = dur >= dMin && dur <= dMax;
     
-    return matchSearch && matchCat && matchLevel && matchWorkMode;
+    return matchSearch && matchCat && matchLevel && matchWorkMode && matchBudget && matchDuration;
   });
 
   return (
@@ -182,6 +198,48 @@ function JobsPageContent() {
                 <option value="hybrid">Kết hợp (Hybrid)</option>
                 <option value="on-site">Tại văn phòng (On-site)</option>
               </select>
+            </div>
+            <div className={styles.filterGroup}>
+              <label>Ngân sách (VNĐ)</label>
+              <div className={styles.rangeInputs}>
+                <input
+                  type="text"
+                  className={styles.rangeInput}
+                  placeholder="Từ"
+                  value={budgetMin}
+                  onChange={e => setBudgetMin(e.target.value)}
+                />
+                <span className={styles.rangeSep}>—</span>
+                <input
+                  type="text"
+                  className={styles.rangeInput}
+                  placeholder="Đến"
+                  value={budgetMax}
+                  onChange={e => setBudgetMax(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className={styles.filterGroup}>
+              <label>Thời gian thực hiện (ngày)</label>
+              <div className={styles.rangeInputs}>
+                <input
+                  type="number"
+                  className={styles.rangeInput}
+                  placeholder="Từ"
+                  min="0"
+                  value={durationMin}
+                  onChange={e => setDurationMin(e.target.value)}
+                />
+                <span className={styles.rangeSep}>—</span>
+                <input
+                  type="number"
+                  className={styles.rangeInput}
+                  placeholder="Đến"
+                  min="0"
+                  value={durationMax}
+                  onChange={e => setDurationMax(e.target.value)}
+                />
+              </div>
             </div>
           </motion.div>
         )}

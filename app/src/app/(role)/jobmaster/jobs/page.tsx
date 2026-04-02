@@ -1,27 +1,57 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, FolderKanban, Clock, Users, ArrowRight } from 'lucide-react';
+import { FolderKanban, Clock, Users, ArrowRight, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getJobs } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
+import type { Job } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_PROJECTS = [
-  { id: '1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', status: 'in_progress', freelancers: 2, progress: 45, deadline: '15/05/2026', totalFee: '120,000,000₫' },
-  { id: '2', title: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', status: 'recruiting', freelancers: 0, progress: 0, deadline: '01/05/2026', totalFee: '65,000,000₫' },
-  { id: '3', title: 'Dự toán công trình trường học TPHCM', status: 'completed', freelancers: 1, progress: 100, deadline: '10/04/2026', totalFee: '25,000,000₫' },
-];
-
-const STATUS_MAP: Record<string, { label: string, color: string }> = {
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
   in_progress: { label: 'Đang thực hiện', color: 'info' },
-  recruiting: { label: 'Đang tuyển (3 Apply)', color: 'warning' },
+  open: { label: 'Đang tuyển', color: 'warning' },
+  assigned: { label: 'Đã giao', color: 'accent' },
+  review: { label: 'Nghiệm thu', color: 'accent' },
   completed: { label: 'Hoàn thành', color: 'success' },
+  draft: { label: 'Nháp', color: 'default' },
+};
+
+const formatDate = (d: unknown): string => {
+  if (!d) return '-';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
 };
 
 export default function JobMasterProjectsPage() {
+  const { userProfile } = useAuth();
   const [filter, setFilter] = useState('all');
+  const [projects, setProjects] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredProjects = MOCK_PROJECTS.filter(p => filter === 'all' || p.status === filter);
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchProjects = async () => {
+      const result = await cache.get(`jm:projects:${userProfile.uid}`, () => getJobs({}, 100), TTL.MEDIUM);
+      const managed = result.items.filter(j => j.jobMaster === userProfile.uid || j.createdBy === userProfile.uid);
+      setProjects(managed);
+      setLoading(false);
+    };
+    fetchProjects().catch(() => setLoading(false));
+  }, [userProfile?.uid]);
+
+  const filteredProjects = projects.filter(p => filter === 'all' || p.status === filter);
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.empty}><Loader2 size={24} className={styles.spin} /> Đang tải...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -36,9 +66,9 @@ export default function JobMasterProjectsPage() {
       </div>
 
       <div className={styles.filterTabs}>
-        <button className={`${styles.tab} ${filter === 'all' ? styles.activeTab : ''}`} onClick={() => setFilter('all')}>Tất cả</button>
+        <button className={`${styles.tab} ${filter === 'all' ? styles.activeTab : ''}`} onClick={() => setFilter('all')}>Tất cả ({projects.length})</button>
         <button className={`${styles.tab} ${filter === 'in_progress' ? styles.activeTab : ''}`} onClick={() => setFilter('in_progress')}>Đang chạy</button>
-        <button className={`${styles.tab} ${filter === 'recruiting' ? styles.activeTab : ''}`} onClick={() => setFilter('recruiting')}>Đang tuyển</button>
+        <button className={`${styles.tab} ${filter === 'open' ? styles.activeTab : ''}`} onClick={() => setFilter('open')}>Đang tuyển</button>
         <button className={`${styles.tab} ${filter === 'completed' ? styles.activeTab : ''}`} onClick={() => setFilter('completed')}>Đã xong</button>
       </div>
 
@@ -47,15 +77,16 @@ export default function JobMasterProjectsPage() {
           <Card key={proj.id} className={styles.projectCard}>
             <div className={styles.pMain}>
               <div className={styles.pTags}>
-                {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                {/* @ts-ignore */}
-                <Badge variant={STATUS_MAP[proj.status].color} size="sm">{STATUS_MAP[proj.status].label}</Badge>
+                {/* @ts-expect-error dynamic badge variant */}
+                <Badge variant={STATUS_MAP[proj.status]?.color || 'default'} size="sm">
+                  {STATUS_MAP[proj.status]?.label || proj.status}
+                </Badge>
               </div>
               <h3 className={styles.pTitle}>{proj.title}</h3>
               <div className={styles.pMeta}>
-                <span><Users size={14}/> {proj.freelancers} Freelancers</span>
+                <span><Users size={14}/> {proj.assignedWorkerName || 'Chưa có freelancer'}</span>
                 <span className={styles.sep}>•</span>
-                <span><Clock size={14}/> Hạn hoàn thành: {proj.deadline}</span>
+                <span><Clock size={14}/> Hạn: {formatDate(proj.deadline)}</span>
               </div>
             </div>
 
@@ -63,10 +94,10 @@ export default function JobMasterProjectsPage() {
               <div className={styles.progressBlock}>
                 <div className={styles.pHeader}>
                   <span>Tiến độ tổng</span>
-                  <span>{proj.progress}%</span>
+                  <span>{proj.progress ?? 0}%</span>
                 </div>
                 <div className={styles.pBar}>
-                  <div className={styles.pFill} style={{ width: `${proj.progress}%`, background: proj.progress === 100 ? 'var(--color-success)' : 'var(--color-primary)' }} />
+                  <div className={styles.pFill} style={{ width: `${proj.progress ?? 0}%`, background: (proj.progress ?? 0) === 100 ? 'var(--color-success)' : 'var(--color-primary)' }} />
                 </div>
               </div>
               <Link href={`/jobmaster/jobs/${proj.id}`}>
@@ -76,7 +107,7 @@ export default function JobMasterProjectsPage() {
           </Card>
         ))}
         {filteredProjects.length === 0 && (
-          <div className={styles.empty}>Không có dự án nào phù hợp.</div>
+          <div className={styles.empty}><Inbox size={24}/> Không có dự án nào phù hợp.</div>
         )}
       </div>
     </div>

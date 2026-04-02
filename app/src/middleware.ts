@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
+// =====================
+// SESSION SECRET
+// =====================
 function getSessionSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret && process.env.NODE_ENV === 'production') {
@@ -14,6 +17,55 @@ function getSessionSecret() {
 const SESSION_SECRET = getSessionSecret();
 const COOKIE_NAME = 'vaa_session';
 
+// =====================
+// RATE LIMITING (In-memory, Edge-compatible)
+// Protects against DDoS / brute-force on API + auth routes
+// =====================
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+const RATE_LIMIT_CONFIG = {
+  api: { window: 60_000, maxRequests: 60 },      // 60 req/min for API
+  auth: { window: 300_000, maxRequests: 10 },     // 10 req/5min for login/register
+  general: { window: 60_000, maxRequests: 120 },  // 120 req/min general
+} as const;
+
+function getClientIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
+function isRateLimited(key: string, config: { window: number; maxRequests: number }): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + config.window });
+    return false;
+  }
+
+  entry.count++;
+  if (entry.count > config.maxRequests) {
+    return true;
+  }
+  return false;
+}
+
+// Periodic cleanup to prevent memory leak (every 5 minutes max 10000 entries)
+function cleanupRateLimitMap() {
+  if (rateLimitMap.size > 10000) {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitMap) {
+      if (now > entry.resetAt) rateLimitMap.delete(key);
+    }
+  }
+}
+
+// =====================
+// SESSION VERIFICATION
+// =====================
 async function getSessionPayload(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -25,8 +77,45 @@ async function getSessionPayload(request: NextRequest) {
   }
 }
 
+// =====================
+// MAIN MIDDLEWARE
+// =====================
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const ip = getClientIP(request);
+
+  // --- Rate Limiting ---
+  cleanupRateLimitMap();
+
+  // Strict rate limit on auth endpoints (anti brute-force)
+  if (path === '/login' || path === '/register' || path.startsWith('/api/auth')) {
+    if (isRateLimited(`auth:${ip}`, RATE_LIMIT_CONFIG.auth)) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '300' } }
+      );
+    }
+  }
+
+  // Rate limit API routes
+  if (path.startsWith('/api/')) {
+    if (isRateLimited(`api:${ip}`, RATE_LIMIT_CONFIG.api)) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Rate limit exceeded' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
+  }
+
+  // General rate limit for all routes
+  if (isRateLimited(`gen:${ip}`, RATE_LIMIT_CONFIG.general)) {
+    return new NextResponse(
+      '<html><body><h1>429 — Too Many Requests</h1><p>Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi và thử lại.</p></body></html>',
+      { status: 429, headers: { 'Content-Type': 'text/html', 'Retry-After': '60' } }
+    );
+  }
+
+  // --- Protected Routes (RBAC) ---
   const protectedPrefixes = ['/admin', '/jobmaster', '/accountant', '/freelancer'];
   const isProtectedRoute = protectedPrefixes.some(prefix => path.startsWith(prefix));
 
@@ -34,7 +123,6 @@ export async function middleware(request: NextRequest) {
     const session = await getSessionPayload(request);
 
     if (!session) {
-      // Clear invalid cookie and redirect to login
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.set(COOKIE_NAME, '', { path: '/', maxAge: 0 });
       return response;
@@ -42,7 +130,6 @@ export async function middleware(request: NextRequest) {
 
     const { role } = session;
 
-    // Role-based access control
     if (path.startsWith('/admin') && role !== 'admin') {
       return NextResponse.redirect(new URL(`/${role}`, request.url));
     }
@@ -57,7 +144,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Prevent logged-in users from seeing login/register
+  // --- Prevent logged-in users from seeing login/register ---
   if (path === '/login' || path === '/register') {
     const session = await getSessionPayload(request);
     if (session) {
@@ -76,5 +163,8 @@ export const config = {
     '/freelancer/:path*',
     '/login',
     '/register',
+    '/api/:path*',
+    '/jobs/:path*',
+    '/viec-lam/:path*',
   ],
 };

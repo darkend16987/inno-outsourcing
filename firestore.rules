@@ -1,0 +1,191 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================
+    // HELPER FUNCTIONS
+    // =====================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+
+    function isJobMaster() {
+      return isSignedIn() && getUserRole() == 'jobmaster';
+    }
+
+    function isAccountant() {
+      return isSignedIn() && getUserRole() == 'accountant';
+    }
+
+    function isAdminOrJobMaster() {
+      return isAdmin() || isJobMaster();
+    }
+
+    // =====================
+    // USERS
+    // =====================
+    match /users/{uid} {
+      // Any authenticated user can read profiles
+      allow read: if isSignedIn();
+
+      // Users can only create their OWN profile with role='freelancer'
+      allow create: if isOwner(uid)
+                    && request.resource.data.role == 'freelancer';
+
+      // Users can update their OWN profile but CANNOT change their role
+      allow update: if isOwner(uid)
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+
+      // Admins can update ANY user (including role changes)
+      allow update: if isAdmin();
+
+      // Nobody can delete users from client
+      allow delete: if false;
+
+      // User badges subcollection
+      match /badges/{badgeId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+    // =====================
+    // JOBS
+    // =====================
+    match /jobs/{jobId} {
+      // Public: anyone can read jobs
+      allow read: if true;
+
+      // Only admins and job masters can create/update jobs
+      allow create: if isAdminOrJobMaster();
+      allow update: if isAdminOrJobMaster();
+      allow delete: if isAdmin();
+    }
+
+    // =====================
+    // APPLICATIONS
+    // =====================
+    match /applications/{appId} {
+      // Authenticated users can read applications
+      allow read: if isSignedIn();
+
+      // Users can create applications with their own applicantId
+      allow create: if isSignedIn()
+                    && request.resource.data.applicantId == request.auth.uid
+                    && request.resource.data.status == 'pending';
+
+      // Admins and job masters can update application status
+      allow update: if isAdminOrJobMaster();
+
+      // Nobody can delete applications
+      allow delete: if false;
+    }
+
+    // =====================
+    // COMMENTS
+    // =====================
+    match /comments/{commentId} {
+      // Anyone can read comments (public job discussions)
+      allow read: if true;
+
+      // Authenticated users can create comments with their own authorId
+      allow create: if isSignedIn()
+                    && request.resource.data.authorId == request.auth.uid;
+
+      // Users can update their own comments, admins can update any
+      allow update: if isOwner(resource.data.authorId) || isAdmin();
+
+      // Users can delete their own comments, admins can delete any
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
+
+    // =====================
+    // CONTRACTS
+    // =====================
+    match /contracts/{contractId} {
+      // Authenticated users can read (workers see their own via queries)
+      allow read: if isSignedIn();
+
+      // Only admins and accountants can create/update contracts
+      allow create: if isAdmin() || isAccountant();
+      allow update: if isAdmin() || isAccountant()
+                    || (isSignedIn() && resource.data.partyB.uid == request.auth.uid);
+
+      allow delete: if isAdmin();
+    }
+
+    // =====================
+    // PAYMENTS
+    // =====================
+    match /payments/{paymentId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isAccountant() || isJobMaster();
+      allow update: if isAdmin() || isAccountant();
+      allow delete: if false;
+    }
+
+    // =====================
+    // CONVERSATIONS & MESSAGES
+    // =====================
+    match /conversations/{convId} {
+      allow read: if isSignedIn()
+                  && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn()
+                    && request.auth.uid in resource.data.participants;
+
+      match /messages/{msgId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+      }
+    }
+
+    // =====================
+    // NOTIFICATIONS
+    // =====================
+    match /notifications/{notiId} {
+      allow read: if isSignedIn()
+                  && resource.data.recipientId == request.auth.uid;
+      allow update: if isSignedIn()
+                    && resource.data.recipientId == request.auth.uid;
+      allow create: if isAdmin() || isJobMaster();
+      allow delete: if false;
+    }
+
+    // =====================
+    // SYSTEM CONFIG (Admin-only)
+    // =====================
+    match /system_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =====================
+    // LEADERBOARD (Public read)
+    // =====================
+    match /leaderboard/{entryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =====================
+    // BADGE DEFINITIONS
+    // =====================
+    match /badge_definitions/{badgeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

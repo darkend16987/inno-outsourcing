@@ -40,6 +40,12 @@
 .hbIcon { width: 48px; height: 48px; border-radius: 50%; background: var(--color-primary-bg); color: var(--color-accent); padding: 12px; }
 .hbName { font-size: 12px; font-weight: 600; color: var(--color-charcoal); line-height: 1.3; }
 
+.loadingWrap { display: flex; align-items: center; justify-content: center; gap: 0.75rem; min-height: 300px; color: var(--color-text-muted); font-size: 15px; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.emptyState { text-align: center; padding: 4rem 2rem; color: var(--color-text-muted); }
+.noData { font-size: 13px; color: var(--color-text-muted); font-style: italic; }
+
 @media (max-width: 1024px) {
   .grid { grid-template-columns: 1fr; }
   .pHeader { flex-direction: row; align-items: center; gap: var(--space-4); text-align: left; }

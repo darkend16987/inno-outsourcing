@@ -1,18 +1,51 @@
 'use client';
 
-import React from 'react';
-import { Users, FolderKanban, DollarSign, Activity, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FolderKanban, DollarSign, Activity, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, MetricCard, Badge } from '@/components/ui';
+import { getJobs, getAllApplications } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
 import styles from './page.module.css';
 
-const MOCK_STATS = {
-  totalUsers: 1240,
-  activeJobs: 45,
-  pendingApps: 12,
-  revenue: '145.5M ₫',
-};
+interface DashboardStats {
+  totalUsers: number;
+  activeJobs: number;
+  pendingApps: number;
+  revenue: string;
+}
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, activeJobs: 0, pendingApps: 0, revenue: '—' });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const [jobsResult, appsResult] = await Promise.all([
+        cache.get('admin:jobs', () => getJobs({}, 100), TTL.MEDIUM),
+        cache.get('admin:apps:pending', () => getAllApplications({ status: 'pending' }, 100), TTL.MEDIUM),
+      ]);
+
+      const activeJobs = jobsResult.items.filter(j => j.status === 'in_progress' || j.status === 'assigned').length;
+
+      setStats({
+        totalUsers: 0, // Will show actual when we add user count query
+        activeJobs,
+        pendingApps: appsResult.items.length,
+        revenue: '—',
+      });
+      setLoading(false);
+    };
+    fetchStats().catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loadingWrap}><Loader2 size={24} className={styles.spinner} /> Đang tải thống kê...</div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.dashboard}>
       <div className={styles.header}>
@@ -24,73 +57,51 @@ export default function AdminDashboard() {
 
       <div className={styles.metricsGrid}>
         <MetricCard
-          label="Tổng số Người dùng"
-          value={MOCK_STATS.totalUsers.toString()}
-          icon={<Users size={20} />}
-          trend="up"
-          trendValue="+24 tuần này"
-        />
-        <MetricCard
           label="Dự án đang thực hiện"
-          value={MOCK_STATS.activeJobs.toString()}
+          value={stats.activeJobs.toString()}
           icon={<FolderKanban size={20} />}
         />
         <MetricCard
           label="Ứng tuyển chờ duyệt"
-          value={MOCK_STATS.pendingApps.toString()}
+          value={stats.pendingApps.toString()}
           icon={<Activity size={20} />}
-          trend="down"
-          trendValue="Cần chú ý"
+          trend={stats.pendingApps > 0 ? 'down' : undefined}
+          trendValue={stats.pendingApps > 0 ? 'Cần chú ý' : undefined}
         />
         <MetricCard
-          label="Doanh thu hệ thống (Năm)"
-          value={MOCK_STATS.revenue}
+          label="Doanh thu hệ thống"
+          value={stats.revenue}
           icon={<DollarSign size={20} />}
-          trend="up"
-          trendValue="+12% so với 2025"
         />
       </div>
 
       <div className={styles.bottomGrid}>
         <Card className={styles.sectionCard}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Dự án cần chú ý</h3>
+            <h3 className={styles.cardTitle}>Trạng thái hệ thống</h3>
           </div>
           <div className={styles.alertList}>
             <div className={styles.alertItem}>
               <AlertCircle size={20} className={styles.warnIcon} />
               <div className={styles.alertContent}>
-                <h4>BIM Modeling tổ hợp văn phòng 12 tầng Q7</h4>
-                <p>Quá hạn nghiệm thu milestone 2 (3 ngày)</p>
+                <h4>Hệ thống hoạt động bình thường</h4>
+                <p>Tất cả dịch vụ đang online.</p>
               </div>
-              <Badge variant="warning">Trễ hạn</Badge>
-            </div>
-            <div className={styles.alertItem}>
-              <AlertCircle size={20} className={styles.errorIcon} />
-              <div className={styles.alertContent}>
-                <h4>Thiết kế nội thất căn hộ Vinhomes</h4>
-                <p>Khách hàng yêu cầu hủy hợp đồng</p>
-              </div>
-              <Badge variant="error" size="sm">Cần xử lý gấp</Badge>
+              <Badge variant="success">Ổn định</Badge>
             </div>
           </div>
         </Card>
 
         <Card className={styles.sectionCard}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Tài khoản mới đăng ký</h3>
+            <h3 className={styles.cardTitle}>Ứng tuyển mới nhất</h3>
           </div>
           <div className={styles.userList}>
-            {[1, 2, 3].map(i => (
-              <div key={i} className={styles.userItem}>
-                <div className={styles.uAvatar}></div>
-                <div className={styles.uInfo}>
-                  <h4>Trần Thị B {i}</h4>
-                  <p>Freelancer • Đăng ký 2 giờ trước</p>
-                </div>
-                <Badge variant="outline" size="sm">Chưa KYC</Badge>
-              </div>
-            ))}
+            {stats.pendingApps === 0 ? (
+              <div className={styles.emptySmall}>Không có ứng tuyển chờ duyệt.</div>
+            ) : (
+              <div className={styles.emptySmall}>Có {stats.pendingApps} ứng tuyển cần xử lý.</div>
+            )}
           </div>
         </Card>
       </div>

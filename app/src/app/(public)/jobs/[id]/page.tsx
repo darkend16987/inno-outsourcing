@@ -11,6 +11,8 @@ import {
   CheckCircle, ExternalLink, AlertCircle
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
+import { CommentSection } from '@/components/comments/CommentSection';
+import { CompletionChecklist, ChecklistItemData } from '@/components/checklist/CompletionChecklist';
 import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { formatFriendlyMoney, formatDate } from '@/lib/formatters';
@@ -296,6 +298,38 @@ export default function JobDetailPage() {
     if (jobId) fetchJob();
   }, [jobId]);
 
+  // Inject OG meta tags for social sharing
+  useEffect(() => {
+    if (!job) return;
+    const fee = formatFriendlyMoney(job.totalFee);
+    const ogTitle = `${job.category} — ${job.title} | VAA JOB`;
+    const ogDesc = `💰 ${fee} · ⏱ ${job.durationDisplay} · Lĩnh vực: ${job.category} · Level: ${job.level}. Ứng tuyển ngay trên VAA JOB!`;
+    const ogUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+    document.title = ogTitle;
+
+    const setMeta = (property: string, content: string) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('property', property);
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', content);
+    };
+
+    setMeta('og:title', ogTitle);
+    setMeta('og:description', ogDesc);
+    setMeta('og:type', 'website');
+    setMeta('og:url', ogUrl);
+    setMeta('og:site_name', 'VAA JOB — Outsourcing Xây dựng');
+
+    return () => {
+      // Cleanup: restore generic title
+      document.title = 'VAA JOB';
+    };
+  }, [job]);
+
   // Check if user has already applied
   const checkApplication = useCallback(async () => {
     if (!firebaseUser?.uid || !jobId) return;
@@ -494,39 +528,29 @@ export default function JobDetailPage() {
               </section>
             )}
 
+            {/* Completion Checklist — visible when job has checklist items */}
+            {job.checklist && job.checklist.length > 0 && (
+              <section className={styles.section}>
+                <CompletionChecklist
+                  items={job.checklist}
+                  role={userProfile?.role === 'admin' ? 'admin' : userProfile?.role === 'jobmaster' ? 'jobmaster' : 'freelancer'}
+                  onFreelancerSubmit={(items: ChecklistItemData[]) => {
+                    console.log('Freelancer submitted checklist:', items);
+                  }}
+                  onMasterApprove={(items: ChecklistItemData[]) => {
+                    console.log('Master approved checklist:', items);
+                  }}
+                  onMasterReject={(itemId: string, note: string) => {
+                    console.log('Master rejected item:', itemId, note);
+                  }}
+                  disabled={!firebaseUser}
+                />
+              </section>
+            )}
+
             <section className={styles.section}>
-              <h2 className={styles.sectionTitle}><MessageSquare size={20} /> Bình luận</h2>
-              <div className={styles.commentBox}>
-                <div className={styles.commentTop}>
-                  <Avatar name="Me" size="md" />
-                  <div className={styles.commentBody}>
-                    <strong>Bạn</strong>
-                    <textarea className={styles.commentInput} placeholder="Đặt câu hỏi về công việc này..." />
-                  </div>
-                </div>
-                <div className={styles.commentActions}>
-                  <Button size="sm" icon={<Send size={14}/>}>Gửi câu hỏi</Button>
-                </div>
-              </div>
-              
-              <div className={styles.commentStream}>
-                <Card className={styles.commentCard} padding="sm">
-                  <div className={styles.commentTop}>
-                    <Avatar name={job.jobMasterName} size="md" />
-                    <div className={styles.commentBody}>
-                      <div className={styles.metaRow}>
-                        <strong className={styles.commentName}>{job.jobMasterName}</strong>
-                        <Badge variant="status" status="in_progress" size="sm">Quản lý</Badge>
-                      </div>
-                      <span className={styles.commentTime}>Vừa xong</span>
-                      <p className={styles.commentText}>Mốc 50% được xác nhận khi hoàn thành toàn bộ model core, façade và coordination sheet tầng điển hình.</p>
-                      <div className={styles.commentFooter}>
-                        <span>Thích</span><span>Trả lời</span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </div>
+              <h2 className={styles.sectionTitle}><MessageSquare size={20} /> Bình luận & Trao đổi</h2>
+              <CommentSection jobId={jobId} />
             </section>
           </motion.div>
 

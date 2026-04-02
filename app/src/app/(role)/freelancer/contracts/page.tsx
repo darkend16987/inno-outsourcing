@@ -1,21 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileSignature, Download, Search, FileText } from 'lucide-react';
+import { FileSignature, Download, Search, FileText, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getContractsForFreelancer } from '@/lib/firebase/firestore';
+import type { Contract } from '@/types';
 import styles from './page.module.css';
-
-const MOCK_CONTRACTS = [
-  { id: 'c1', number: 'HD2604-01-TKKT', jobTitle: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', status: 'active', signedAt: '12/04/2026', value: '48,000,000₫' },
-  { id: 'c2', number: 'HD2603-12-BIM', jobTitle: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', status: 'completed', signedAt: '01/03/2026', value: '65,000,000₫' },
-  { id: 'c3', number: 'HD2605-08-DT', jobTitle: 'Dự toán công trình trường học TPHCM', status: 'pending_signature', signedAt: '-', value: '25,000,000₫' },
-];
 
 const STATUS_MAP: Record<string, { label: string, color: string }> = {
   active: { label: 'Đang hiệu lực', color: 'success' },
   completed: { label: 'Đã thanh lý', color: 'default' },
   pending_signature: { label: 'Chờ ký', color: 'warning' },
+  draft: { label: 'Nháp', color: 'default' },
+  terminated: { label: 'Đã hủy', color: 'error' },
 };
 
 const fadeUp = {
@@ -23,13 +22,41 @@ const fadeUp = {
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.3 } }),
 };
 
-export default function ContractsPage() {
-  const [search, setSearch] = useState('');
+const formatDate = (d: unknown): string => {
+  if (!d) return '-';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
+};
 
-  const filtered = MOCK_CONTRACTS.filter(c => 
-    c.number.toLowerCase().includes(search.toLowerCase()) || 
+const formatCurrency = (amount: number) => `${amount.toLocaleString('vi-VN')}₫`;
+
+export default function ContractsPage() {
+  const { userProfile } = useAuth();
+  const [search, setSearch] = useState('');
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    getContractsForFreelancer(userProfile.uid)
+      .then(setContracts)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [userProfile?.uid]);
+
+  const filtered = contracts.filter(c =>
+    c.contractNumber.toLowerCase().includes(search.toLowerCase()) ||
     c.jobTitle.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.empty}><Loader2 size={24} className={styles.spin} /> Đang tải...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -43,9 +70,9 @@ export default function ContractsPage() {
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
           <Search size={16} />
-          <input 
-            type="text" 
-            placeholder="Tìm theo số HĐ, tên dự án..." 
+          <input
+            type="text"
+            placeholder="Tìm theo số HĐ, tên dự án..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -59,19 +86,18 @@ export default function ContractsPage() {
               <div className={styles.iconBox}>
                 <FileText size={24} />
               </div>
-              
+
               <div className={styles.cMain}>
                 <div className={styles.cHeader}>
-                  <h3 className={styles.cNumber}>{contract.number}</h3>
-                  {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                  <h3 className={styles.cNumber}>{contract.contractNumber}</h3>
                   {/* @ts-ignore */}
-                  <Badge variant={STATUS_MAP[contract.status].color} size="sm">{STATUS_MAP[contract.status].label}</Badge>
+                  <Badge variant={STATUS_MAP[contract.status]?.color || 'default'} size="sm">{STATUS_MAP[contract.status]?.label || contract.status}</Badge>
                 </div>
                 <div className={styles.cJob}>{contract.jobTitle}</div>
                 <div className={styles.cMeta}>
-                  <span>Ngày ký: {contract.signedAt}</span>
+                  <span>Ngày ký: {formatDate(contract.signedByWorkerAt || contract.createdAt)}</span>
                   <span className={styles.sep}>•</span>
-                  <span>Giá trị: <strong>{contract.value}</strong></span>
+                  <span>Giá trị: <strong>{formatCurrency(contract.totalValue)}</strong></span>
                 </div>
               </div>
 
@@ -85,10 +111,11 @@ export default function ContractsPage() {
             </Card>
           </motion.div>
         ))}
-        
+
         {filtered.length === 0 && (
           <div className={styles.empty}>
-            <p>Không tìm thấy hợp đồng nào phù hợp.</p>
+            <Inbox size={32} />
+            <p>{contracts.length === 0 ? 'Chưa có hợp đồng nào.' : 'Không tìm thấy hợp đồng nào phù hợp.'}</p>
           </div>
         )}
       </div>

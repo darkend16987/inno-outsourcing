@@ -92,6 +92,11 @@
 .uInfo h4 { font-size: 14px; font-weight: 600; color: var(--color-charcoal); }
 .uInfo p { font-size: 12px; color: var(--color-text-muted); }
 
+.loadingWrap { display: flex; align-items: center; justify-content: center; gap: 0.75rem; min-height: 200px; color: var(--color-text-muted); font-size: 15px; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.emptySmall { text-align: center; padding: 2rem; color: var(--color-text-muted); font-size: 14px; }
+
 @media (max-width: 1024px) {
   .metricsGrid { grid-template-columns: repeat(2, 1fr); }
   .bottomGrid { grid-template-columns: 1fr; }

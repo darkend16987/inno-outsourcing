@@ -1,113 +1,108 @@
 'use client';
 
-import React, { useState } from 'react';
-import { CheckCircle, Clock, AlertTriangle, User, Calendar, TrendingUp } from 'lucide-react';
-import { Button, Card, Badge, StatusBadge, LevelBadge } from '@/components/ui';
-import { Progress } from '@/components/ui';
+import React, { useState, useEffect } from 'react';
+import { Clock, Loader2, Inbox } from 'lucide-react';
+import { Card, Badge } from '@/components/ui';
+import { getJobs } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
+import type { Job } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_ACTIVE_JOBS = [
-  {
-    id: '1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', category: 'Kiến trúc', level: 'L3' as const,
-    worker: 'Nguyễn Thanh Hùng', progress: 65, deadline: '17/05/2026', daysLeft: 45, status: 'in_progress' as const,
-    milestones: [
-      { name: 'Đợt 1 — 30%', amount: '14.4M', status: 'paid' as const },
-      { name: 'Đợt 2 — 70%', amount: '19.2M', status: 'pending' as const },
-      { name: 'Đợt 3 — 100%', amount: '14.4M', status: 'pending' as const },
-    ],
-  },
-  {
-    id: '2', title: 'BIM Modeling văn phòng 12 tầng Q7', category: 'BIM', level: 'L4' as const,
-    worker: 'Trần Minh Tuấn', progress: 42, deadline: '01/06/2026', daysLeft: 60, status: 'in_progress' as const,
-    milestones: [
-      { name: 'Đợt 1 — 50%', amount: '32.5M', status: 'pending' as const },
-      { name: 'Đợt 2 — 100%', amount: '32.5M', status: 'pending' as const },
-    ],
-  },
-  {
-    id: '3', title: 'Dự toán trường học TPHCM', category: 'Dự toán', level: 'L2' as const,
-    worker: 'Lê Thị Hoa', progress: 90, deadline: '10/04/2026', daysLeft: 8, status: 'review' as const,
-    milestones: [
-      { name: 'Đợt 1 — 50%', amount: '12.5M', status: 'paid' as const },
-      { name: 'Đợt 2 — 100%', amount: '12.5M', status: 'approved' as const },
-    ],
-  },
-  {
-    id: '4', title: 'Hệ thống MEP chung cư Thủ Đức', category: 'MEP', level: 'L3' as const,
-    worker: 'Phạm Đức Anh', progress: 20, deadline: '05/04/2026', daysLeft: 3, status: 'in_progress' as const,
-    milestones: [
-      { name: 'Đợt 1 — 50%', amount: '27.5M', status: 'pending' as const },
-      { name: 'Đợt 2 — 100%', amount: '27.5M', status: 'pending' as const },
-    ],
-  },
-];
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  in_progress: { label: 'Đang thực hiện', color: 'info' },
+  assigned: { label: 'Đã giao việc', color: 'warning' },
+  review: { label: 'Nghiệm thu', color: 'accent' },
+  completed: { label: 'Hoàn thành', color: 'success' },
+};
 
-const MS_STATUS_COLORS: Record<string, string> = { paid: 'success', approved: 'warning', pending: 'default' };
-const MS_STATUS_LABELS: Record<string, string> = { paid: 'Đã TT', approved: 'Chờ TT', pending: 'Chưa đạt' };
+const formatDate = (d: unknown): string => {
+  if (!d) return '-';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
+};
 
 export default function AdminProgressPage() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const result = await cache.get('admin:progress:jobs', () => getJobs({}, 50), TTL.MEDIUM);
+      const activeJobs = result.items.filter(j =>
+        ['in_progress', 'assigned', 'review', 'completed'].includes(j.status)
+      );
+      setJobs(activeJobs);
+      setLoading(false);
+    };
+    fetchJobs().catch(() => setLoading(false));
+  }, []);
+
+  const filtered = jobs.filter(j => filter === 'all' || j.status === filter);
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.empty}><Loader2 size={24} className={styles.spin} /> Đang tải...</div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
-      <div className={styles.pageHeader}>
+      <div className={styles.header}>
         <div>
-          <h1 className={styles.pageTitle}>Theo dõi Tiến độ</h1>
-          <p className={styles.pageSubtitle}>Giám sát tiến độ và milestone thanh toán cho tất cả dự án đang hoạt động.</p>
+          <h1 className={styles.title}>Tiến độ Dự án</h1>
+          <p className={styles.subtitle}>Theo dõi tiến độ thực hiện của tất cả dự án đang hoạt động.</p>
         </div>
       </div>
 
-      <div className={styles.summaryRow}>
-        <Card variant="metric"><div className={styles.sumLabel}>Đang thực hiện</div><div className={styles.sumValue}>{MOCK_ACTIVE_JOBS.filter(j => j.status === 'in_progress').length}</div></Card>
-        <Card variant="metric"><div className={styles.sumLabel}>Đang nghiệm thu</div><div className={styles.sumValue}>{MOCK_ACTIVE_JOBS.filter(j => j.status === 'review').length}</div></Card>
-        <Card variant="metric"><div className={styles.sumLabel}>Cảnh báo Deadline</div><div className={styles.sumValue} style={{ color: 'var(--color-error)' }}>{MOCK_ACTIVE_JOBS.filter(j => j.daysLeft <= 7).length}</div></Card>
+      <div className={styles.filterTabs}>
+        <button className={`${styles.tab} ${filter === 'all' ? styles.active : ''}`} onClick={() => setFilter('all')}>Tất cả ({jobs.length})</button>
+        <button className={`${styles.tab} ${filter === 'in_progress' ? styles.active : ''}`} onClick={() => setFilter('in_progress')}>Đang thực hiện</button>
+        <button className={`${styles.tab} ${filter === 'review' ? styles.active : ''}`} onClick={() => setFilter('review')}>Nghiệm thu</button>
+        <button className={`${styles.tab} ${filter === 'completed' ? styles.active : ''}`} onClick={() => setFilter('completed')}>Hoàn thành</button>
       </div>
 
-      <div className={styles.jobsList}>
-        {MOCK_ACTIVE_JOBS.map(job => (
-          <Card key={job.id} variant="bordered" className={styles.jobCard}>
-            <div className={styles.jobHeader}>
-              <div className={styles.jobInfo}>
-                <h3 className={styles.jobTitle}>{job.title}</h3>
-                <div className={styles.jobMeta}>
-                  <Badge variant="default">{job.category}</Badge>
-                  <LevelBadge level={job.level} />
-                  <span className={styles.metaItem}><User size={14} /> {job.worker}</span>
-                  <span className={`${styles.metaItem} ${job.daysLeft <= 7 ? styles.deadlineWarning : ''}`}>
-                    <Calendar size={14} /> {job.deadline} ({job.daysLeft} ngày)
-                  </span>
-                </div>
+      <div className={styles.jobList}>
+        {filtered.map(job => (
+          <Card key={job.id} className={styles.jobCard}>
+            <div className={styles.jobMain}>
+              <div className={styles.jobTags}>
+                <Badge variant="outline" size="sm">{job.category}</Badge>
+                {/* @ts-expect-error dynamic badge color */}
+                <Badge variant={STATUS_LABELS[job.status]?.color || 'default'} size="sm">
+                  {STATUS_LABELS[job.status]?.label || job.status}
+                </Badge>
               </div>
-              <StatusBadge status={job.status} label={job.status === 'review' ? 'Nghiệm thu' : 'Đang thực hiện'} />
+              <h3 className={styles.jobTitle}>{job.title}</h3>
+              <div className={styles.jobMeta}>
+                <span><Clock size={14}/> Hạn: {formatDate(job.deadline)}</span>
+                <span>Nhân sự: {job.assignedWorkerName || 'Chưa giao'}</span>
+              </div>
             </div>
-
             <div className={styles.progressSection}>
-              <div className={styles.progressLabel}>
-                <span>Tiến độ tổng</span>
-                <strong>{job.progress}%</strong>
+              <div className={styles.pHeader}>
+                <span>Tiến độ</span>
+                <span className={styles.pPercent}>{job.progress ?? 0}%</span>
               </div>
-              <Progress value={job.progress} />
-            </div>
-
-            <div className={styles.milestonesRow}>
-              <span className={styles.msLabel}>Milestones:</span>
-              {job.milestones.map((ms, i) => (
-                <div key={i} className={styles.msChip}>
-                  <span>{ms.name}</span>
-                  <span className={styles.msAmount}>{ms.amount}</span>
-                  <Badge variant={MS_STATUS_COLORS[ms.status] as any}>{MS_STATUS_LABELS[ms.status]}</Badge>
-                  {ms.status === 'pending' && job.progress >= 50 * (i + 1) && (
-                    <Button variant="success" size="sm" icon={<CheckCircle size={12} />}>Duyệt</Button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {job.daysLeft <= 3 && (
-              <div className={styles.warningBanner}>
-                <AlertTriangle size={16} /> Deadline còn {job.daysLeft} ngày — cần theo dõi sát!
+              <div className={styles.pBar}>
+                <div
+                  className={styles.pFill}
+                  style={{
+                    width: `${job.progress ?? 0}%`,
+                    background: (job.progress ?? 0) === 100 ? 'var(--color-success)' : 'var(--color-primary)',
+                  }}
+                />
               </div>
-            )}
+            </div>
           </Card>
         ))}
+
+        {filtered.length === 0 && (
+          <div className={styles.empty}><Inbox size={32}/> <p>Chưa có dự án nào.</p></div>
+        )}
       </div>
     </div>
   );

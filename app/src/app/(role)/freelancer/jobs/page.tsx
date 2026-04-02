@@ -1,22 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, Filter, Clock, ArrowRight } from 'lucide-react';
-import { Card, Badge, LevelBadge, Button } from '@/components/ui';
+import { Clock, ArrowRight, Loader2, Inbox } from 'lucide-react';
+import { Card, Badge, Button } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getApplicationsForFreelancer, getJobById } from '@/lib/firebase/firestore';
+import type { Job } from '@/types';
 import styles from './page.module.css';
 
-const MY_JOBS = [
-  { id: 'job-1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', category: 'Kiến trúc', level: 'L3', status: 'in_progress', progress: 45, deadline: '15/05/2026', totalFee: '48,000,000₫' },
-  { id: 'job-2', title: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', category: 'BIM', level: 'L4', status: 'review', progress: 100, deadline: '01/05/2026', totalFee: '65,000,000₫' },
-  { id: 'job-3', title: 'Dự toán công trình trường học TPHCM', category: 'Dự toán', level: 'L2', status: 'completed', progress: 100, deadline: '10/04/2026', totalFee: '25,000,000₫' },
-];
+interface MyJobEntry {
+  id: string;
+  title: string;
+  category: string;
+  level: string;
+  status: string;
+  progress: number;
+  deadline: string;
+  totalFee: string;
+}
 
 const STATUS_MAP: Record<string, { label: string, color: string }> = {
   in_progress: { label: 'Đang thực hiện', color: 'info' },
   review: { label: 'Đang nghiệm thu', color: 'warning' },
   completed: { label: 'Hoàn thành', color: 'success' },
+  assigned: { label: 'Đã nhận việc', color: 'info' },
 };
 
 const fadeUp = {
@@ -24,10 +33,57 @@ const fadeUp = {
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.3 } }),
 };
 
-export default function MyJobsPage() {
-  const [filter, setFilter] = useState('all');
+const formatDate = (d: unknown): string => {
+  if (!d) return '';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
+};
 
-  const filteredJobs = MY_JOBS.filter(job => filter === 'all' || job.status === filter);
+const formatCurrency = (amount: number) => `${amount.toLocaleString('vi-VN')}₫`;
+
+export default function MyJobsPage() {
+  const { userProfile } = useAuth();
+  const [filter, setFilter] = useState('all');
+  const [jobs, setJobs] = useState<MyJobEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchJobs = async () => {
+      const apps = await getApplicationsForFreelancer(userProfile.uid);
+      const acceptedApps = apps.filter(a => a.status === 'accepted');
+      const entries: MyJobEntry[] = [];
+      for (const app of acceptedApps) {
+        const job = await getJobById(app.jobId);
+        if (job) {
+          entries.push({
+            id: job.id,
+            title: job.title,
+            category: job.category,
+            level: job.level,
+            status: job.status,
+            progress: job.progress ?? 0,
+            deadline: formatDate(job.deadline),
+            totalFee: formatCurrency(job.totalFee),
+          });
+        }
+      }
+      setJobs(entries);
+      setLoading(false);
+    };
+    fetchJobs().catch(() => setLoading(false));
+  }, [userProfile?.uid]);
+
+  const filteredJobs = jobs.filter(job => filter === 'all' || job.status === filter);
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.empty}><Loader2 size={24} className={styles.spin} /> Đang tải dữ liệu...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -55,9 +111,8 @@ export default function MyJobsPage() {
               <div className={styles.jobMain}>
                 <div className={styles.jobTags}>
                   <Badge variant="outline" size="sm">{job.category}</Badge>
-                  {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
                   {/* @ts-ignore */}
-                  <Badge variant={STATUS_MAP[job.status].color} size="sm">{STATUS_MAP[job.status].label}</Badge>
+                  <Badge variant={STATUS_MAP[job.status]?.color || 'default'} size="sm">{STATUS_MAP[job.status]?.label || job.status}</Badge>
                 </div>
                 <h3 className={styles.jobTitle}>{job.title}</h3>
                 <div className={styles.jobMeta}>
@@ -85,6 +140,7 @@ export default function MyJobsPage() {
         ))}
         {filteredJobs.length === 0 && (
           <div className={styles.empty}>
+            <Inbox size={32} />
             <p>Chưa có dự án nào trong trạng thái này.</p>
           </div>
         )}

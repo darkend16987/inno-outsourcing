@@ -1,121 +1,188 @@
 'use client';
 
-import React from 'react';
-import { Briefcase, CheckCircle, Clock, Star, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Briefcase, CheckCircle, Clock, Star, TrendingUp, Loader2, Inbox } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getApplicationsForFreelancer, getJobById } from '@/lib/firebase/firestore';
+import { subscribeToNotifications } from '@/lib/firebase/firestore';
+import type { Notification as AppNotification } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_STATS = {
-  totalEarned: '45,500,000₫',
-  completedJobs: 12,
-  inProgressJobs: 2,
-  rating: 4.8,
-  onTimeRate: '100%'
-};
+interface ActiveJobInfo {
+  id: string;
+  title: string;
+  category: string;
+  deadline: string;
+  progress: number;
+}
 
 export default function FreelancerDashboard() {
+  const { userProfile, loading: authLoading } = useAuth();
+  const [activeJobs, setActiveJobs] = useState<ActiveJobInfo[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+
+  // Fetch active jobs for freelancer
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchJobs = async () => {
+      const apps = await getApplicationsForFreelancer(userProfile.uid);
+      const acceptedApps = apps.filter(a => a.status === 'accepted');
+      const jobInfos: ActiveJobInfo[] = [];
+      for (const app of acceptedApps.slice(0, 5)) {
+        const job = await getJobById(app.jobId);
+        if (job) {
+          const dl = job.deadline;
+          const deadlineStr = dl ? (typeof dl === 'object' && 'toDate' in dl ? (dl as unknown as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN') : String(dl)) : '';
+          jobInfos.push({
+            id: job.id,
+            title: job.title,
+            category: job.category,
+            deadline: deadlineStr,
+            progress: job.progress ?? 0,
+          });
+        }
+        }
+      setActiveJobs(jobInfos);
+      setLoadingJobs(false);
+    };
+    fetchJobs().catch(() => setLoadingJobs(false));
+  }, [userProfile?.uid]);
+
+  // Subscribe to notifications
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const unsub = subscribeToNotifications(userProfile.uid, (notis) => {
+      setNotifications(notis.slice(0, 5));
+    });
+    return unsub;
+  }, [userProfile?.uid]);
+
+  if (authLoading) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loadingWrap}><Loader2 size={32} className={styles.spinner} /> Đang tải...</div>
+      </div>
+    );
+  }
+
+  const stats = userProfile?.stats || { completedJobs: 0, totalEarnings: 0, avgRating: 0, onTimeRate: 100 };
+  const displayName = userProfile?.displayName || 'Freelancer';
+
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M ₫`;
+    if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K ₫`;
+    return `${amount.toLocaleString('vi-VN')}₫`;
+  };
+
+  const inProgressCount = activeJobs.filter(j => j.progress < 100).length;
+
   return (
     <div className={styles.dashboard}>
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Tổng quan công việc</h1>
-          <p className={styles.subtitle}>Chào mừng trở lại, Nguyễn Văn A. Dưới đây là tóm tắt hoạt động của bạn.</p>
+          <p className={styles.subtitle}>Chào mừng trở lại, {displayName}. Dưới đây là tóm tắt hoạt động của bạn.</p>
         </div>
-        <Button variant="outline">Cập nhật hồ sơ</Button>
+        <Link href="/freelancer/profile">
+          <Button variant="outline">Cập nhật hồ sơ</Button>
+        </Link>
       </div>
 
       {/* Metrics */}
       <div className={styles.metricsGrid}>
         <MetricCard
           label="Tổng thu nhập"
-          value={MOCK_STATS.totalEarned}
+          value={formatCurrency(stats.totalEarnings || 0)}
           icon={<TrendingUp size={20} />}
-          trend="up"
-          trendValue="+15%"
-          subtitle="so với tháng trước"
         />
         <MetricCard
           label="Đã hoàn thành"
-          value={MOCK_STATS.completedJobs.toString()}
+          value={(stats.completedJobs ?? 0).toString()}
           icon={<CheckCircle size={20} />}
         />
         <MetricCard
           label="Đang thực hiện"
-          value={MOCK_STATS.inProgressJobs.toString()}
+          value={inProgressCount.toString()}
           icon={<Briefcase size={20} />}
         />
         <MetricCard
           label="Đánh giá trung bình"
-          value={MOCK_STATS.rating.toString()}
+          value={(stats.avgRating ?? 0).toFixed(1)}
           icon={<Star size={20} />}
-          trend="up"
-          trendValue={MOCK_STATS.onTimeRate + ' đúng hạn'}
+          trend={stats.onTimeRate >= 90 ? 'up' : undefined}
+          trendValue={`${stats.onTimeRate ?? 100}% đúng hạn`}
         />
       </div>
 
-      {/* Upcoming Tasks & Recent Activities */}
+      {/* Bottom Grid */}
       <div className={styles.bottomGrid}>
         <Card className={styles.sectionCard}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Công việc đang thực hiện</h3>
-            <Button variant="ghost" size="sm">Xem tất cả</Button>
+            <Link href="/freelancer/jobs">
+              <Button variant="ghost" size="sm">Xem tất cả</Button>
+            </Link>
           </div>
-          
-          <div className={styles.jobList}>
-            <div className={styles.jobItem}>
-              <div className={styles.jobInfo}>
-                <h4>Thiết kế kiến trúc Nhà xưởng KCN Bình Dương</h4>
-                <div className={styles.jobMeta}>
-                  <Badge size="sm" variant="outline">Kiến trúc</Badge>
-                  <span className={styles.deadline}><Clock size={12}/> Hạn: 15/05/2026</span>
+
+          {loadingJobs ? (
+            <div className={styles.loadingSmall}><Loader2 size={20} className={styles.spinner} /> Đang tải...</div>
+          ) : activeJobs.length > 0 ? (
+            <div className={styles.jobList}>
+              {activeJobs.map(job => (
+                <div key={job.id} className={styles.jobItem}>
+                  <div className={styles.jobInfo}>
+                    <h4>{job.title}</h4>
+                    <div className={styles.jobMeta}>
+                      <Badge size="sm" variant="outline">{job.category}</Badge>
+                      {job.deadline && (
+                        <span className={styles.deadline}><Clock size={12}/> Hạn: {job.deadline}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.jobStatus}>
+                    <div className={styles.progressText}>Tiến độ: {job.progress}%</div>
+                    <div className={styles.progressBar}>
+                      <div className={styles.progressFill} style={{ width: `${job.progress}%` }} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={styles.jobStatus}>
-                <div className={styles.progressText}>Tiến độ: 45%</div>
-                <div className={styles.progressBar}><div className={styles.progressFill} style={{width: '45%'}}/></div>
-              </div>
+              ))}
             </div>
-            
-            <div className={styles.jobItem}>
-              <div className={styles.jobInfo}>
-                <h4>Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ</h4>
-                <div className={styles.jobMeta}>
-                  <Badge size="sm" variant="outline">Kết cấu</Badge>
-                  <span className={styles.deadline}><Clock size={12}/> Hạn: 20/05/2026</span>
-                </div>
-              </div>
-              <div className={styles.jobStatus}>
-                <div className={styles.progressText}>Tiến độ: 10%</div>
-                <div className={styles.progressBar}><div className={styles.progressFill} style={{width: '10%'}}/></div>
-              </div>
+          ) : (
+            <div className={styles.emptySmall}>
+              <Inbox size={24} />
+              <span>Chưa có dự án nào đang thực hiện.</span>
             </div>
-          </div>
+          )}
         </Card>
 
         <Card className={styles.sectionCard}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Thông báo mới</h3>
           </div>
-          <div className={styles.notiList}>
-            <div className={styles.notiItem}>
-              <div className={styles.notiIcon} style={{ background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
-                <CheckCircle size={16} />
-              </div>
-              <div className={styles.notiContent}>
-                <p>Thanh toán <strong>24,000,000₫</strong> giai đoạn 1 đã được chuyển khoản.</p>
-                <span>2 giờ trước</span>
-              </div>
+          {notifications.length > 0 ? (
+            <div className={styles.notiList}>
+              {notifications.map(n => (
+                <div key={n.id} className={styles.notiItem}>
+                  <div className={styles.notiIcon} style={{ background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
+                    <CheckCircle size={16} />
+                  </div>
+                  <div className={styles.notiContent}>
+                    <p>{n.body || n.title}</p>
+                    <span>{n.createdAt && typeof n.createdAt === 'object' && 'toDate' in n.createdAt ? (n.createdAt as unknown as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN') : ''}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className={styles.notiItem}>
-              <div className={styles.notiIcon} style={{ background: 'rgba(244, 157, 37, 0.1)', color: 'var(--color-accent)' }}>
-                <Star size={16} />
-              </div>
-              <div className={styles.notiContent}>
-                <p>Bạn vừa nhận huy hiệu <strong>Đối tác tin cậy</strong>.</p>
-                <span>1 ngày trước</span>
-              </div>
+          ) : (
+            <div className={styles.emptySmall}>
+              <Inbox size={24} />
+              <span>Chưa có thông báo mới.</span>
             </div>
-          </div>
+          )}
         </Card>
       </div>
     </div>

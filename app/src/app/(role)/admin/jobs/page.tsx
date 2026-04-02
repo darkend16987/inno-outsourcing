@@ -1,20 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Clock, CheckCircle, XCircle, Eye, Filter, Search, Briefcase } from 'lucide-react';
-import { Button, Card, Badge, StatusBadge, LevelBadge } from '@/components/ui';
+import { Plus, Clock, CheckCircle, XCircle, Eye, Search, Loader2, Inbox } from 'lucide-react';
+import { Button, Badge, StatusBadge, LevelBadge } from '@/components/ui';
+import { getJobs } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
+import type { Job } from '@/types';
 import styles from './page.module.css';
-
-const MOCK_JOBS = [
-  { id: '1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', category: 'Kiến trúc', level: 'L3' as const, status: 'pending_approval' as const, jobMaster: 'Nguyễn Văn A', createdAt: '02/04/2026', totalFee: 48000000 },
-  { id: '2', title: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', category: 'BIM', level: 'L4' as const, status: 'open' as const, jobMaster: 'Trần Minh B', createdAt: '01/04/2026', totalFee: 65000000 },
-  { id: '3', title: 'Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ', category: 'Kết cấu', level: 'L5' as const, status: 'in_progress' as const, jobMaster: 'Lê Thị C', createdAt: '28/03/2026', totalFee: 120000000 },
-  { id: '4', title: 'Hệ thống MEP chung cư cao cấp Thủ Đức', category: 'MEP', level: 'L3' as const, status: 'assigned' as const, jobMaster: 'Phạm Đức D', createdAt: '25/03/2026', totalFee: 55000000 },
-  { id: '5', title: 'Dự toán công trình trường học TPHCM', category: 'Dự toán', level: 'L2' as const, status: 'review' as const, jobMaster: 'Hoàng Văn E', createdAt: '20/03/2026', totalFee: 25000000 },
-  { id: '6', title: 'Thẩm tra PCCC tòa nhà hỗn hợp Hà Nội', category: 'Thẩm tra', level: 'L4' as const, status: 'draft' as const, jobMaster: 'Ngô Thị F', createdAt: '15/03/2026', totalFee: 38000000 },
-  { id: '7', title: 'Giám sát thi công nhà máy Long An', category: 'Giám sát', level: 'L3' as const, status: 'completed' as const, jobMaster: 'Bùi Văn G', createdAt: '10/03/2026', totalFee: 42000000 },
-];
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Nháp', pending_approval: 'Chờ duyệt', open: 'Đang mở', assigned: 'Chốt kèo',
@@ -30,17 +23,45 @@ const FILTER_TABS = [
   { key: 'completed', label: 'Hoàn thành' },
 ];
 
+const formatDate = (d: unknown): string => {
+  if (!d) return '-';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
+};
+
+const formatCurrency = (amount: number) => `${(amount / 1000000).toFixed(0)}M ₫`;
+
 export default function AdminJobsPage() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
 
-  const filtered = MOCK_JOBS.filter(j => {
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const result = await cache.get('admin:jobs:list', () => getJobs({}, 100), TTL.MEDIUM);
+      setJobs(result.items);
+      setLoading(false);
+    };
+    fetchJobs().catch(() => setLoading(false));
+  }, []);
+
+  const filtered = jobs.filter(j => {
     if (activeTab !== 'all' && j.status !== activeTab) return false;
     if (search && !j.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const pendingCount = MOCK_JOBS.filter(j => j.status === 'pending_approval').length;
+  const pendingCount = jobs.filter(j => j.status === 'pending_approval').length;
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.emptyState}><Loader2 size={24} className={styles.spin} /> Đang tải danh sách job...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -108,10 +129,10 @@ export default function AdminJobsPage() {
                 <td className={styles.jobTitle}>{job.title}</td>
                 <td><Badge variant="default">{job.category}</Badge></td>
                 <td><LevelBadge level={job.level} /></td>
-                <td>{job.jobMaster}</td>
-                <td className={styles.fee}>{(job.totalFee / 1000000).toFixed(0)}M ₫</td>
-                <td><StatusBadge status={job.status} label={STATUS_LABELS[job.status]} /></td>
-                <td className={styles.date}>{job.createdAt}</td>
+                <td>{job.jobMasterName || '-'}</td>
+                <td className={styles.fee}>{formatCurrency(job.totalFee || 0)}</td>
+                <td><StatusBadge status={job.status} label={STATUS_LABELS[job.status] || job.status} /></td>
+                <td className={styles.date}>{formatDate(job.createdAt)}</td>
                 <td>
                   <div className={styles.actions}>
                     <Link href={`/admin/jobs/${job.id}`}>
@@ -131,7 +152,7 @@ export default function AdminJobsPage() {
         </table>
         {filtered.length === 0 && (
           <div className={styles.emptyState}>
-            <Briefcase size={40} />
+            <Inbox size={40} />
             <p>Không tìm thấy job nào.</p>
           </div>
         )}

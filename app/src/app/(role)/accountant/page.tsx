@@ -1,18 +1,46 @@
 'use client';
 
-import React from 'react';
-import { DollarSign, FileSignature, Wallet, AlertCircle, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, Wallet, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
+import { getAllPayments } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
+import type { Payment } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_STATS = {
-  totalPaid: '245.5M ₫',
-  pendingPayments: '84.0M ₫',
-  pendingCount: 6,
-  contractIssues: 2,
+const formatCurrency = (amount: number) => {
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M ₫`;
+  return `${amount.toLocaleString('vi-VN')}₫`;
 };
 
 export default function AccountantDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [paidResult, pendingResult] = await Promise.all([
+        cache.get('acct:paid', () => getAllPayments({ status: 'paid' }, 100), TTL.MEDIUM),
+        cache.get('acct:pending', () => getAllPayments({ status: 'pending' }, 100), TTL.MEDIUM),
+      ]);
+      setTotalPaid(paidResult.items.reduce((sum, p) => sum + p.amount, 0));
+      setTotalPending(pendingResult.items.reduce((sum, p) => sum + p.amount, 0));
+      setPendingPayments(pendingResult.items.slice(0, 5));
+      setLoading(false);
+    };
+    fetchData().catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loadingWrap}><Loader2 size={24} className={styles.spinner} /> Đang tải thống kê...</div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.dashboard}>
       <div className={styles.header}>
@@ -25,25 +53,16 @@ export default function AccountantDashboard() {
 
       <div className={styles.metricsGrid}>
         <MetricCard
-          label="Đã thanh toán (Tháng)"
-          value={MOCK_STATS.totalPaid}
+          label="Đã thanh toán (Tổng)"
+          value={formatCurrency(totalPaid)}
           icon={<Wallet size={20} />}
-          trend="up"
-          trendValue="+15% so với tháng trước"
         />
         <MetricCard
           label="Chờ thanh toán"
-          value={MOCK_STATS.pendingPayments}
+          value={formatCurrency(totalPending)}
           icon={<DollarSign size={20} />}
-          trend="down"
-          trendValue={`${MOCK_STATS.pendingCount} khoản cần duyệt`}
-        />
-        <MetricCard
-          label="Lỗi Hợp đồng / Hóa đơn"
-          value={MOCK_STATS.contractIssues.toString()}
-          icon={<FileSignature size={20} />}
-          trend="down"
-          trendValue="Cần bổ sung"
+          trend={pendingPayments.length > 0 ? 'down' : undefined}
+          trendValue={`${pendingPayments.length} khoản cần duyệt`}
         />
       </div>
 
@@ -53,33 +72,23 @@ export default function AccountantDashboard() {
             <h3 className={styles.cardTitle}>Lệnh thanh toán cần xử lý</h3>
           </div>
           <div className={styles.payList}>
-            <div className={styles.payItem}>
-              <div className={styles.pInfo}>
-                <div className={styles.pHeader}>
-                  <h4>Thanh toán GĐ1: Thiết kế kiến trúc Nhà xưởng KCN Bình Dương</h4>
-                  <Badge variant="warning">Chờ CK</Badge>
+            {pendingPayments.length > 0 ? pendingPayments.map(pay => (
+              <div key={pay.id} className={styles.payItem}>
+                <div className={styles.pInfo}>
+                  <div className={styles.pHeader}>
+                    <h4>{pay.reason}</h4>
+                    <Badge variant="warning">Chờ CK</Badge>
+                  </div>
+                  <div className={styles.pMeta}>
+                    <span>Người nhận: {pay.workerName}</span>
+                    <span className={styles.pAmount}>{formatCurrency(pay.amount)}</span>
+                  </div>
                 </div>
-                <div className={styles.pMeta}>
-                  <span>Người nhận: Nguyễn Văn A (Freelancer)</span>
-                  <span className={styles.pAmount}>24,000,000₫</span>
-                </div>
+                <Button size="sm">Xác nhận đã CK</Button>
               </div>
-              <Button size="sm">Xác nhận đã CK</Button>
-            </div>
-            
-            <div className={styles.payItem}>
-              <div className={styles.pInfo}>
-                <div className={styles.pHeader}>
-                  <h4>Tạm ứng: BIM Modeling tổ hợp văn phòng 12 tầng Q7</h4>
-                  <Badge variant="warning">Chờ CK</Badge>
-                </div>
-                <div className={styles.pMeta}>
-                  <span>Người nhận: Lê Thị C (Freelancer)</span>
-                  <span className={styles.pAmount}>15,000,000₫</span>
-                </div>
-              </div>
-              <Button size="sm">Xác nhận đã CK</Button>
-            </div>
+            )) : (
+              <div className={styles.emptySmall}>Không có lệnh thanh toán nào cần xử lý.</div>
+            )}
           </div>
           <Button fullWidth variant="ghost" className={styles.viewMoreBtn}>
             Xem tất cả thanh toán <ArrowRight size={14} />
@@ -94,8 +103,8 @@ export default function AccountantDashboard() {
              <div className={styles.issueItem}>
               <AlertCircle size={20} className={styles.warnIcon} />
               <div className={styles.issueContent}>
-                <h4>Freelancer Nguyễn Văn A chưa ký Hợp đồng</h4>
-                <p>Khóa thanh toán cho đến khi Hợp đồng được ký điện tử.</p>
+                <h4>Hệ thống hoạt động bình thường</h4>
+                <p>Tất cả chứng từ đã được cập nhật.</p>
               </div>
             </div>
           </div>

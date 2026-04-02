@@ -1,44 +1,73 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Search, Filter, Check, X, FileText, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Check, X, FileText, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Avatar, Button, LevelBadge } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getAllApplications } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
 import styles from './page.module.css';
 
-const MOCK_APPS = [
-  {
-    id: 'a1',
-    jobTitle: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7',
-    candidate: { name: 'Nguyễn Văn A', level: 'L3', kyc: true },
-    bidAmount: '60,000,000₫',
-    duration: '60 ngày',
-    appliedAt: '2 giờ trước',
-    status: 'pending',
-  },
-  {
-    id: 'a2',
-    jobTitle: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương',
-    candidate: { name: 'Lê Thị C', level: 'L2', kyc: false },
-    bidAmount: '50,000,000₫',
-    duration: '45 ngày',
-    appliedAt: '1 ngày trước',
-    status: 'pending',
-  },
-  {
-    id: 'a3',
-    jobTitle: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7',
-    candidate: { name: 'Trần B', level: 'L4', kyc: true },
-    bidAmount: '70,000,000₫',
-    duration: '50 ngày',
-    appliedAt: '1 ngày trước',
-    status: 'approved',
-  }
-];
+interface AppItem {
+  id: string;
+  jobTitle: string;
+  candidateName: string;
+  candidateLevel: string;
+  bidAmount: number;
+  duration: number;
+  status: string;
+  createdAt: unknown;
+}
+
+const formatDate = (d: unknown): string => {
+  if (!d) return '-';
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
+  if (d instanceof Date) return d.toLocaleDateString('vi-VN');
+  return String(d);
+};
+
+const formatCurrency = (amount: number) => `${amount.toLocaleString('vi-VN')}₫`;
 
 export default function ApplicationsPage() {
+  const { userProfile } = useAuth();
   const [filter, setFilter] = useState('pending');
+  const [search, setSearch] = useState('');
+  const [apps, setApps] = useState<AppItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredApps = MOCK_APPS.filter(a => filter === 'all' || a.status === filter);
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchApps = async () => {
+      const result = await cache.get(`jm:apps:all:${userProfile.uid}`, () => getAllApplications({}, 50), TTL.MEDIUM);
+      const mapped: AppItem[] = result.items.map((a) => ({
+        id: a.id,
+        jobTitle: a.jobTitle || 'Dự án',
+        candidateName: a.applicantName || 'Ứng viên',
+        candidateLevel: a.applicantLevel || 'L1',
+        bidAmount: a.expectedFee || 0,
+        duration: 0,
+        status: a.status || 'pending',
+        createdAt: a.createdAt,
+      }));
+      setApps(mapped);
+      setLoading(false);
+    };
+    fetchApps().catch(() => setLoading(false));
+  }, [userProfile?.uid]);
+
+  const filteredApps = apps.filter(a => {
+    const matchFilter = filter === 'all' || a.status === filter;
+    const matchSearch = !search || a.jobTitle.toLowerCase().includes(search.toLowerCase()) || a.candidateName.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchSearch;
+  });
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.empty}><Loader2 size={24} className={styles.spin} /> Đang tải...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -52,7 +81,7 @@ export default function ApplicationsPage() {
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
           <Search size={16} />
-          <input type="text" placeholder="Tìm theo tên dự án, tên ứng viên..." />
+          <input type="text" placeholder="Tìm theo tên dự án, tên ứng viên..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className={styles.filters}>
           <button className={`${styles.filterBtn} ${filter === 'pending' ? styles.active : ''}`} onClick={() => setFilter('pending')}>Chưa duyệt</button>
@@ -69,21 +98,16 @@ export default function ApplicationsPage() {
                 <span className={styles.jLabel}>Dự án ứng tuyển:</span>
                 <span className={styles.jTitle}>{app.jobTitle}</span>
               </div>
-              <div className={styles.timeInfo}>{app.appliedAt}</div>
+              <div className={styles.timeInfo}>{formatDate(app.createdAt)}</div>
             </div>
 
             <div className={styles.appBody}>
               <div className={styles.candidateCol}>
-                {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                {/* @ts-ignore */}
-                <Avatar name={app.candidate.name} level={app.candidate.level} size="lg" />
+                <Avatar name={app.candidateName} level={app.candidateLevel as 'L1' | 'L2' | 'L3' | 'L4' | 'L5'} size="lg" />
                 <div className={styles.cInfo}>
-                  <h3 className={styles.cName}>{app.candidate.name}</h3>
+                  <h3 className={styles.cName}>{app.candidateName}</h3>
                   <div className={styles.cTags}>
-                    {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                    {/* @ts-ignore */}
-                    <LevelBadge level={app.candidate.level} showLabel />
-                    {app.candidate.kyc && <Badge variant="success" size="sm">Đã KYC</Badge>}
+                    <LevelBadge level={app.candidateLevel as 'L1' | 'L2' | 'L3' | 'L4' | 'L5'} />
                   </div>
                   <button className={styles.viewProfileBtn}>Xem hồ sơ kỹ năng <ArrowUpRight size={14}/></button>
                 </div>
@@ -92,11 +116,11 @@ export default function ApplicationsPage() {
               <div className={styles.proposalCol}>
                 <div className={styles.pItem}>
                   <span className={styles.pLabel}>Ngân sách đề xuất</span>
-                  <span className={styles.pVal}>{app.bidAmount}</span>
+                  <span className={styles.pVal}>{app.bidAmount > 0 ? formatCurrency(app.bidAmount) : '-'}</span>
                 </div>
                 <div className={styles.pItem}>
                   <span className={styles.pLabel}>Thời gian thi công</span>
-                  <span className={styles.pVal}>{app.duration}</span>
+                  <span className={styles.pVal}>{app.duration > 0 ? `${app.duration} ngày` : '-'}</span>
                 </div>
               </div>
 
@@ -117,7 +141,7 @@ export default function ApplicationsPage() {
 
         {filteredApps.length === 0 && (
           <div className={styles.empty}>
-            <p>Chưa có ứng viên nào cần duyệt.</p>
+            <Inbox size={24} /><p>Chưa có ứng viên nào cần duyệt.</p>
           </div>
         )}
       </div>

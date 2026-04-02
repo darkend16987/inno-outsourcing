@@ -1,18 +1,48 @@
 'use client';
 
-import React from 'react';
-import { FolderKanban, Users, CheckSquare, Clock, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { FolderKanban, Users, CheckSquare, Clock, ArrowRight, Loader2, Inbox } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { getJobs, getAllApplications } from '@/lib/firebase/firestore';
+import { cache, TTL } from '@/lib/cache/swr-cache';
+import type { Job } from '@/types';
 import styles from './page.module.css';
 
-const MOCK_STATS = {
-  myJobs: 8,
-  activeFreelancers: 15,
-  pendingReviews: 3,
-  newApplications: 5,
-};
-
 export default function JobMasterDashboard() {
+  const { userProfile, loading: authLoading } = useAuth();
+  const [myJobs, setMyJobs] = useState<Job[]>([]);
+  const [pendingApps, setPendingApps] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchStats = async () => {
+      const [jobsResult, appsResult] = await Promise.all([
+        cache.get(`jm:jobs:${userProfile.uid}`, () => getJobs({}, 50), TTL.MEDIUM),
+        cache.get(`jm:apps:${userProfile.uid}`, () => getAllApplications({ status: 'pending' }, 50), TTL.MEDIUM),
+      ]);
+      // Filter jobs managed by this jobmaster
+      const managed = jobsResult.items.filter(j => j.jobMaster === userProfile.uid || j.createdBy === userProfile.uid);
+      setMyJobs(managed);
+      setPendingApps(appsResult.items.filter(a => managed.some(j => j.id === a.jobId)).length);
+      setLoading(false);
+    };
+    fetchStats().catch(() => setLoading(false));
+  }, [userProfile?.uid]);
+
+  if (authLoading || loading) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loadingWrap}><Loader2 size={24} className={styles.spinner} /> Đang tải...</div>
+      </div>
+    );
+  }
+
+  const activeJobs = myJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned');
+  const reviewJobs = myJobs.filter(j => j.status === 'review');
+
   return (
     <div className={styles.dashboard}>
       <div className={styles.header}>
@@ -20,32 +50,32 @@ export default function JobMasterDashboard() {
           <h1 className={styles.title}>Job Master Dashboard</h1>
           <p className={styles.subtitle}>Quản lý các dự án thiết kế và đội ngũ freelancer của bạn.</p>
         </div>
-        <Button>Tạo Job mới</Button>
+        <Link href="/jobmaster/jobs/create">
+          <Button>Tạo Job mới</Button>
+        </Link>
       </div>
 
       <div className={styles.metricsGrid}>
         <MetricCard
           label="Dự án phụ trách"
-          value={MOCK_STATS.myJobs.toString()}
+          value={myJobs.length.toString()}
           icon={<FolderKanban size={20} />}
-          trend="down"
-          trendValue="2 dự án sắp đến hạn"
         />
         <MetricCard
-          label="Freelancer đang quản lý"
-          value={MOCK_STATS.activeFreelancers.toString()}
+          label="Đang thực hiện"
+          value={activeJobs.length.toString()}
           icon={<Users size={20} />}
         />
         <MetricCard
-          label="Ứng viên mới chờ duyệt"
-          value={MOCK_STATS.newApplications.toString()}
+          label="Ứng viên chờ duyệt"
+          value={pendingApps.toString()}
           icon={<CheckSquare size={20} />}
-          trend="up"
-          trendValue="Mới cập nhật"
+          trend={pendingApps > 0 ? 'up' : undefined}
+          trendValue={pendingApps > 0 ? 'Cần xử lý' : undefined}
         />
         <MetricCard
-          label="Nghiệm thu chờ phê duyệt"
-          value={MOCK_STATS.pendingReviews.toString()}
+          label="Chờ nghiệm thu"
+          value={reviewJobs.length.toString()}
           icon={<Clock size={20} />}
         />
       </div>
@@ -53,52 +83,55 @@ export default function JobMasterDashboard() {
       <div className={styles.bottomGrid}>
         <Card className={styles.sectionCard}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Dự án cần hành động</h3>
+            <h3 className={styles.cardTitle}>Dự án đang chạy</h3>
+            <Link href="/jobmaster/jobs">
+              <Button variant="ghost" size="sm">Xem tất cả</Button>
+            </Link>
           </div>
-          <div className={styles.actionList}>
-            <div className={styles.actionItem}>
-              <div className={styles.aInfo}>
-                <Badge variant="warning">Chờ nghiệm thu</Badge>
-                <div className={styles.aTitle}>Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ</div>
-                <div className={styles.aMeta}>[Milestone 1] Thiết kế cơ sở - Freelancer: Nguyễn Văn A</div>
-              </div>
-              <Button size="sm" variant="outline">Xem kết quả</Button>
+          {activeJobs.length > 0 ? (
+            <div className={styles.jobList}>
+              {activeJobs.slice(0, 5).map(job => (
+                <div key={job.id} className={styles.jobItem}>
+                  <div className={styles.jTitle}>{job.title}</div>
+                  <div className={styles.jProgress}>
+                    <span>{job.progress ?? 0}%</span>
+                    <div className={styles.jBar}><div className={styles.jFill} style={{width: `${job.progress ?? 0}%`}} /></div>
+                  </div>
+                </div>
+              ))}
             </div>
-            
-            <div className={styles.actionItem}>
-              <div className={styles.aInfo}>
-                <Badge variant="info">Duyệt ứng viên</Badge>
-                <div className={styles.aTitle}>BIM Modeling tổ hợp văn phòng 12 tầng Q7</div>
-                <div className={styles.aMeta}>Có 3 ứng viên mới nộp hồ sơ</div>
-              </div>
-              <Button size="sm" variant="outline">Duyệt hồ sơ</Button>
-            </div>
-          </div>
+          ) : (
+            <div className={styles.emptySmall}><Inbox size={20}/> Chưa có dự án đang chạy.</div>
+          )}
+          <Link href="/jobmaster/jobs">
+            <Button fullWidth variant="ghost" className={styles.viewMoreBtn}>
+              Xem tất cả dự án <ArrowRight size={14} />
+            </Button>
+          </Link>
         </Card>
 
         <Card className={styles.sectionCard}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Dự án đang chạy</h3>
+            <h3 className={styles.cardTitle}>Chờ nghiệm thu</h3>
           </div>
-          <div className={styles.jobList}>
-            <div className={styles.jobItem}>
-              <div className={styles.jTitle}>Thiết kế kiến trúc Nhà xưởng KCN Bình Dương</div>
-              <div className={styles.jProgress}>
-                <span>45%</span>
-                <div className={styles.jBar}><div className={styles.jFill} style={{width: '45%'}} /></div>
-              </div>
+          {reviewJobs.length > 0 ? (
+            <div className={styles.actionList}>
+              {reviewJobs.slice(0, 3).map(job => (
+                <div key={job.id} className={styles.actionItem}>
+                  <div className={styles.aInfo}>
+                    <Badge variant="warning">Chờ nghiệm thu</Badge>
+                    <div className={styles.aTitle}>{job.title}</div>
+                    <div className={styles.aMeta}>Nhân sự: {job.assignedWorkerName || 'N/A'}</div>
+                  </div>
+                  <Link href={`/jobmaster/jobs/${job.id}`}>
+                    <Button size="sm" variant="outline">Xem kết quả</Button>
+                  </Link>
+                </div>
+              ))}
             </div>
-            <div className={styles.jobItem}>
-              <div className={styles.jTitle}>Khảo sát địa hình tuyến đường Tỉnh Lộ 9</div>
-              <div className={styles.jProgress}>
-                <span>80%</span>
-                <div className={styles.jBar}><div className={styles.jFill} style={{width: '80%'}} /></div>
-              </div>
-            </div>
-          </div>
-          <Button fullWidth variant="ghost" className={styles.viewMoreBtn}>
-            Xem tất cả dự án <ArrowRight size={14} />
-          </Button>
+          ) : (
+            <div className={styles.emptySmall}><Inbox size={20}/> Chưa có dự án cần nghiệm thu.</div>
+          )}
         </Card>
       </div>
     </div>

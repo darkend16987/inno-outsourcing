@@ -1,18 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Briefcase, Users, TrendingUp,
-  ArrowRight, Search, Building2, Zap,
-  Shield, Clock, Star, ChevronRight
+  ArrowRight, Search, Zap, Ruler,
+  Shield, Clock, Star, ChevronRight, Flame,
+  Sparkles, Quote, Building2, Cable, FileSpreadsheet, Eye
 } from 'lucide-react';
 import { Button, Badge, Card, MetricCard, Avatar, LevelBadge } from '@/components/ui';
 import { formatFriendlyMoney } from '@/lib/formatters';
+import { getJobs } from '@/lib/firebase/firestore';
+import { getTestimonials, type TestimonialItem } from '@/lib/firebase/system-config';
 import styles from './page.module.css';
 
-// Mock data for demo
 const MOCK_ACTIVITIES = [
   { id: 1, type: 'assign', user: 'Trần Minh Tuấn', job: 'BIM Modeling tổ hợp văn phòng', time: '10 phút trước' },
   { id: 2, type: 'payment', user: 'Lê Thị Hoa', job: 'Hệ thống MEP chung cư', time: '1 giờ trước', note: 'nhận thanh toán 100%' },
@@ -28,15 +30,6 @@ const MOCK_STATS = [
   { label: 'Hoàn thành đúng hạn', value: '94%', icon: <Clock size={20} /> },
 ];
 
-const MOCK_JOBS = [
-  { id: '1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', category: 'Kiến trúc', level: 'L3' as const, fee: 48000000, duration: '45 ngày', status: 'open' as const },
-  { id: '2', title: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', category: 'BIM', level: 'L4' as const, fee: 65000000, duration: '60 ngày', status: 'open' as const },
-  { id: '3', title: 'Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ', category: 'Kết cấu', level: 'L5' as const, fee: 120000000, duration: '90 ngày', status: 'open' as const },
-  { id: '4', title: 'Hệ thống MEP chung cư cao cấp Thủ Đức', category: 'MEP', level: 'L3' as const, fee: 55000000, duration: '50 ngày', status: 'open' as const },
-  { id: '5', title: 'Dự toán công trình trường học TPHCM', category: 'Dự toán', level: 'L2' as const, fee: 25000000, duration: '20 ngày', status: 'open' as const },
-  { id: '6', title: 'Thẩm tra PCCC tòa nhà hỗn hợp Hà Nội', category: 'Thẩm tra', level: 'L4' as const, fee: 38000000, duration: '30 ngày', status: 'open' as const },
-];
-
 const MOCK_TOP_WORKERS = [
   { rank: 1, name: 'Nguyễn Thanh Hùng', level: 'L5' as const, specialty: 'BIM', rating: 4.9, jobs: 32, earnings: 680000000 },
   { rank: 2, name: 'Trần Minh Tuấn', level: 'L4' as const, specialty: 'Kết cấu', rating: 4.8, jobs: 28, earnings: 520000000 },
@@ -44,13 +37,15 @@ const MOCK_TOP_WORKERS = [
   { rank: 4, name: 'Phạm Đức Anh', level: 'L3' as const, specialty: 'Kiến trúc', rating: 4.7, jobs: 21, earnings: 350000000 },
 ];
 
+// Category icons using distinct Lucide icons with playful colors
 const CATEGORIES = [
-  { name: 'Kiến trúc', icon: Building2, count: 12, color: '#0d7c66' },
-  { name: 'Kết cấu', icon: Shield, count: 8, color: '#6c5ce7' },
-  { name: 'MEP', icon: Zap, count: 10, color: '#f49d25' },
-  { name: 'BIM', icon: Building2, count: 6, color: '#c93b28' },
-  { name: 'Dự toán', icon: TrendingUp, count: 4, color: '#1a8a3e' },
-  { name: 'Giám sát', icon: Clock, count: 3, color: '#c47a0a' },
+  { name: 'Kiến trúc', icon: Building2, count: 12, color: '#0d7c66', emoji: '🏛️' },
+  { name: 'Kết cấu', icon: Shield, count: 8, color: '#6c5ce7', emoji: '🏗️' },
+  { name: 'MEP', icon: Cable, count: 10, color: '#f49d25', emoji: '⚡' },
+  { name: 'BIM', icon: Sparkles, count: 6, color: '#c93b28', emoji: '🧊' },
+  { name: 'Dự toán', icon: FileSpreadsheet, count: 4, color: '#1a8a3e', emoji: '📊' },
+  { name: 'Giám sát', icon: Eye, count: 3, color: '#c47a0a', emoji: '👁️' },
+  { name: 'Thẩm tra', icon: Ruler, count: 2, color: '#d63384', emoji: '📐' },
 ];
 
 const fadeUp = {
@@ -58,7 +53,55 @@ const fadeUp = {
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } }),
 };
 
+function getJobFee(job: Record<string, unknown>): number {
+  if (typeof job.totalFee === 'number') return job.totalFee;
+  if (typeof job.fee === 'number') return job.fee;
+  return 0;
+}
+
+function getJobDuration(job: Record<string, unknown>): string {
+  if (typeof job.duration === 'number') return `${job.duration} ngày`;
+  if (typeof job.duration === 'string') return job.duration;
+  return '';
+}
+
 export default function LandingClient() {
+  const [jobTab, setJobTab] = useState<'latest' | 'hot'>('latest');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [liveJobs, setLiveJobs] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [jobRes, testRes] = await Promise.all([
+          getJobs(),
+          getTestimonials(),
+        ]);
+        setLiveJobs(jobRes.items || []);
+        setTestimonials(testRes.filter(t => t.isActive));
+      } catch (err) {
+        console.error('Error fetching landing data:', err);
+      }
+      setJobsLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  // Split jobs: "Latest" = sorted by createdAt desc, "Hot" = jobs with highlight tags
+  const latestJobs = [...liveJobs].sort((a, b) => {
+    const aTime = a.createdAt?.seconds || 0;
+    const bTime = b.createdAt?.seconds || 0;
+    return bTime - aTime;
+  }).slice(0, 6);
+
+  const hotJobs = liveJobs.filter(j =>
+    j.highlightTags?.some((t: string) => ['HOT', 'Siêu tốc'].includes(t)) || getJobFee(j) >= 50_000_000
+  ).slice(0, 6);
+
+  const displayJobs = jobTab === 'hot' ? hotJobs : latestJobs;
+
   return (
     <div className={styles.page}>
       {/* ── Activity Feed ── */}
@@ -67,7 +110,6 @@ export default function LandingClient() {
           <Zap size={16} /> Hoạt động mới:
         </div>
         <div className={styles.activityMarquee}>
-          {/* Double track to create seamless infinite loop */}
           <div className={styles.activityTrack}>
             {[...MOCK_ACTIVITIES, ...MOCK_ACTIVITIES].map((activity, idx) => (
               <div key={`${activity.id}-${idx}`} className={styles.activityItem}>
@@ -147,7 +189,8 @@ export default function LandingClient() {
                 <Link href={`/jobs?category=${encodeURIComponent(cat.name)}`} style={{ textDecoration: 'none' }}>
                   <Card hover className={styles.catCard}>
                     <div className={styles.catIcon} style={{ background: `${cat.color}15`, color: cat.color }}>
-                      <cat.icon size={22} />
+                      <span className={styles.catEmoji}>{cat.emoji}</span>
+                      <cat.icon size={20} />
                     </div>
                     <h3 className={styles.catName}>{cat.name}</h3>
                     <span className={styles.catCount}>{cat.count} dự án</span>
@@ -160,42 +203,92 @@ export default function LandingClient() {
         </div>
       </section>
 
-      {/* ── Latest Jobs ── */}
+      {/* ── Jobs with Tabs (Latest / Hot) ── */}
       <section className={`${styles.section} ${styles.sectionAlt}`}>
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>Việc làm mới nhất</h2>
+              <h2 className={styles.sectionTitle}>Việc làm</h2>
               <p className={styles.sectionDesc}>Cơ hội hợp tác hấp dẫn đang chờ bạn</p>
             </div>
             <Link href="/jobs">
               <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />}>Xem tất cả</Button>
             </Link>
           </div>
-          <div className={styles.jobsGrid}>
-            {MOCK_JOBS.map((job, i) => (
-              <motion.div key={job.id} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
-                <Link href={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
-                  <Card hover className={styles.jobCard}>
-                    <div className={styles.jobTop}>
-                      <Badge variant="default">{job.category}</Badge>
-                      <LevelBadge level={job.level} />
-                    </div>
-                    <h3 className={styles.jobTitle}>{job.title}</h3>
-                    <div className={styles.jobMeta}>
-                      <span className={styles.jobFee}>{formatFriendlyMoney(job.fee)}</span>
-                      <span className={styles.jobDuration}>
-                        <Clock size={12} /> {job.duration}
-                      </span>
-                    </div>
-                    <div className={styles.jobCta}>
-                      <span>Xem chi tiết</span>
-                      <ArrowRight size={14} />
-                    </div>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
+
+          {/* Tab Switch */}
+          <div className={styles.jobTabs}>
+            <button
+              className={`${styles.jobTab} ${jobTab === 'latest' ? styles.jobTabActive : ''}`}
+              onClick={() => setJobTab('latest')}
+            >
+              <Sparkles size={14} /> Mới nhất
+            </button>
+            <button
+              className={`${styles.jobTab} ${jobTab === 'hot' ? styles.jobTabActive : ''}`}
+              onClick={() => setJobTab('hot')}
+            >
+              <Flame size={14} /> Hot 🔥
+            </button>
+          </div>
+
+          {jobsLoading ? (
+            <div className={styles.jobsLoading}>
+              <div className={styles.spinner} />
+              <p>Đang tải việc làm...</p>
+            </div>
+          ) : (
+            <div className={styles.jobsGrid}>
+              {displayJobs.map((job, i) => (
+                <motion.div key={job.id} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
+                  <Link href={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
+                    <Card hover className={styles.jobCard}>
+                      <div className={styles.jobTop}>
+                        <Badge variant="default">{job.category}</Badge>
+                        <LevelBadge level={job.level} />
+                        {job.highlightTags?.map((tag: string) => (
+                          <Badge key={tag} variant="error" size="sm">{tag}</Badge>
+                        ))}
+                      </div>
+                      <h3 className={styles.jobTitle}>{job.title}</h3>
+                      <div className={styles.jobMeta}>
+                        <span className={styles.jobFee}>{formatFriendlyMoney(getJobFee(job))}</span>
+                        <span className={styles.jobDuration}>
+                          <Clock size={12} /> {getJobDuration(job)}
+                        </span>
+                      </div>
+                      <div className={styles.jobCta}>
+                        <span>Xem chi tiết</span>
+                        <ArrowRight size={14} />
+                      </div>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+              {displayJobs.length === 0 && (
+                <div className={styles.noJobs}>
+                  <p>{jobTab === 'hot' ? 'Chưa có việc HOT nào.' : 'Chưa có việc nào.'}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Banner Section ── */}
+      <section className={styles.bannerSection}>
+        <div className={styles.bannerInner}>
+          <div className={styles.bannerContent}>
+            <h2 className={styles.bannerTitle}>🚀 Bạn là chuyên gia xây dựng?</h2>
+            <p className={styles.bannerDesc}>Tham gia cộng đồng freelancer thiết kế xây dựng lớn nhất Việt Nam. Nhận dự án, tạo thu nhập bền vững.</p>
+            <Link href="/register">
+              <Button size="lg" variant="warning" icon={<ArrowRight size={18} />}>Đăng ký ngay — Miễn phí</Button>
+            </Link>
+          </div>
+          <div className={styles.bannerDeco}>
+            <span className={styles.bannerEmoji}>🏗️</span>
+            <span className={styles.bannerEmoji}>📐</span>
+            <span className={styles.bannerEmoji}>💼</span>
           </div>
         </div>
       </section>
@@ -241,6 +334,44 @@ export default function LandingClient() {
           </div>
         </div>
       </section>
+
+      {/* ── Testimonials Section ── */}
+      {testimonials.length > 0 && (
+        <section className={`${styles.section} ${styles.sectionAlt}`}>
+          <div className={styles.container}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <h2 className={styles.sectionTitle}>Mọi người nói gì về chúng tôi</h2>
+                <p className={styles.sectionDesc}>Phản hồi từ cộng đồng freelancer và đối tác</p>
+              </div>
+            </div>
+            <div className={styles.testimonialsGrid}>
+              {testimonials.slice(0, 4).map((t, i) => (
+                <motion.div key={t.id} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
+                  <Card className={styles.testimonialCard}>
+                    <Quote size={20} className={styles.quoteIcon} />
+                    <p className={styles.testimonialText}>{t.content}</p>
+                    <div className={styles.testimonialAuthor}>
+                      <div className={styles.testimonialAvatar}>
+                        {t.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <strong className={styles.testimonialName}>{t.name}</strong>
+                        <span className={styles.testimonialRole}>{t.role} — {t.company}</span>
+                      </div>
+                    </div>
+                    <div className={styles.testimonialStars}>
+                      {Array.from({ length: t.rating }).map((_, si) => (
+                        <Star key={si} size={14} fill="#f49d25" color="#f49d25" />
+                      ))}
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── CTA Section ── */}
       <section className={styles.ctaSection}>
