@@ -4,7 +4,7 @@ import React from 'react';
 import styles from './Badge.module.css';
 import type { JobLevel, JobStatus } from '@/types';
 
-type BadgeVariant = 'level' | 'status' | 'role' | 'default' | 'info' | 'success' | 'warning' | 'error' | 'outline' | 'secondary';
+type BadgeVariant = 'level' | 'status' | 'role' | 'default' | 'info' | 'success' | 'warning' | 'error' | 'outline' | 'secondary' | 'primary';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -15,6 +15,8 @@ interface BadgeProps {
   size?: 'sm' | 'md';
   dot?: boolean;
   glow?: boolean;
+  onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export function Badge({
@@ -26,6 +28,8 @@ export function Badge({
   size = 'md',
   dot = false,
   glow = false,
+  onClick,
+  style,
 }: BadgeProps) {
   const classes = [
     styles.badge,
@@ -40,13 +44,15 @@ export function Badge({
     variant === 'outline' ? styles.outline : '',
     variant === 'default' ? styles.default : '',
     variant === 'secondary' ? styles.secondary : '',
+    variant === 'primary' ? styles.primary : '',
     dot ? styles.withDot : '',
     glow ? styles.glow : '',
+    onClick ? styles.clickable : '',
     className,
   ].filter(Boolean).join(' ');
 
   return (
-    <span className={classes}>
+    <span className={classes} onClick={onClick} style={style} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}>
       {dot && <span className={styles.dot} />}
       {children}
     </span>

@@ -64,3 +64,25 @@
   background: currentColor;
   flex-shrink: 0;
 }
+
+/* Primary (selected chip) */
+.primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* Clickable badge */
+.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.clickable:hover {
+  opacity: 0.85;
+  transform: scale(1.03);
+}
+.clickable:active {
+  transform: scale(0.97);
+}
+

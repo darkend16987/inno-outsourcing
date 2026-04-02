@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Plus, Clock, CheckCircle, XCircle, Eye, Search, Loader2, Inbox } from 'lucide-react';
 import { Button, Badge, StatusBadge, LevelBadge } from '@/components/ui';
-import { getJobs } from '@/lib/firebase/firestore';
+import { getJobs, updateJob } from '@/lib/firebase/firestore';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { cache, TTL } from '@/lib/cache/swr-cache';
 import type { Job } from '@/types';
 import styles from './page.module.css';
@@ -33,19 +34,60 @@ const formatDate = (d: unknown): string => {
 const formatCurrency = (amount: number) => `${(amount / 1000000).toFixed(0)}M ₫`;
 
 export default function AdminJobsPage() {
+  const { userProfile } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchJobs = useCallback(async () => {
+    cache.invalidate('admin:jobs:list');
+    const result = await getJobs({}, 100);
+    setJobs(result.items);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      const result = await cache.get('admin:jobs:list', () => getJobs({}, 100), TTL.MEDIUM);
-      setJobs(result.items);
-      setLoading(false);
-    };
     fetchJobs().catch(() => setLoading(false));
-  }, []);
+  }, [fetchJobs]);
+
+  const handleApprove = async (jobId: string) => {
+    if (!userProfile) return;
+    if (!confirm('Bạn xác nhận duyệt job này?')) return;
+    setActionLoading(jobId);
+    try {
+      await updateJob(jobId, { status: 'open', approvedBy: userProfile.uid }, {
+        uid: userProfile.uid,
+        name: userProfile.displayName,
+        role: userProfile.role,
+      });
+      await fetchJobs();
+    } catch (err) {
+      console.error('Approve failed:', err);
+      alert('Không thể duyệt job. Vui lòng thử lại.');
+    }
+    setActionLoading(null);
+  };
+
+  const handleReject = async (jobId: string) => {
+    if (!userProfile) return;
+    const reason = prompt('Nhập lý do từ chối:');
+    if (!reason) return;
+    setActionLoading(jobId);
+    try {
+      await updateJob(jobId, { status: 'cancelled' }, {
+        uid: userProfile.uid,
+        name: userProfile.displayName,
+        role: userProfile.role,
+      });
+      await fetchJobs();
+    } catch (err) {
+      console.error('Reject failed:', err);
+      alert('Không thể từ chối job. Vui lòng thử lại.');
+    }
+    setActionLoading(null);
+  };
 
   const filtered = jobs.filter(j => {
     if (activeTab !== 'all' && j.status !== activeTab) return false;
@@ -140,8 +182,24 @@ export default function AdminJobsPage() {
                     </Link>
                     {job.status === 'pending_approval' && (
                       <>
-                        <Button variant="success" size="sm" icon={<CheckCircle size={14} />}>Duyệt</Button>
-                        <Button variant="danger" size="sm" icon={<XCircle size={14} />}>Từ chối</Button>
+                        <Button
+                          variant="success"
+                          size="sm"
+                          icon={<CheckCircle size={14} />}
+                          onClick={() => handleApprove(job.id)}
+                          disabled={actionLoading === job.id}
+                        >
+                          {actionLoading === job.id ? '...' : 'Duyệt'}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          icon={<XCircle size={14} />}
+                          onClick={() => handleReject(job.id)}
+                          disabled={actionLoading === job.id}
+                        >
+                          Từ chối
+                        </Button>
                       </>
                     )}
                   </div>

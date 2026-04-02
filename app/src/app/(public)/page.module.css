@@ -419,13 +419,16 @@
 
 .bannerInner {
   background: linear-gradient(135deg, #0d7c66, #12a085 40%, #1a8a3e);
-  padding: var(--space-12) var(--space-10);
+  padding: var(--space-12) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.bannerFlex {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-8);
-  position: relative;
-  overflow: hidden;
 }
 
 .bannerContent {
@@ -651,7 +654,7 @@
   .sectionHeader { flex-direction: column; align-items: flex-start; }
   .ctaCard { padding: var(--space-10) var(--space-6); }
   .ctaActions { flex-direction: column; width: 100%; }
-  .bannerInner { flex-direction: column; padding: var(--space-8) var(--space-6); }
+  .bannerFlex { flex-direction: column; }
   .bannerDeco { display: none; }
 }
 

@@ -1,21 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Search, Check, X, FileText, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Avatar, Button, LevelBadge } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { getAllApplications } from '@/lib/firebase/firestore';
+import { getAllApplications, updateApplication } from '@/lib/firebase/firestore';
 import { cache, TTL } from '@/lib/cache/swr-cache';
+import type { JobApplication } from '@/types';
 import styles from './page.module.css';
 
 interface AppItem {
   id: string;
+  jobId: string;
   jobTitle: string;
   candidateName: string;
+  candidateId: string;
   candidateLevel: string;
   bidAmount: number;
   duration: number;
   status: string;
+  coverLetter: string;
   createdAt: unknown;
 }
 
@@ -34,6 +39,8 @@ export default function ApplicationsPage() {
   const [search, setSearch] = useState('');
   const [apps, setApps] = useState<AppItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [expandedLetter, setExpandedLetter] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userProfile?.uid) return;
@@ -41,12 +48,15 @@ export default function ApplicationsPage() {
       const result = await cache.get(`jm:apps:all:${userProfile.uid}`, () => getAllApplications({}, 50), TTL.MEDIUM);
       const mapped: AppItem[] = result.items.map((a) => ({
         id: a.id,
+        jobId: a.jobId || '',
         jobTitle: a.jobTitle || 'Dự án',
         candidateName: a.applicantName || 'Ứng viên',
+        candidateId: a.applicantId || '',
         candidateLevel: a.applicantLevel || 'L1',
         bidAmount: a.expectedFee || 0,
         duration: 0,
         status: a.status || 'pending',
+        coverLetter: a.coverLetter || '',
         createdAt: a.createdAt,
       }));
       setApps(mapped);
@@ -54,6 +64,45 @@ export default function ApplicationsPage() {
     };
     fetchApps().catch(() => setLoading(false));
   }, [userProfile?.uid]);
+
+  const handleApprove = async (app: AppItem) => {
+    if (!userProfile) return;
+    if (!confirm(`Bạn xác nhận chọn "${app.candidateName}" cho dự án "${app.jobTitle}"?`)) return;
+    setActionLoading(app.id);
+    try {
+      await updateApplication(app.id, { status: 'accepted' } as Partial<JobApplication>, {
+        uid: userProfile.uid,
+        name: userProfile.displayName,
+        role: userProfile.role,
+      });
+      setApps(prev => prev.map(a => a.id === app.id ? { ...a, status: 'accepted' } : a));
+      cache.invalidate(`jm:apps:all:${userProfile.uid}`);
+      alert('✅ Đã chọn ứng viên thành công!');
+    } catch (err) {
+      console.error('Approve failed:', err);
+      alert('❌ Không thể duyệt. Vui lòng thử lại.');
+    }
+    setActionLoading(null);
+  };
+
+  const handleReject = async (app: AppItem) => {
+    if (!userProfile) return;
+    if (!confirm(`Bạn xác nhận từ chối "${app.candidateName}"?`)) return;
+    setActionLoading(app.id);
+    try {
+      await updateApplication(app.id, { status: 'rejected' } as Partial<JobApplication>, {
+        uid: userProfile.uid,
+        name: userProfile.displayName,
+        role: userProfile.role,
+      });
+      setApps(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a));
+      cache.invalidate(`jm:apps:all:${userProfile.uid}`);
+    } catch (err) {
+      console.error('Reject failed:', err);
+      alert('❌ Không thể từ chối. Vui lòng thử lại.');
+    }
+    setActionLoading(null);
+  };
 
   const filteredApps = apps.filter(a => {
     const matchFilter = filter === 'all' || a.status === filter;
@@ -85,7 +134,8 @@ export default function ApplicationsPage() {
         </div>
         <div className={styles.filters}>
           <button className={`${styles.filterBtn} ${filter === 'pending' ? styles.active : ''}`} onClick={() => setFilter('pending')}>Chưa duyệt</button>
-          <button className={`${styles.filterBtn} ${filter === 'approved' ? styles.active : ''}`} onClick={() => setFilter('approved')}>Đã chọn</button>
+          <button className={`${styles.filterBtn} ${filter === 'accepted' ? styles.active : ''}`} onClick={() => setFilter('accepted')}>Đã chọn</button>
+          <button className={`${styles.filterBtn} ${filter === 'rejected' ? styles.active : ''}`} onClick={() => setFilter('rejected')}>Đã từ chối</button>
           <button className={`${styles.filterBtn} ${filter === 'all' ? styles.active : ''}`} onClick={() => setFilter('all')}>Tất cả</button>
         </div>
       </div>
@@ -109,7 +159,11 @@ export default function ApplicationsPage() {
                   <div className={styles.cTags}>
                     <LevelBadge level={app.candidateLevel as 'L1' | 'L2' | 'L3' | 'L4' | 'L5'} />
                   </div>
-                  <button className={styles.viewProfileBtn}>Xem hồ sơ kỹ năng <ArrowUpRight size={14}/></button>
+                  {app.candidateId && (
+                    <Link href={`/admin/users/${app.candidateId}`} className={styles.viewProfileBtn}>
+                      Xem hồ sơ kỹ năng <ArrowUpRight size={14}/>
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -127,15 +181,45 @@ export default function ApplicationsPage() {
               <div className={styles.actionCol}>
                 {app.status === 'pending' ? (
                   <>
-                    <Button className={styles.approveBtn}><Check size={16}/> Chọn ứng viên</Button>
-                    <Button variant="outline" className={styles.rejectBtn}><X size={16}/> Từ chối</Button>
-                    <Button variant="ghost" size="sm"><FileText size={16}/> Xem thư giới thiệu</Button>
+                    <Button
+                      className={styles.approveBtn}
+                      onClick={() => handleApprove(app)}
+                      disabled={actionLoading === app.id}
+                    >
+                      <Check size={16}/> {actionLoading === app.id ? 'Đang xử lý...' : 'Chọn ứng viên'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className={styles.rejectBtn}
+                      onClick={() => handleReject(app)}
+                      disabled={actionLoading === app.id}
+                    >
+                      <X size={16}/> Từ chối
+                    </Button>
+                    {app.coverLetter && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedLetter(expandedLetter === app.id ? null : app.id)}
+                      >
+                        <FileText size={16}/> {expandedLetter === app.id ? 'Ẩn thư' : 'Xem thư giới thiệu'}
+                      </Button>
+                    )}
                   </>
                 ) : (
-                  <Badge variant="success">Đã được chọn</Badge>
+                  <Badge variant={app.status === 'accepted' ? 'success' : app.status === 'rejected' ? 'error' : 'default'}>
+                    {app.status === 'accepted' ? 'Đã được chọn' : app.status === 'rejected' ? 'Đã từ chối' : app.status}
+                  </Badge>
                 )}
               </div>
             </div>
+
+            {expandedLetter === app.id && app.coverLetter && (
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)', borderRadius: '0 0 12px 12px', fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                <strong>Thư giới thiệu:</strong>
+                <p style={{ marginTop: '4px' }}>{app.coverLetter}</p>
+              </div>
+            )}
           </Card>
         ))}
 

@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, Clock, ArrowRight, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge } from '@/components/ui';
 import { JOB_CATEGORIES, JOB_LEVELS } from '@/types';
+import { getConfigItems, type SystemConfigItem } from '@/lib/firebase/system-config';
 import { formatFriendlyMoney } from '@/lib/formatters';
 import styles from './page.module.css';
 
@@ -61,6 +62,9 @@ function JobsPageContent() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Dynamic config-driven filters (with hardcoded fallbacks)
+  const [categories, setCategories] = useState<string[]>(JOB_CATEGORIES);
+  const [levels, setLevels] = useState<string[]>(JOB_LEVELS);
 
   useEffect(() => {
     async function fetchJobs() {
@@ -74,6 +78,25 @@ function JobsPageContent() {
       setLoading(false);
     }
     fetchJobs();
+  }, []);
+
+  // Load dynamic categories/levels from system_config
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [sp, lv] = await Promise.all([
+          getConfigItems('specialties'),
+          getConfigItems('levels'),
+        ]);
+        const activeSp = sp.filter(i => i.isActive).map(i => i.label);
+        const activeLv = lv.filter(i => i.isActive).map(i => i.label);
+        if (activeSp.length > 0) setCategories(activeSp);
+        if (activeLv.length > 0) setLevels(activeLv);
+      } catch (err) {
+        console.error('Failed to load filter config, using fallbacks:', err);
+      }
+    };
+    loadFilters();
   }, []);
 
   const filtered = jobs.filter(job => {
@@ -120,7 +143,7 @@ function JobsPageContent() {
           >
             Tất cả lĩnh vực
           </button>
-          {JOB_CATEGORIES.map(c => (
+          {categories.map(c => (
             <button 
               key={c} 
               className={styles.catPill} 
@@ -187,7 +210,7 @@ function JobsPageContent() {
               <label>Level yêu cầu</label>
               <select className={styles.select} value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
                 <option value="all">Tất cả level</option>
-                {JOB_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                {levels.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
             <div className={styles.filterGroup}>

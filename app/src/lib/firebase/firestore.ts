@@ -538,11 +538,53 @@ export const getUserBadges = async (uid: string): Promise<UserBadge[]> => {
 // =====================
 // LEADERBOARD
 // =====================
+
+/**
+ * Compute leaderboard from actual user profiles when the leaderboard collection is empty.
+ * Queries active freelancers, sorts by total earnings, and returns LeaderboardEntry[].
+ */
+const computeLeaderboardFromUsers = async (): Promise<LeaderboardEntry[]> => {
+  if (!db) return [];
+  const q = query(
+    collection(db, 'users'),
+    where('role', '==', 'freelancer'),
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  );
+  const snapshot = await getDocs(q);
+  const entries: LeaderboardEntry[] = snapshot.docs
+    .map(d => {
+      const data = d.data();
+      const stats = data.stats || {};
+      return {
+        uid: d.id,
+        name: data.displayName || 'Chưa cập nhật',
+        avatar: data.photoURL || undefined,
+        level: data.currentLevel || 'L1',
+        specialty: (data.specialties && data.specialties[0]) || 'Chưa chọn',
+        earnings: stats.totalEarnings || 0,
+        rating: stats.avgRating || 0,
+        completedJobs: stats.completedJobs || 0,
+        badges: [],
+      } as LeaderboardEntry;
+    })
+    .sort((a, b) => b.earnings - a.earnings || b.rating - a.rating);
+  return entries;
+};
+
 export const getLeaderboard = async (period?: string): Promise<LeaderboardEntry[]> => {
   if (!db) return [];
-  const constraints: QueryConstraint[] = [orderBy('rank', 'asc'), limit(50)];
-  if (period) constraints.unshift(where('period', '==', period));
-  const q = query(collection(db, 'leaderboard'), ...constraints);
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ ...d.data() } as LeaderboardEntry));
+  try {
+    const constraints: QueryConstraint[] = [orderBy('rank', 'asc'), limit(50)];
+    if (period) constraints.unshift(where('period', '==', period));
+    const q = query(collection(db, 'leaderboard'), ...constraints);
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      return snapshot.docs.map(d => ({ ...d.data() } as LeaderboardEntry));
+    }
+  } catch {
+    // leaderboard collection may not exist yet, fall through to compute
+  }
+  // Fallback: compute from actual user data
+  return computeLeaderboardFromUsers();
 };

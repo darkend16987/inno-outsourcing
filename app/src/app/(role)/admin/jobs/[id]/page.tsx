@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox } from 'lucide-react';
 import { Button, Card, Badge, StatusBadge, LevelBadge } from '@/components/ui';
-import { getJobById } from '@/lib/firebase/firestore';
+import { getJobById, updateJob } from '@/lib/firebase/firestore';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { cache } from '@/lib/cache/swr-cache';
 import type { Job } from '@/types';
 import styles from './page.module.css';
 
@@ -28,8 +30,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function AdminJobReviewPage() {
   const params = useParams();
+  const router = useRouter();
+  const { userProfile } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState<Array<{ author: string; content: string; date: string }>>([]);
   const [rejectReason, setRejectReason] = useState('');
@@ -50,9 +55,59 @@ export default function AdminJobReviewPage() {
     fetchJob().catch(() => setLoading(false));
   }, [params.id]);
 
+  const handleApprove = async () => {
+    if (!job || !userProfile) return;
+    if (!confirm('Bạn xác nhận duyệt job này? Job sẽ chuyển sang trạng thái "Đang mở" và hiển thị cho freelancer.')) return;
+    setActionLoading(true);
+    try {
+      await updateJob(job.id, {
+        status: 'open',
+        approvedBy: userProfile.uid,
+      }, {
+        uid: userProfile.uid,
+        name: userProfile.displayName,
+        role: userProfile.role,
+      });
+      cache.invalidate('admin:jobs:list');
+      // Reload job
+      const updated = await getJobById(job.id);
+      setJob(updated);
+      alert('✅ Job đã được duyệt thành công!');
+    } catch (err) {
+      console.error('Approve failed:', err);
+      alert('❌ Không thể duyệt job. Vui lòng thử lại.');
+    }
+    setActionLoading(false);
+  };
+
+  const handleReject = async () => {
+    if (!job || !userProfile) return;
+    if (!rejectReason.trim()) {
+      alert('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await updateJob(job.id, {
+        status: 'cancelled',
+      }, {
+        uid: userProfile.uid,
+        name: userProfile.displayName,
+        role: userProfile.role,
+      });
+      cache.invalidate('admin:jobs:list');
+      alert('Job đã bị từ chối.');
+      router.push('/admin/jobs');
+    } catch (err) {
+      console.error('Reject failed:', err);
+      alert('❌ Không thể từ chối job. Vui lòng thử lại.');
+    }
+    setActionLoading(false);
+  };
+
   const handleAddNote = () => {
     if (!newNote.trim()) return;
-    setNotes(prev => [...prev, { author: 'Admin', content: newNote, date: new Date().toLocaleDateString('vi-VN') }]);
+    setNotes(prev => [...prev, { author: userProfile?.displayName || 'Admin', content: newNote, date: new Date().toLocaleDateString('vi-VN') }]);
     setNewNote('');
   };
 
@@ -104,8 +159,24 @@ export default function AdminJobReviewPage() {
 
         {job.status === 'pending_approval' && (
           <div className={styles.actionButtons}>
-            <Button variant="success" size="md" icon={<CheckCircle size={16} />}>Duyệt Job</Button>
-            <Button variant="danger" size="md" icon={<XCircle size={16} />} onClick={() => setShowRejectForm(!showRejectForm)}>Từ chối</Button>
+            <Button
+              variant="success"
+              size="md"
+              icon={<CheckCircle size={16} />}
+              onClick={handleApprove}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Đang xử lý...' : 'Duyệt Job'}
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              icon={<XCircle size={16} />}
+              onClick={() => setShowRejectForm(!showRejectForm)}
+              disabled={actionLoading}
+            >
+              Từ chối
+            </Button>
           </div>
         )}
       </div>
@@ -121,7 +192,15 @@ export default function AdminJobReviewPage() {
             rows={3}
           />
           <div className={styles.rejectActions}>
-            <Button variant="danger" size="sm" icon={<Send size={14} />}>Xác nhận từ chối</Button>
+            <Button
+              variant="danger"
+              size="sm"
+              icon={<Send size={14} />}
+              onClick={handleReject}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setShowRejectForm(false)}>Hủy</Button>
           </div>
         </Card>

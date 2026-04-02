@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { DollarSign, Wallet, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
-import { getAllPayments } from '@/lib/firebase/firestore';
+import { getAllPayments, updatePayment } from '@/lib/firebase/firestore';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { cache, TTL } from '@/lib/cache/swr-cache';
 import type { Payment } from '@/types';
 import styles from './page.module.css';
@@ -14,7 +16,9 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function AccountantDashboard() {
+  const { userProfile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
   const [totalPaid, setTotalPaid] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
@@ -48,7 +52,7 @@ export default function AccountantDashboard() {
           <h1 className={styles.title}>Accountant Dashboard</h1>
           <p className={styles.subtitle}>Quản lý thanh toán, công nợ và hợp đồng.</p>
         </div>
-        <Button>Xuất báo cáo</Button>
+        <Button onClick={() => alert('🚧 Tính năng xuất báo cáo đang được phát triển. Vui lòng liên hệ IT.')}>Xuất báo cáo</Button>
       </div>
 
       <div className={styles.metricsGrid}>
@@ -84,15 +88,34 @@ export default function AccountantDashboard() {
                     <span className={styles.pAmount}>{formatCurrency(pay.amount)}</span>
                   </div>
                 </div>
-                <Button size="sm">Xác nhận đã CK</Button>
+                <Button size="sm" disabled={actionLoading === pay.id} onClick={async () => {
+                  if (!userProfile) return;
+                  if (!confirm(`Xác nhận đã chuyển khoản ${formatCurrency(pay.amount)} cho ${pay.workerName}?`)) return;
+                  setActionLoading(pay.id);
+                  try {
+                    await updatePayment(pay.id, { status: 'paid' }, { uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role });
+                    setPendingPayments(prev => prev.filter(p => p.id !== pay.id));
+                    setTotalPending(prev => prev - pay.amount);
+                    setTotalPaid(prev => prev + pay.amount);
+                    cache.invalidate('acct:paid');
+                    cache.invalidate('acct:pending');
+                    alert('✅ Đã xác nhận chuyển khoản thành công!');
+                  } catch (err) {
+                    console.error('Confirm payment failed:', err);
+                    alert('❌ Lỗi. Vui lòng thử lại.');
+                  }
+                  setActionLoading(null);
+                }}>{actionLoading === pay.id ? 'Đang xử lý...' : 'Xác nhận đã CK'}</Button>
               </div>
             )) : (
               <div className={styles.emptySmall}>Không có lệnh thanh toán nào cần xử lý.</div>
             )}
           </div>
-          <Button fullWidth variant="ghost" className={styles.viewMoreBtn}>
-            Xem tất cả thanh toán <ArrowRight size={14} />
-          </Button>
+          <Link href="/accountant/payments" style={{ display: 'block' }}>
+            <Button fullWidth variant="ghost" className={styles.viewMoreBtn}>
+              Xem tất cả thanh toán <ArrowRight size={14} />
+            </Button>
+          </Link>
         </Card>
 
         <Card className={styles.sectionCard}>

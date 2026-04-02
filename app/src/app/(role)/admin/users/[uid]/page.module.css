@@ -1,0 +1,269 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #888);
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: color 0.2s;
+}
+.backLink:hover { color: var(--text-primary, #fff); }
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 20px;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #888);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+/* ---- Profile Header ---- */
+.profileHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+  background: var(--surface-elevated, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: 16px;
+  padding: 24px 28px;
+}
+
+.profileTop {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.profileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin: 0;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #888);
+}
+.metaRow span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.headerActions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ---- Stats ---- */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+  grid-column: 1 / -1;
+}
+
+.statCard {
+  text-align: center;
+  padding: 20px 16px !important;
+}
+
+.statIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: var(--color-primary, #0d7c66);
+  opacity: 0.8;
+}
+
+.statValue {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #888);
+}
+
+/* ---- Content Grid ---- */
+.contentGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+}
+
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- Info Card ---- */
+.infoCard {
+  padding: 24px !important;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.field span {
+  font-size: 0.9rem;
+  color: var(--text-primary, #fff);
+}
+
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  background: var(--surface-primary, rgba(255,255,255,0.04));
+  color: var(--text-primary, #fff);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input:focus {
+  border-color: var(--color-primary, #0d7c66);
+}
+
+.textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  background: var(--surface-primary, rgba(255,255,255,0.04));
+  color: var(--text-primary, #fff);
+  font-size: 0.9rem;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.textarea:focus {
+  border-color: var(--color-primary, #0d7c66);
+}
+
+.tagsArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bioText {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #ccc);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---- KYC ---- */
+.kycStatus {
+  margin-bottom: 16px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .profileHeader {
+    flex-direction: column;
+  }
+  .headerActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px;
+  }
+  .profileTop {
+    flex-direction: column;
+    text-align: center;
+  }
+  .metaRow {
+    justify-content: center;
+  }
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}

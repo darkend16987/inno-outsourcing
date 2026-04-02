@@ -312,17 +312,21 @@ export default function LandingClient() {
       {/* ── Banner Section ── */}
       <section className={styles.bannerSection}>
         <div className={styles.bannerInner}>
-          <div className={styles.bannerContent}>
-            <h2 className={styles.bannerTitle}>🚀 Bạn là chuyên gia xây dựng?</h2>
-            <p className={styles.bannerDesc}>Tham gia cộng đồng freelancer thiết kế xây dựng lớn nhất Việt Nam. Nhận dự án, tạo thu nhập bền vững.</p>
-            <Link href="/register">
-              <Button size="lg" variant="warning" icon={<ArrowRight size={18} />}>Đăng ký ngay — Miễn phí</Button>
-            </Link>
-          </div>
-          <div className={styles.bannerDeco}>
-            <span className={styles.bannerEmoji}>🏗️</span>
-            <span className={styles.bannerEmoji}>📐</span>
-            <span className={styles.bannerEmoji}>💼</span>
+          <div className={styles.container}>
+            <div className={styles.bannerFlex}>
+              <div className={styles.bannerContent}>
+                <h2 className={styles.bannerTitle}>🚀 Bạn là chuyên gia xây dựng?</h2>
+                <p className={styles.bannerDesc}>Tham gia cộng đồng freelancer thiết kế xây dựng lớn nhất Việt Nam. Nhận dự án, tạo thu nhập bền vững.</p>
+                <Link href="/register">
+                  <Button size="lg" variant="warning" icon={<ArrowRight size={18} />}>Đăng ký ngay — Miễn phí</Button>
+                </Link>
+              </div>
+              <div className={styles.bannerDeco}>
+                <span className={styles.bannerEmoji}>🏗️</span>
+                <span className={styles.bannerEmoji}>📐</span>
+                <span className={styles.bannerEmoji}>💼</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

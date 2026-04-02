@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { CheckCircle, XCircle, Star, Briefcase, Calendar, ExternalLink, Eye, Inbox, RefreshCw } from 'lucide-react';
 import { Button, Card, Badge, Avatar, LevelBadge, Skeleton } from '@/components/ui';
 import { getAllApplications, updateApplication } from '@/lib/firebase/firestore';
@@ -191,7 +192,9 @@ export default function AdminApplicationsPage() {
                     >Từ chối</Button>
                   </>
                 )}
-                <Button variant="ghost" size="sm" icon={<Eye size={14} />}>Chi tiết</Button>
+                <Link href={`/admin/users/${app.applicantId}`}>
+                  <Button variant="ghost" size="sm" icon={<Eye size={14} />}>Chi tiết</Button>
+                </Link>
               </div>
             </Card>
           ))}

@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, FileText, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
-import { getAllPayments } from '@/lib/firebase/firestore';
+import { getAllPayments, updatePayment } from '@/lib/firebase/firestore';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { cache } from '@/lib/cache/swr-cache';
 import type { Payment } from '@/types';
 import styles from './page.module.css';
 
@@ -17,10 +19,29 @@ const formatDate = (d: unknown): string => {
 };
 
 export default function AccountantPaymentsPage() {
+  const { userProfile } = useAuth();
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handlePay = async (pay: Payment) => {
+    if (!userProfile) return;
+    if (!confirm(`Xác nhận chi ${pay.amount.toLocaleString('vi-VN')}₫ cho ${pay.workerName}?`)) return;
+    setActionLoading(pay.id);
+    try {
+      await updatePayment(pay.id, { status: 'paid' }, { uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role });
+      setPayments(prev => prev.map(p => p.id === pay.id ? { ...p, status: 'paid' as const } : p));
+      cache.invalidate('acct:paid');
+      cache.invalidate('acct:pending');
+      alert('✅ Đã xác nhận chi tiền thành công!');
+    } catch (err) {
+      console.error('Pay failed:', err);
+      alert('❌ Lỗi. Vui lòng thử lại.');
+    }
+    setActionLoading(null);
+  };
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -52,7 +73,7 @@ export default function AccountantPaymentsPage() {
           <h1 className={styles.title}>Quản lý Thanh toán</h1>
           <p className={styles.subtitle}>Ghi nhận và tra cứu lịch sử luân chuyển dòng tiền kỹ thuật.</p>
         </div>
-        <Button variant="outline"><Download size={16}/> Xuất Excel</Button>
+        <Button variant="outline" onClick={() => alert('🚧 Tính năng xuất Excel đang được phát triển.')}><Download size={16}/> Xuất Excel</Button>
       </div>
 
       <div className={styles.toolbar}>
@@ -100,9 +121,9 @@ export default function AccountantPaymentsPage() {
                   </td>
                   <td className={styles.tAction}>
                      {pay.status === 'pending' ? (
-                        <Button size="sm" variant="primary" className={styles.payBtn}>Chi tiền</Button>
+                        <Button size="sm" variant="primary" className={styles.payBtn} disabled={actionLoading === pay.id} onClick={() => handlePay(pay)}>{actionLoading === pay.id ? '...' : 'Chi tiền'}</Button>
                      ) : (
-                        <button className={styles.iconBtn} title="Xem biên nhận"><FileText size={16}/></button>
+                        <button className={styles.iconBtn} title="Xem biên nhận" onClick={() => alert('🚧 Tính năng xem biên nhận đang được phát triển.')}><FileText size={16}/></button>
                      )}
                   </td>
                 </tr>

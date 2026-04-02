@@ -19,6 +19,7 @@ const formatCurrency = (amount: number) => `${amount.toLocaleString('vi-VN')}₫
 
 export default function AdminContractsPage() {
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +32,11 @@ export default function AdminContractsPage() {
     fetchContracts().catch(() => setLoading(false));
   }, []);
 
-  const filteredContracts = contracts.filter(c => filter === 'all' || c.status === filter);
+  const filteredContracts = contracts.filter(c => {
+    const matchFilter = filter === 'all' || c.status === filter;
+    const matchSearch = !search || c.contractNumber?.toLowerCase().includes(search.toLowerCase()) || c.jobTitle?.toLowerCase().includes(search.toLowerCase()) || c.partyB?.name?.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchSearch;
+  });
 
   if (loading) {
     return (
@@ -49,15 +54,15 @@ export default function AdminContractsPage() {
           <p className={styles.subtitle}>Kho lưu trữ và theo dõi trạng thái pháp lý của toàn bộ HĐ điện tử.</p>
         </div>
         <div className={styles.actions}>
-           <Button variant="outline"><Download size={16}/> Tải xuống tất cả</Button>
-           <Button>Tạo mẫu Hợp đồng mới</Button>
+           <Button variant="outline" onClick={() => alert('🚧 Tính năng tải xuống hàng loạt đang được phát triển.')}><Download size={16}/> Tải xuống tất cả</Button>
+           <Button onClick={() => alert('🚧 Tính năng tạo mẫu hợp đồng mới đang được phát triển.')}>Tạo mẫu Hợp đồng mới</Button>
         </div>
       </div>
 
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
           <Search size={16} />
-          <input type="text" placeholder="Số HĐ, tên dự án, Freelancer..." />
+          <input type="text" placeholder="Số HĐ, tên dự án, Freelancer..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className={styles.filters}>
           <button className={`${styles.filterBtn} ${filter === 'all' ? styles.active : ''}`} onClick={() => setFilter('all')}>Tất cả</button>
@@ -102,7 +107,13 @@ export default function AdminContractsPage() {
                   </td>
                   <td className={styles.tAction}>
                      <div className={styles.fileActions}>
-                        <button className={styles.urlBtn}>Xem PDF</button>
+                        <button className={styles.urlBtn} onClick={() => {
+                          if (c.pdfURL) {
+                            window.open(c.pdfURL, '_blank');
+                          } else {
+                            alert('🚧 File PDF chưa được tạo cho hợp đồng này.');
+                          }
+                        }}>Xem PDF</button>
                      </div>
                   </td>
                 </tr>
