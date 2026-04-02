@@ -74,11 +74,21 @@ async function ensureUserProfile(user: FirebaseUser, extraData?: Partial<UserPro
     return { uid: user.uid, ...snap.data() } as UserProfile;
   }
 
+  // SECURITY: Strip privileged roles from client-provided extraData.
+  // Public registration can ONLY create 'freelancer' accounts.
+  // Admin, jobmaster, accountant roles must be assigned via backend/Firebase Console.
+  const PRIVILEGED_ROLES: string[] = ['admin', 'jobmaster', 'accountant'];
+  const sanitizedExtra = { ...extraData };
+  if (sanitizedExtra.role && PRIVILEGED_ROLES.includes(sanitizedExtra.role)) {
+    console.warn(`[SECURITY] Blocked attempt to register with privileged role: ${sanitizedExtra.role}`);
+    sanitizedExtra.role = 'freelancer' as UserRole;
+  }
+
   // Create new profile
   const newProfile: Partial<UserProfile> = {
     uid: user.uid,
     email: user.email || '',
-    displayName: user.displayName || extraData?.displayName || '',
+    displayName: user.displayName || sanitizedExtra?.displayName || '',
     photoURL: user.photoURL || '',
     phone: user.phoneNumber || '',
     role: 'freelancer' as UserRole,
@@ -106,8 +116,11 @@ async function ensureUserProfile(user: FirebaseUser, extraData?: Partial<UserPro
       onTimeRate: 100,
       currentMonthEarnings: 0,
     },
-    ...extraData,
+    ...sanitizedExtra,
   };
+
+  // Final safety: Ensure role is definitely freelancer for new registrations
+  newProfile.role = 'freelancer' as UserRole;
 
   await setDoc(userRef, {
     ...newProfile,

@@ -38,6 +38,17 @@
 .stepActive .stepNum { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-charcoal); }
 .stepDone .stepNum { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); }
 
+/* Role Badge */
+.roleBadge {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin-top: var(--space-8); padding: var(--space-4);
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-lg);
+}
+.roleBadge svg { color: var(--color-accent); flex-shrink: 0; }
+.roleBadge strong { display: block; font-size: 13px; margin-bottom: 2px; }
+.roleBadge span { font-size: 11px; opacity: 0.7; }
+
 /* Right Panel */
 .right { flex: 1.1; display: flex; align-items: center; justify-content: center; padding: var(--space-10); background: var(--color-bg); }
 .formContainer { width: 100%; max-width: 480px; }

@@ -4,24 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, Phone, ArrowRight, Building2, HardHat, Briefcase, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Phone, ArrowRight, HardHat, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './page.module.css';
-
-type AccountType = 'freelancer' | 'staff' | 'partner';
-
-const ACCOUNT_TYPES = [
-  { id: 'freelancer' as const, label: 'Freelancer', desc: 'Nhận việc thiết kế, thi công', icon: HardHat },
-  { id: 'staff' as const, label: 'Nhân viên INNO', desc: 'Quản lý job và team', icon: Building2 },
-  { id: 'partner' as const, label: 'Đối tác', desc: 'Hợp tác dài hạn', icon: Briefcase },
-];
 
 const SPECIALTIES = ['Kiến trúc', 'Kết cấu', 'MEP', 'BIM', 'Dự toán', 'Giám sát', 'Thẩm tra'];
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
-  const [accountType, setAccountType] = useState<AccountType>('freelancer');
   const [showPw, setShowPw] = useState(false);
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
 
@@ -50,11 +41,19 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       setErrorMsg('');
       await signInWithGoogle();
-      // Assume Google user gets default 'freelancer' role or handled via existing backend
+      // Google users always get 'freelancer' role (set by ensureUserProfile in auth-context)
       router.push('/');
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setErrorMsg(err.message || 'Lỗi đăng ký bằng Google');
+        // Provide user-friendly error messages
+        const error = err as Error & { code?: string };
+        if (error.code === 'auth/unauthorized-domain') {
+          setErrorMsg('Domain chưa được cấu hình. Vui lòng liên hệ quản trị viên.');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+          setErrorMsg('Bạn đã đóng cửa sổ đăng nhập Google.');
+        } else {
+          setErrorMsg(error.message || 'Lỗi đăng ký bằng Google');
+        }
       } else {
         setErrorMsg('Lỗi đăng ký bằng Google');
       }
@@ -67,10 +66,13 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       setErrorMsg('');
 
+      // SECURITY: Public registration ALWAYS creates freelancer accounts only.
+      // Admin, jobmaster, accountant roles must be assigned via Firebase Console
+      // or the admin user management panel.
       const extraData = {
         displayName: name,
         phone,
-        role: (accountType === 'staff' ? 'jobmaster' : 'freelancer') as any, // Cast to any to bypass UserRole type temp, since types definition restricts it
+        role: 'freelancer' as const,
         specialties: selectedSpecs,
         experience: experience ? parseInt(experience) : 0,
         bio,
@@ -92,7 +94,7 @@ export default function RegisterPage() {
         setErrorMsg('Có lỗi xảy ra khi đăng ký');
       }
       setIsSubmitting(false);
-      setStep(2); // take them back to the form if there's an error
+      setStep(1);
     }
   };
 
@@ -112,19 +114,28 @@ export default function RegisterPage() {
             Hàng trăm dự án đang chờ bạn. Đăng ký ngay để bắt đầu hành trình chuyên nghiệp.
           </p>
           <div className={styles.steps}>
-            {['Loại tài khoản', 'Thông tin cơ bản', 'Chuyên môn'].map((s, i) => (
+            {['Thông tin cơ bản', 'Chuyên môn'].map((s, i) => (
               <div key={i} className={`${styles.stepItem} ${step > i ? styles.stepDone : ''} ${step === i + 1 ? styles.stepActive : ''}`}>
                 <div className={styles.stepNum}>{step > i + 1 ? '✓' : i + 1}</div>
                 <span>{s}</span>
               </div>
             ))}
           </div>
+
+          {/* Freelancer badge */}
+          <div className={styles.roleBadge}>
+            <HardHat size={18} />
+            <div>
+              <strong>Đăng ký Freelancer</strong>
+              <span>Nhận việc thiết kế, thi công chuyên nghiệp</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className={styles.right}>
         <motion.div className={styles.formContainer} key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }}>
-          <h2 className={styles.formTitle}>Đăng ký tài khoản</h2>
+          <h2 className={styles.formTitle}>Đăng ký tài khoản Freelancer</h2>
           
           {errorMsg && (
             <div style={{ color: 'var(--color-error)', backgroundColor: '#FEE2E2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>
@@ -132,31 +143,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Step 1: Account Type */}
+          {/* Step 1: Basic Info */}
           {step === 1 && (
-            <>
-              <p className={styles.formDesc}>Chọn loại tài khoản phù hợp với bạn</p>
-              <div className={styles.typeGrid}>
-                {ACCOUNT_TYPES.map(type => (
-                  <button
-                    key={type.id}
-                    className={`${styles.typeCard} ${accountType === type.id ? styles.typeActive : ''}`}
-                    onClick={() => setAccountType(type.id)}
-                  >
-                    <type.icon size={24} />
-                    <strong>{type.label}</strong>
-                    <span>{type.desc}</span>
-                  </button>
-                ))}
-              </div>
-              <Button variant="primary" fullWidth size="lg" onClick={() => setStep(2)} iconRight={<ArrowRight size={16} />}>
-                Tiếp tục
-              </Button>
-            </>
-          )}
-
-          {/* Step 2: Basic Info */}
-          {step === 2 && (
             <>
               <p className={styles.formDesc}>Điền thông tin cơ bản</p>
 
@@ -166,7 +154,7 @@ export default function RegisterPage() {
 
               <div className={styles.divider}><span>hoặc</span></div>
 
-              <form className={styles.form} onSubmit={e => { e.preventDefault(); setStep(3); }}>
+              <form className={styles.form} onSubmit={e => { e.preventDefault(); setStep(2); }}>
                 <div className={styles.field}>
                   <label className={styles.label}>Họ và tên</label>
                   <div className={styles.inputWrap}>
@@ -186,7 +174,7 @@ export default function RegisterPage() {
                     <label className={styles.label}>Số điện thoại</label>
                     <div className={styles.inputWrap}>
                       <Phone size={16} className={styles.inputIcon} />
-                      <input type="tel" placeholder="0901 234 567" className={styles.input} required value={phone} onChange={e => setPhone(e.target.value)} />
+                      <input type="tel" placeholder="0901 234 567" className={styles.input} value={phone} onChange={e => setPhone(e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -194,53 +182,44 @@ export default function RegisterPage() {
                   <label className={styles.label}>Mật khẩu</label>
                   <div className={styles.inputWrap}>
                     <Lock size={16} className={styles.inputIcon} />
-                    <input type={showPw ? 'text' : 'password'} placeholder="Tối thiểu 8 ký tự" className={styles.input} required value={password} onChange={e => setPassword(e.target.value)} />
+                    <input type={showPw ? 'text' : 'password'} placeholder="Tối thiểu 6 ký tự" className={styles.input} required value={password} onChange={e => setPassword(e.target.value)} />
                     <button type="button" className={styles.eyeBtn} onClick={() => setShowPw(!showPw)}>
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
-                <div className={styles.btnRow}>
-                  <Button variant="ghost" onClick={() => setStep(1)} type="button">← Quay lại</Button>
-                  <Button variant="primary" type="submit" iconRight={<ArrowRight size={16} />}>Tiếp tục</Button>
-                </div>
+                <Button variant="primary" fullWidth size="lg" type="submit" iconRight={<ArrowRight size={16} />}>Tiếp tục</Button>
               </form>
             </>
           )}
 
-          {/* Step 3: Specialty (Freelancer only) */}
-          {step === 3 && (
+          {/* Step 2: Specialty */}
+          {step === 2 && (
             <>
-              <p className={styles.formDesc}>
-                {accountType === 'freelancer' ? 'Chọn lĩnh vực chuyên môn' : 'Xác nhận đăng ký'}
-              </p>
-              {accountType === 'freelancer' && (
-                <>
-                  <div className={styles.specGrid}>
-                    {SPECIALTIES.map(spec => (
-                      <button
-                        key={spec}
-                        className={`${styles.specChip} ${selectedSpecs.includes(spec) ? styles.specActive : ''}`}
-                        onClick={() => toggleSpec(spec)}
-                      >
-                        {spec}
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Kinh nghiệm (năm)</label>
-                    <div className={styles.inputWrap}>
-                      <input type="number" placeholder="VD: 5" className={styles.input} style={{ paddingLeft: 14 }} min={0} value={experience} onChange={e => setExperience(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Giới thiệu ngắn</label>
-                    <textarea placeholder="Mô tả kinh nghiệm và năng lực của bạn..." className={styles.textarea} rows={3} value={bio} onChange={e => setBio(e.target.value)} />
-                  </div>
-                </>
-              )}
+              <p className={styles.formDesc}>Chọn lĩnh vực chuyên môn của bạn</p>
+              <div className={styles.specGrid}>
+                {SPECIALTIES.map(spec => (
+                  <button
+                    key={spec}
+                    className={`${styles.specChip} ${selectedSpecs.includes(spec) ? styles.specActive : ''}`}
+                    onClick={() => toggleSpec(spec)}
+                  >
+                    {spec}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Kinh nghiệm (năm)</label>
+                <div className={styles.inputWrap}>
+                  <input type="number" placeholder="VD: 5" className={styles.input} style={{ paddingLeft: 14 }} min={0} value={experience} onChange={e => setExperience(e.target.value)} />
+                </div>
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Giới thiệu ngắn</label>
+                <textarea placeholder="Mô tả kinh nghiệm và năng lực của bạn..." className={styles.textarea} rows={3} value={bio} onChange={e => setBio(e.target.value)} />
+              </div>
               <div className={styles.btnRow}>
-                <Button variant="ghost" onClick={() => setStep(2)}>← Quay lại</Button>
+                <Button variant="ghost" onClick={() => setStep(1)}>← Quay lại</Button>
                 <Button variant="primary" size="lg" disabled={isSubmitting} onClick={handleFinalSubmit} iconRight={<ArrowRight size={16} />}>
                   {isSubmitting ? 'Đang xử lý...' : 'Hoàn tất đăng ký'}
                 </Button>
