@@ -236,7 +236,11 @@
   text-align: center;
   gap: var(--space-3);
   padding: var(--space-6) var(--space-4) !important;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
 }
+
+.catCard:hover { transform: translateY(-2px); }
 
 .catIcon {
   width: 48px;
@@ -256,6 +260,18 @@
 .catCount {
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+.catArrow {
+  color: var(--color-primary);
+  opacity: 0;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  transform: translateX(-4px);
+}
+
+.catCard:hover .catArrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ── Jobs Grid ── */

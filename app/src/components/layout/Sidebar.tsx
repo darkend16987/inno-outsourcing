@@ -2,9 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet, Activity, MessageSquare } from 'lucide-react';
 import { Avatar } from '@/components/ui';
+import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './Sidebar.module.css';
 
 interface SidebarProps {
@@ -41,7 +42,18 @@ const NAV_CONFIG = {
 
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { userProfile, signOut } = useAuth();
   const navItems = NAV_CONFIG[role] || NAV_CONFIG.freelancer;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   return (
     <aside className={styles.sidebar}>
@@ -70,14 +82,21 @@ export function Sidebar({ role }: SidebarProps) {
         <Link href={`/${role}/settings`} className={styles.navItem}>
           <Settings size={18} /> Cài đặt
         </Link>
-        <button className={`${styles.navItem} ${styles.logoutBtn}`}>
+        <button
+          className={`${styles.navItem} ${styles.logoutBtn}`}
+          onClick={handleSignOut}
+        >
           <LogOut size={18} /> Đăng xuất
         </button>
         
         <div className={styles.profile}>
-          <Avatar name={role.toUpperCase()} level="L1" size="sm" />
+          <Avatar
+            name={userProfile?.displayName || role.toUpperCase()}
+            level={userProfile?.currentLevel || 'L1'}
+            size="sm"
+          />
           <div className={styles.pInfo}>
-            <div className={styles.pName}>Hệ thống</div>
+            <div className={styles.pName}>{userProfile?.displayName || 'Người dùng'}</div>
             <div className={styles.pRole}>{role}</div>
           </div>
         </div>

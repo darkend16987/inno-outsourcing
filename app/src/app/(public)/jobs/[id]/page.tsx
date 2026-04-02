@@ -10,7 +10,6 @@ import {
   FileText, MessageSquare, Info
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
-import type { Job } from '@/types';
 import { getJobById } from '@/lib/firebase/firestore';
 import { formatFriendlyMoney, formatDate } from '@/lib/formatters';
 import styles from './page.module.css';
@@ -20,10 +19,38 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
+const WORK_MODE_LABELS: Record<string, string> = {
+  remote: 'Từ xa 🏠',
+  'on-site': 'Tại công trường 🏗️',
+  hybrid: 'Kết hợp 🏢',
+};
+
+/**
+ * Safely extract values from Firestore data that may have different field names.
+ * Handles both the full Job interface and the simplified seed data.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeJob(raw: any) {
+  return {
+    ...raw,
+    description: raw.description || raw.desc || '',
+    totalFee: raw.totalFee || raw.fee || 0,
+    duration: typeof raw.duration === 'number' ? raw.duration : parseInt(raw.duration) || 0,
+    durationDisplay: typeof raw.duration === 'string' ? raw.duration : `${raw.duration} ngày`,
+    requirements: raw.requirements || null,
+    milestones: raw.milestones || [],
+    attachments: raw.attachments || [],
+    jobMasterName: raw.jobMasterName || 'INNO Team',
+    highlightTags: raw.highlightTags || [],
+    status: raw.status || 'open',
+  };
+}
+
 export default function JobDetailPage() {
   const params = useParams();
   const jobId = params.id as string;
-  const [job, setJob] = useState<Job | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
 
@@ -32,7 +59,11 @@ export default function JobDetailPage() {
       try {
         setLoading(true);
         const data = await getJobById(jobId);
-        setJob(data);
+        if (data) {
+          setJob(normalizeJob(data));
+        } else {
+          setJob(null);
+        }
       } catch (error) {
         console.error('Error fetching job:', error);
       } finally {
@@ -44,7 +75,6 @@ export default function JobDetailPage() {
 
   const handleApply = () => {
     setIsApplying(true);
-    // Simulate application process
     setTimeout(() => {
       setIsApplying(false);
       alert('Đã gửi yêu cầu nhận việc thành công! Hệ thống sẽ thông báo kết quả cho bạn sớm nhất.');
@@ -123,67 +153,79 @@ export default function JobDetailPage() {
                 <Badge variant="default" glow>{job.category}</Badge>
                 <LevelBadge level={job.level} />
                 <Badge size="sm" variant="outline">
-                  {job.workMode === 'remote' ? 'Từ xa 🏠' : job.workMode === 'on-site' ? 'Tại công trường 🏗️' : 'Kết hợp 🏢'}
+                  {WORK_MODE_LABELS[job.workMode] || job.workMode}
                 </Badge>
-                {job.highlightTags?.map(tag => (
+                {job.highlightTags?.map((tag: string) => (
                   <Badge key={tag} size="sm" variant="secondary">#{tag}</Badge>
                 ))}
               </div>
               <h1 className={styles.title}>{job.title}</h1>
               
               <div className={styles.meta}>
-                <div className={styles.metaItem}><Clock size={16} color="var(--color-primary)"/> Đăng ngày: {formatDate(job.createdAt)}</div>
-                <div className={styles.metaItem}><Calendar size={16} color="var(--color-warning)"/> Hạn nộp: {formatDate(job.deadline)}</div>
-                <div className={styles.metaItem}><Target size={16} color="var(--color-success)"/> Bắt đầu: {job.startDate ? formatDate(job.startDate) : 'Thỏa thuận'}</div>
+                <div className={styles.metaItem}><Clock size={16} color="var(--color-primary)"/> Đăng ngày: {job.createdAt ? formatDate(job.createdAt) : 'N/A'}</div>
+                {job.deadline && <div className={styles.metaItem}><Calendar size={16} color="var(--color-warning)"/> Hạn nộp: {formatDate(job.deadline)}</div>}
+                {job.startDate && <div className={styles.metaItem}><Target size={16} color="var(--color-success)"/> Bắt đầu: {formatDate(job.startDate)}</div>}
               </div>
             </div>
 
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}><Briefcase size={20} /> Mô tả công việc</h2>
               <div className={styles.content}>
-                {job.description.split('\n').map((para, i) => (
-                  <p key={i}>{para}</p>
-                ))}
+                {job.description ? (
+                  job.description.split('\n').map((para: string, i: number) => (
+                    <p key={i}>{para}</p>
+                  ))
+                ) : (
+                  <p className={styles.placeholder}>Mô tả chi tiết sẽ được cập nhật sớm.</p>
+                )}
               </div>
             </section>
 
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}><Zap size={20} /> Yêu cầu công việc</h2>
-              <ul className={styles.reqList}>
-                <li><strong>Kinh nghiệm:</strong> {job.requirements.experience}</li>
-                <li><strong>Chứng chỉ:</strong> {job.requirements.certifications}</li>
-                <li><strong>Phần mềm:</strong> 
-                  <div className={styles.softwareGrid}>
-                    {job.requirements.software.map(sw => <Badge key={sw} size="sm" variant="outline" className={styles.swBadge}>{sw}</Badge>)}
-                  </div>
-                </li>
-                <li><strong>Tiêu chuẩn:</strong> {job.requirements.standards.join(', ')}</li>
-              </ul>
-            </section>
+            {/* Requirements - only show if data exists */}
+            {job.requirements && (
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}><Zap size={20} /> Yêu cầu công việc</h2>
+                <ul className={styles.reqList}>
+                  {job.requirements.experience && <li><strong>Kinh nghiệm:</strong> {job.requirements.experience}</li>}
+                  {job.requirements.certifications && <li><strong>Chứng chỉ:</strong> {job.requirements.certifications}</li>}
+                  {job.requirements.software?.length > 0 && (
+                    <li><strong>Phần mềm:</strong> 
+                      <div className={styles.softwareGrid}>
+                        {job.requirements.software.map((sw: string) => <Badge key={sw} size="sm" variant="outline" className={styles.swBadge}>{sw}</Badge>)}
+                      </div>
+                    </li>
+                  )}
+                  {job.requirements.standards?.length > 0 && <li><strong>Tiêu chuẩn:</strong> {job.requirements.standards.join(', ')}</li>}
+                </ul>
+              </section>
+            )}
 
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}><Star size={20} /> Giai đoạn thanh toán (Milestones)</h2>
-              <div className={styles.milestones}>
-                {job.milestones.map((ms, index) => (
-                  <div key={ms.id} className={styles.milestone}>
-                    <div className={styles.mLeft}>
-                      <div className={styles.mNum}>{index + 1}</div>
-                      <div className={styles.mName}>{ms.name}</div>
+            {/* Milestones - only show if data exists */}
+            {job.milestones.length > 0 && (
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}><Star size={20} /> Giai đoạn thanh toán (Milestones)</h2>
+                <div className={styles.milestones}>
+                  {job.milestones.map((ms: { id: string; name: string; percentage: number; amount: number }, index: number) => (
+                    <div key={ms.id} className={styles.milestone}>
+                      <div className={styles.mLeft}>
+                        <div className={styles.mNum}>{index + 1}</div>
+                        <div className={styles.mName}>{ms.name}</div>
+                      </div>
+                      <div className={styles.mRight}>
+                        <div className={styles.mPercent}>{ms.percentage}%</div>
+                        <div className={styles.mAmount}>{formatFriendlyMoney(ms.amount)}</div>
+                      </div>
                     </div>
-                    <div className={styles.mRight}>
-                      <div className={styles.mPercent}>{ms.percentage}%</div>
-                      <div className={styles.mAmount}>{formatFriendlyMoney(ms.amount)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            {job.attachments && job.attachments.length > 0 && (
+            {job.attachments.length > 0 && (
               <section className={styles.section}>
                 <h2 className={styles.sectionTitle}><FileText size={20} /> File đính kèm</h2>
                 <div className={styles.chipRow}>
-                  {job.attachments.map((file, idx) => (
+                  {job.attachments.map((file: { type: string; name: string }, idx: number) => (
                     <Badge key={idx} variant="outline" className={styles.fileChip}>
                       {file.type.toUpperCase()} | {file.name}
                     </Badge>
@@ -193,7 +235,7 @@ export default function JobDetailPage() {
             )}
 
             <section className={styles.section}>
-              <h2 className={styles.sectionTitle}><MessageSquare size={20} /> Bình luận (4)</h2>
+              <h2 className={styles.sectionTitle}><MessageSquare size={20} /> Bình luận</h2>
               <div className={styles.commentBox}>
                 <div className={styles.commentTop}>
                   <Avatar name="Me" size="md" />
@@ -207,7 +249,6 @@ export default function JobDetailPage() {
                 </div>
               </div>
               
-              {/* Note: In real app, these would be fetched from a comments collection */}
               <div className={styles.commentStream}>
                 <Card className={styles.commentCard} padding="sm">
                   <div className={styles.commentTop}>
@@ -235,7 +276,7 @@ export default function JobDetailPage() {
               <div className={styles.feeBlock}>
                 <span className={styles.feeLabel}>Ngân sách dự kiến</span>
                 <div className={styles.feeVal}>{formatFriendlyMoney(job.totalFee)}</div>
-                <div className={styles.duration}>Thời gian: <strong>{job.duration} ngày</strong></div>
+                <div className={styles.duration}>Thời gian: <strong>{job.durationDisplay}</strong></div>
               </div>
 
               <div className={styles.actionBlock}>

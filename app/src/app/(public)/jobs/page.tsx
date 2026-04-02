@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, Clock, ArrowRight, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge } from '@/components/ui';
@@ -10,7 +11,6 @@ import { formatFriendlyMoney } from '@/lib/formatters';
 import styles from './page.module.css';
 
 import { getJobs } from '@/lib/firebase/firestore';
-import type { Job } from '@/types';
 
 const WORK_MODE_LABELS: Record<string, string> = {
   remote: 'Từ xa',
@@ -23,31 +23,61 @@ const fadeUp = {
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.4 } }),
 };
 
-export default function JobsPage() {
+/**
+ * Safely extract fee from Firestore data.
+ * Firestore seed uses `fee` (number), but Job type expects `totalFee`.
+ */
+function getJobFee(job: Record<string, unknown>): number {
+  if (typeof job.totalFee === 'number') return job.totalFee;
+  if (typeof job.fee === 'number') return job.fee;
+  return 0;
+}
+
+function getJobDescription(job: Record<string, unknown>): string {
+  if (typeof job.description === 'string') return job.description;
+  if (typeof job.desc === 'string') return job.desc;
+  return '';
+}
+
+function getJobDuration(job: Record<string, unknown>): string {
+  if (typeof job.duration === 'number') return `${job.duration} ngày`;
+  if (typeof job.duration === 'string') return job.duration;
+  return '';
+}
+
+function JobsPageContent() {
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
-  const [catFilter, setCatFilter] = useState<string>('all');
+  const [catFilter, setCatFilter] = useState<string>(() => searchParams.get('category') || 'all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [workModeFilter, setWorkModeFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [jobs, setJobs] = useState<Job[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function fetchJobs() {
       setLoading(true);
-      const res = await getJobs();
-      setJobs(res.items);
+      try {
+        const res = await getJobs();
+        setJobs(res.items);
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+      }
       setLoading(false);
     }
     fetchJobs();
   }, []);
 
   const filtered = jobs.filter(job => {
-    const matchSearch = job.title.toLowerCase().includes(search.toLowerCase()) ||
-                        job.category.toLowerCase().includes(search.toLowerCase());
-    const matchCat = catFilter === 'all' || job.category === catFilter;
+    const title = job.title || '';
+    const category = job.category || '';
+    const matchSearch = title.toLowerCase().includes(search.toLowerCase()) ||
+                        category.toLowerCase().includes(search.toLowerCase());
+    const matchCat = catFilter === 'all' || category === catFilter;
     const matchLevel = levelFilter === 'all' || job.level === levelFilter;
     const matchWorkMode = workModeFilter === 'all' || job.workMode === workModeFilter;
     
@@ -65,6 +95,7 @@ export default function JobsPage() {
       </div>
 
       <div className={styles.container}>
+        {/* Category pills */}
         <div className={styles.catFilters}>
           <button 
             className={styles.catPill} 
@@ -101,10 +132,11 @@ export default function JobsPage() {
           <div className={styles.filtersWrapper}>
             <Button 
               variant={showAdvanced ? 'primary' : 'outline'} 
+              size="sm"
               icon={<SlidersHorizontal size={14} />}
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
-              Bộ lọc nâng cao
+              Bộ lọc
             </Button>
             
             <div className={styles.viewToggle}>
@@ -156,7 +188,10 @@ export default function JobsPage() {
 
         {/* Results */}
         {loading ? (
-          <p className={styles.resultCount}>Đang tải danh sách việc...</p>
+          <div className={styles.loadingState}>
+            <div className={styles.spinner} />
+            <p>Đang tải danh sách việc...</p>
+          </div>
         ) : (
           <>
             <p className={styles.resultCount}>{filtered.length} kết quả phù hợp</p>
@@ -165,32 +200,48 @@ export default function JobsPage() {
               {filtered.map((job, i) => (
                 <motion.div key={job.id} initial="hidden" animate="visible" custom={i} variants={fadeUp}>
                   <Link href={`/jobs/${job.id}`} className={styles.jobLink}>
-                    <Card hover className={styles.jobCard}>
+                    <Card hover className={`${styles.jobCard} ${viewMode === 'grid' ? styles.jobCardGrid : ''}`}>
                       <div className={styles.jobLeft}>
                         <div className={styles.jobTags}>
-                          {job.highlightTags?.map(tag => (
+                          {job.highlightTags?.map((tag: string) => (
                             <Badge key={tag} variant="error" size="sm">{tag}</Badge>
                           ))}
                           <Badge variant="default">{job.category}</Badge>
                           <LevelBadge level={job.level} />
-                          <Badge size="sm">{WORK_MODE_LABELS[job.workMode]}</Badge>
+                          <Badge size="sm">{WORK_MODE_LABELS[job.workMode] || job.workMode}</Badge>
                         </div>
                         <h3 className={styles.jobTitle}>{job.title}</h3>
-                        <p className={styles.jobDesc}>{job.description}</p>
+                        <p className={styles.jobDesc}>{getJobDescription(job)}</p>
                       </div>
                       <div className={styles.jobRight}>
-                        <span className={styles.jobFee}>{formatFriendlyMoney(job.totalFee)}</span>
-                        <span className={styles.jobDuration}><Clock size={13} /> {job.duration} ngày</span>
+                        <span className={styles.jobFee}>{formatFriendlyMoney(getJobFee(job))}</span>
+                        <span className={styles.jobDuration}><Clock size={13} /> {getJobDuration(job)}</span>
                         <span className={styles.jobCta}>Xem chi tiết <ArrowRight size={14} /></span>
                       </div>
                     </Card>
                   </Link>
                 </motion.div>
               ))}
+
+              {filtered.length === 0 && (
+                <div className={styles.emptyState}>
+                  <Search size={48} strokeWidth={1} />
+                  <p>Không tìm thấy việc phù hợp</p>
+                  <span>Thử thay đổi tiêu chí tìm kiếm hoặc bộ lọc</span>
+                </div>
+              )}
             </div>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center' }}>Đang tải...</div>}>
+      <JobsPageContent />
+    </Suspense>
   );
 }

@@ -49,7 +49,7 @@ export default function AdminJobsPage() {
           <h1 className={styles.pageTitle}>Quản lý Jobs</h1>
           <p className={styles.pageSubtitle}>Duyệt, theo dõi và quản lý tất cả dự án trong hệ thống.</p>
         </div>
-        <Link href="/jobmaster/jobs/create">
+        <Link href="/admin/jobs/create">
           <Button variant="primary" icon={<Plus size={16} />}>Tạo Job mới</Button>
         </Link>
       </div>

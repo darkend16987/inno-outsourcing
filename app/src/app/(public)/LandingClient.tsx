@@ -9,6 +9,7 @@ import {
   Shield, Clock, Star, ChevronRight
 } from 'lucide-react';
 import { Button, Badge, Card, MetricCard, Avatar, LevelBadge } from '@/components/ui';
+import { formatFriendlyMoney } from '@/lib/formatters';
 import styles from './page.module.css';
 
 // Mock data for demo
@@ -23,24 +24,24 @@ const MOCK_ACTIVITIES = [
 const MOCK_STATS = [
   { label: 'Dự án đang mở', value: '42', icon: <Briefcase size={20} /> },
   { label: 'Freelancers', value: '186', icon: <Users size={20} /> },
-  { label: 'Tổng giá trị HĐ', value: '2.8 tỷ', icon: <TrendingUp size={20} /> },
+  { label: 'Tổng giá trị HĐ', value: '2.8 tỏi', icon: <TrendingUp size={20} /> },
   { label: 'Hoàn thành đúng hạn', value: '94%', icon: <Clock size={20} /> },
 ];
 
 const MOCK_JOBS = [
-  { id: '1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', category: 'Kiến trúc', level: 'L3' as const, fee: '48,000,000₫', duration: '45 ngày', status: 'open' as const },
-  { id: '2', title: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', category: 'BIM', level: 'L4' as const, fee: '65,000,000₫', duration: '60 ngày', status: 'open' as const },
-  { id: '3', title: 'Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ', category: 'Kết cấu', level: 'L5' as const, fee: '120,000,000₫', duration: '90 ngày', status: 'open' as const },
-  { id: '4', title: 'Hệ thống MEP chung cư cao cấp Thủ Đức', category: 'MEP', level: 'L3' as const, fee: '55,000,000₫', duration: '50 ngày', status: 'open' as const },
-  { id: '5', title: 'Dự toán công trình trường học TPHCM', category: 'Dự toán', level: 'L2' as const, fee: '25,000,000₫', duration: '20 ngày', status: 'open' as const },
-  { id: '6', title: 'Thẩm tra PCCC tòa nhà hỗn hợp Hà Nội', category: 'Thẩm tra', level: 'L4' as const, fee: '38,000,000₫', duration: '30 ngày', status: 'open' as const },
+  { id: '1', title: 'Thiết kế kiến trúc Nhà xưởng KCN Bình Dương', category: 'Kiến trúc', level: 'L3' as const, fee: 48000000, duration: '45 ngày', status: 'open' as const },
+  { id: '2', title: 'BIM Modeling tổ hợp văn phòng 12 tầng Q7', category: 'BIM', level: 'L4' as const, fee: 65000000, duration: '60 ngày', status: 'open' as const },
+  { id: '3', title: 'Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ', category: 'Kết cấu', level: 'L5' as const, fee: 120000000, duration: '90 ngày', status: 'open' as const },
+  { id: '4', title: 'Hệ thống MEP chung cư cao cấp Thủ Đức', category: 'MEP', level: 'L3' as const, fee: 55000000, duration: '50 ngày', status: 'open' as const },
+  { id: '5', title: 'Dự toán công trình trường học TPHCM', category: 'Dự toán', level: 'L2' as const, fee: 25000000, duration: '20 ngày', status: 'open' as const },
+  { id: '6', title: 'Thẩm tra PCCC tòa nhà hỗn hợp Hà Nội', category: 'Thẩm tra', level: 'L4' as const, fee: 38000000, duration: '30 ngày', status: 'open' as const },
 ];
 
 const MOCK_TOP_WORKERS = [
-  { rank: 1, name: 'Nguyễn Thanh Hùng', level: 'L5' as const, specialty: 'BIM', rating: 4.9, jobs: 32, earnings: '680M' },
-  { rank: 2, name: 'Trần Minh Tuấn', level: 'L4' as const, specialty: 'Kết cấu', rating: 4.8, jobs: 28, earnings: '520M' },
-  { rank: 3, name: 'Lê Thị Hoa', level: 'L4' as const, specialty: 'MEP', rating: 4.9, jobs: 25, earnings: '480M' },
-  { rank: 4, name: 'Phạm Đức Anh', level: 'L3' as const, specialty: 'Kiến trúc', rating: 4.7, jobs: 21, earnings: '350M' },
+  { rank: 1, name: 'Nguyễn Thanh Hùng', level: 'L5' as const, specialty: 'BIM', rating: 4.9, jobs: 32, earnings: 680000000 },
+  { rank: 2, name: 'Trần Minh Tuấn', level: 'L4' as const, specialty: 'Kết cấu', rating: 4.8, jobs: 28, earnings: 520000000 },
+  { rank: 3, name: 'Lê Thị Hoa', level: 'L4' as const, specialty: 'MEP', rating: 4.9, jobs: 25, earnings: 480000000 },
+  { rank: 4, name: 'Phạm Đức Anh', level: 'L3' as const, specialty: 'Kiến trúc', rating: 4.7, jobs: 21, earnings: 350000000 },
 ];
 
 const CATEGORIES = [
@@ -143,13 +144,16 @@ export default function LandingClient() {
           <div className={styles.catGrid}>
             {CATEGORIES.map((cat, i) => (
               <motion.div key={cat.name} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
-                <Card hover className={styles.catCard}>
-                  <div className={styles.catIcon} style={{ background: `${cat.color}15`, color: cat.color }}>
-                    <cat.icon size={22} />
-                  </div>
-                  <h3 className={styles.catName}>{cat.name}</h3>
-                  <span className={styles.catCount}>{cat.count} dự án</span>
-                </Card>
+                <Link href={`/jobs?category=${encodeURIComponent(cat.name)}`} style={{ textDecoration: 'none' }}>
+                  <Card hover className={styles.catCard}>
+                    <div className={styles.catIcon} style={{ background: `${cat.color}15`, color: cat.color }}>
+                      <cat.icon size={22} />
+                    </div>
+                    <h3 className={styles.catName}>{cat.name}</h3>
+                    <span className={styles.catCount}>{cat.count} dự án</span>
+                    <span className={styles.catArrow}><ArrowRight size={14} /></span>
+                  </Card>
+                </Link>
               </motion.div>
             ))}
           </div>
@@ -179,7 +183,7 @@ export default function LandingClient() {
                     </div>
                     <h3 className={styles.jobTitle}>{job.title}</h3>
                     <div className={styles.jobMeta}>
-                      <span className={styles.jobFee}>{job.fee}</span>
+                      <span className={styles.jobFee}>{formatFriendlyMoney(job.fee)}</span>
                       <span className={styles.jobDuration}>
                         <Clock size={12} /> {job.duration}
                       </span>
@@ -204,7 +208,7 @@ export default function LandingClient() {
               <h2 className={styles.sectionTitle}>Vinh danh tháng này</h2>
               <p className={styles.sectionDesc}>Top freelancers xuất sắc nhất tháng 4/2026</p>
             </div>
-            <Link href="/leaderboard">
+            <Link href="/vinh-danh">
               <Button variant="ghost" size="sm" iconRight={<ChevronRight size={16} />}>Xem bảng xếp hạng</Button>
             </Link>
           </div>
@@ -230,7 +234,7 @@ export default function LandingClient() {
                       <span>{worker.jobs} jobs</span>
                     </div>
                   </div>
-                  <span className={styles.honorEarnings}>{worker.earnings} VND</span>
+                  <span className={styles.honorEarnings}>{formatFriendlyMoney(worker.earnings)}</span>
                 </Card>
               </motion.div>
             ))}

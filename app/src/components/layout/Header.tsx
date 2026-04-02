@@ -1,22 +1,66 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Search, Menu, X, Bell, User, Sun, Moon } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Menu, X, LogOut, ChevronDown, LayoutDashboard, User } from 'lucide-react';
+import { Button, Avatar } from '@/components/ui';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './Header.module.css';
+
+const ROLE_DASHBOARD: Record<string, string> = {
+  admin: '/admin',
+  jobmaster: '/jobmaster',
+  freelancer: '/freelancer',
+  accountant: '/accountant',
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Quản trị viên',
+  jobmaster: 'Job Master',
+  freelancer: 'Freelancer',
+  accountant: 'Kế toán',
+};
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { userProfile, signOut, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setDropdownOpen(false);
+      router.push('/');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
+
+  const dashboardPath = userProfile ? ROLE_DASHBOARD[userProfile.role] || '/freelancer' : '/';
 
   return (
     <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
@@ -35,8 +79,8 @@ export function Header() {
         {/* Desktop Nav */}
         <nav className={styles.nav}>
           <Link href="/jobs" className={styles.navLink}>Việc làm</Link>
-          <Link href="/leaderboard" className={styles.navLink}>Bảng xếp hạng</Link>
-          <Link href="/badges" className={styles.navLink}>Huy hiệu</Link>
+          <Link href="/vinh-danh" className={styles.navLink}>Bảng xếp hạng</Link>
+          <Link href="/huy-hieu" className={styles.navLink}>Huy hiệu</Link>
         </nav>
 
         {/* Actions */}
@@ -45,12 +89,65 @@ export function Header() {
             <Search size={18} />
           </Button>
           <ThemeToggle />
-          <Link href="/login">
-            <Button variant="outline" size="sm">Đăng nhập</Button>
-          </Link>
-          <Link href="/register">
-            <Button variant="primary" size="sm">Đăng ký</Button>
-          </Link>
+
+          {!loading && userProfile ? (
+            /* ── Logged-in state ── */
+            <div className={styles.userMenu} ref={dropdownRef}>
+              <button
+                className={styles.userMenuBtn}
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                <Avatar name={userProfile.displayName || userProfile.email} size="sm" />
+                <div className={styles.userMenuInfo}>
+                  <span className={styles.userName}>{userProfile.displayName || 'Người dùng'}</span>
+                  <span className={styles.userRole}>{ROLE_LABEL[userProfile.role] || userProfile.role}</span>
+                </div>
+                <ChevronDown size={14} className={`${styles.chevron} ${dropdownOpen ? styles.chevronOpen : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    className={styles.dropdown}
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Link
+                      href={dashboardPath}
+                      className={styles.dropdownItem}
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <LayoutDashboard size={16} /> Dashboard
+                    </Link>
+                    <Link
+                      href={`${dashboardPath}/profile`}
+                      className={styles.dropdownItem}
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <User size={16} /> Hồ sơ
+                    </Link>
+                    <div className={styles.dropdownDivider} />
+                    <button className={styles.dropdownItem} onClick={handleSignOut}>
+                      <LogOut size={16} /> Đăng xuất
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : !loading ? (
+            /* ── Logged-out state ── */
+            <>
+              <Link href="/login">
+                <Button variant="outline" size="sm">Đăng nhập</Button>
+              </Link>
+              <Link href="/register">
+                <Button variant="primary" size="sm">Đăng ký</Button>
+              </Link>
+            </>
+          ) : null}
+
           <button className={styles.hamburger} onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -66,11 +163,20 @@ export function Header() {
           exit={{ opacity: 0, y: -10 }}
         >
           <Link href="/jobs" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Việc làm</Link>
-          <Link href="/leaderboard" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Bảng xếp hạng</Link>
-          <Link href="/badges" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Huy hiệu</Link>
+          <Link href="/vinh-danh" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Bảng xếp hạng</Link>
+          <Link href="/huy-hieu" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Huy hiệu</Link>
           <div className={styles.mobileCta}>
-            <Link href="/login"><Button variant="outline" fullWidth>Đăng nhập</Button></Link>
-            <Link href="/register"><Button variant="primary" fullWidth>Đăng ký</Button></Link>
+            {userProfile ? (
+              <>
+                <Link href={dashboardPath}><Button variant="outline" fullWidth>Dashboard</Button></Link>
+                <Button variant="danger" fullWidth onClick={handleSignOut}>Đăng xuất</Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login"><Button variant="outline" fullWidth>Đăng nhập</Button></Link>
+                <Link href="/register"><Button variant="primary" fullWidth>Đăng ký</Button></Link>
+              </>
+            )}
           </div>
         </motion.div>
       )}
