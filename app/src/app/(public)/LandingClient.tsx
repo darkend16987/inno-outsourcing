@@ -60,7 +60,7 @@ export default function LandingClient() {
     const fetchData = async () => {
       try {
         const [jobResult, testResult, leaderboardResult] = await Promise.allSettled([
-          getJobs(),
+          getJobs({ status: 'open' }),
           getTestimonials(),
           getLeaderboard(),
         ]);

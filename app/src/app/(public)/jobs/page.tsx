@@ -70,7 +70,7 @@ function JobsPageContent() {
     async function fetchJobs() {
       setLoading(true);
       try {
-        const res = await getJobs();
+        const res = await getJobs({ status: 'open' });
         setJobs(res.items);
       } catch (err) {
         console.error('Error fetching jobs:', err);
