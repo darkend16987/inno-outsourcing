@@ -4,6 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X } from 'lucide-react';
 import { Button, Card, Badge, Avatar } from '@/components/ui';
+import { EscrowStatus } from '@/components/escrow/EscrowStatus';
+import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
+import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
 import styles from './page.module.css';
 
 // Mock Modal Component
@@ -180,23 +183,25 @@ export default function JobMasterJobDetailPage() {
             <Button variant="ghost" fullWidth className={styles.addBtn}>+ Tìm thêm người</Button>
           </Card>
 
-          <Card className={styles.sectionCard}>
-            <h3 className={styles.secTitle}>Ngân sách hiển thị</h3>
-            <div className={styles.budgetBox}>
-              <div className={styles.bRow}>
-                <span>Tổng giá trị:</span>
-                <strong>120,000,000₫</strong>
-              </div>
-              <div className={styles.bRow}>
-                <span>Đã giải ngân:</span>
-                <strong className={styles.succ}>12,000,000₫</strong>
-              </div>
-              <div className={styles.bRow}>
-                <span>Chưa nghiệm thu:</span>
-                <strong>108,000,000₫</strong>
-              </div>
-            </div>
-          </Card>
+          <EscrowStatus
+            totalFee={120_000_000}
+            milestones={[
+              { id: 'm1', name: 'Khảo sát & Ký hợp đồng', percentage: 10, amount: 12_000_000, status: 'released', condition: 'Hoàn thiện văn bản pháp lý' },
+              { id: 'm2', name: 'Thiết kế cơ sở', percentage: 35, amount: 42_000_000, status: 'locked', condition: 'Nộp bản vẽ mặt bằng tổng thể' },
+              { id: 'm3', name: 'Thiết kế thi công', percentage: 55, amount: 66_000_000, status: 'locked', condition: 'Bản vẽ chi tiết kỹ thuật' },
+            ]}
+          />
+
+          <ActivityFeed
+            activities={([
+              { id: '1', type: 'escrow_locked' as const, title: 'Escrow đã được khoá', description: '120,000,000₫ đã được bảo lưu', actor: 'Hệ thống', timestamp: new Date(2026, 2, 10) },
+              { id: '2', type: 'contract_signed' as const, title: 'Hợp đồng đã ký', actor: 'Nguyễn Văn A', timestamp: new Date(2026, 2, 10) },
+              { id: '3', type: 'milestone_approved' as const, title: 'Nghiệm thu: Khảo sát & KHĐ', description: '12,000,000₫ đã giải ngân', actor: 'Jobmaster', timestamp: new Date(2026, 2, 12) },
+              { id: '4', type: 'milestone_submitted' as const, title: 'Nộp kết quả: Thiết kế cơ sở', description: '2 file đã tải lên', actor: 'Nguyễn Văn A', timestamp: new Date(2026, 2, 15) },
+              { id: '5', type: 'comment_added' as const, title: 'Bình luận mới', description: 'Bản vẽ mặt bằng cần chỉnh sửa theo góp ý...', actor: 'Jobmaster', timestamp: new Date(2026, 2, 16) },
+            ]).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())}
+            maxVisible={4}
+          />
         </div>
       </div>
 

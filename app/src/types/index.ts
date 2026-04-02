@@ -37,6 +37,17 @@ export interface UserProfile {
 
   // Stats (denormalized)
   stats: UserStats;
+
+  // Trust & Reputation (Phase 2)
+  trustScore?: number;
+  trustBadge?: TrustBadgeLevel;
+
+  // Availability (Phase 3)
+  availability?: AvailabilityStatus;
+
+  // Saved/Favorite (Phase 3)
+  savedJobs?: string[];
+  savedFreelancers?: string[];
 }
 
 export interface UserStats {
@@ -55,6 +66,8 @@ export interface Certificate {
   fileURL: string;
   status: 'pending' | 'verified' | 'rejected';
   verifiedBy?: string;
+  type?: 'cchn' | 'pmp' | 'bim_cert' | 'other';
+  expiryDate?: Date;
 }
 
 export interface PortfolioItem {
@@ -64,6 +77,9 @@ export interface PortfolioItem {
   year: number;
   thumbnailURL: string;
   description: string;
+  linkedJobId?: string;
+  images?: string[];
+  jobmasterConfirmed?: boolean;
 }
 
 export interface UserBadge {
@@ -89,13 +105,15 @@ export type JobStatus =
   | 'paid'
   | 'cancelled';
 
+export type MilestoneStatus = 'pending' | 'approved' | 'paid' | 'locked' | 'released';
+
 export interface PaymentMilestone {
   id: string;
   name: string;
   percentage: number;
   amount: number;
   condition: string;
-  status: 'pending' | 'approved' | 'paid';
+  status: MilestoneStatus;
   approvedAt?: Date;
   paidAt?: Date;
   approvedBy?: string;
@@ -123,6 +141,8 @@ export interface Attachment {
 }
 
 export type JobTag = 'Siêu tốc' | 'HOT' | 'Phù hợp mọi level' | 'Remote 100%' | 'Thưởng hiệu suất' | 'Tech-lead' | string;
+
+export type EscrowStatus = 'not_started' | 'locked' | 'partially_released' | 'fully_released';
 
 export interface Job {
   id: string;
@@ -162,10 +182,15 @@ export interface Job {
   searchKeywords: string[];
   isPublic: boolean;
   highlightTags?: JobTag[];
+
+  // Escrow (Phase 1)
+  escrowStatus?: EscrowStatus;
 }
 
 // ---- Applications ----
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'accepted' | 'rejected';
+
+export type MatchBadge = 'top_match' | 'recommended';
 
 export interface JobApplication {
   id: string;
@@ -184,6 +209,11 @@ export interface JobApplication {
   rejectionReason?: string;
   createdAt: Date;
   reviewedBy?: string;
+
+  // Smart Matching (Phase 1)
+  matchScore?: number;
+  matchBadge?: MatchBadge;
+  matchReasons?: string[];
 }
 
 // ---- Comments ----
@@ -275,9 +305,10 @@ export interface Message {
   id: string;
   senderId: string;
   content: string;
-  type: 'text' | 'file' | 'image';
+  type: 'text' | 'file' | 'image' | 'meeting';
   fileURL?: string;
   fileName?: string;
+  meetingUrl?: string;
   readBy: string[];
   createdAt: Date;
 }
@@ -311,7 +342,15 @@ export type NotificationType =
   | 'job_new' | 'application_received' | 'application_accepted'
   | 'application_rejected' | 'milestone_reached' | 'payment_pending'
   | 'payment_completed' | 'contract_ready' | 'deadline_warning'
-  | 'comment_reply' | 'badge_earned' | 'progress_update';
+  | 'comment_reply' | 'badge_earned' | 'progress_update'
+  // Multi-tier deadline alerts (Phase 1)
+  | 'deadline_7days' | 'deadline_3days' | 'deadline_1day' | 'deadline_overdue'
+  // Smart matching (Phase 1)
+  | 'job_recommended'
+  // Invitations (Phase 3)
+  | 'job_invitation'
+  // Escrow (Phase 1)
+  | 'escrow_locked' | 'escrow_released';
 
 export interface Notification {
   id: string;
@@ -338,7 +377,11 @@ export interface LeaderboardEntry {
   badges: BadgeType[];
 }
 
-export type BadgeType = 'top_earner' | 'speed_master' | '5_stars' | 'loyal_partner' | 'rising_star';
+export type BadgeType =
+  | 'top_earner' | 'speed_master' | '5_stars' | 'loyal_partner' | 'rising_star'
+  // Extended badges (Phase 4)
+  | 'specialist' | 'all_rounder' | 'big_project'
+  | 'perfect_score' | 'bim_champion' | 'deadline_king';
 
 // ---- UI Helpers ----
 export interface NavItem {
@@ -377,14 +420,21 @@ export interface Review {
   reviewerRole: UserRole;
   revieweeId: string;
   revieweeName: string;
+  revieweeRole?: UserRole;
   rating: number; // 1-5
   comment: string;
   categories?: {
-    quality?: number;       // Chất lượng công việc
-    communication?: number; // Giao tiếp
-    timeliness?: number;    // Đúng hạn
-    professionalism?: number; // Chuyên nghiệp
+    quality?: number;            // Chất lượng công việc
+    communication?: number;      // Giao tiếp
+    timeliness?: number;         // Đúng hạn
+    professionalism?: number;    // Chuyên nghiệp
+    // Freelancer reviews Jobmaster
+    descriptionClarity?: number; // Mô tả rõ ràng
+    paymentTimeliness?: number;  // Thanh toán đúng hạn
   };
+  // Mutual review: both sides must submit before reveal (Phase 2)
+  visible?: boolean;
+  wouldRehire?: boolean;
   createdAt: Date;
 }
 
@@ -444,4 +494,80 @@ export const DISPUTE_REASON_LABELS: Record<DisputeReason, string> = {
   communication: 'Vấn đề giao tiếp',
   other: 'Khác',
 };
+
+// ---- Trust & Reputation (Phase 2) ----
+export type TrustBadgeLevel = 'trusted' | 'rising' | 'new';
+export type AvailabilityStatus = 'available' | 'partially_busy' | 'unavailable';
+
+export const TRUST_BADGE_LABELS: Record<TrustBadgeLevel, string> = {
+  trusted: 'Đáng tin cậy',
+  rising: 'Đang phát triển',
+  new: 'Mới',
+};
+
+export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
+  available: 'Sẵn sàng ngay',
+  partially_busy: 'Bận một phần',
+  unavailable: 'Không available',
+};
+
+// ---- Job Invitations (Phase 3) ----
+export type InvitationStatus = 'pending' | 'accepted' | 'declined';
+
+export interface JobInvitation {
+  id?: string;
+  jobId: string;
+  jobTitle: string;
+  inviterId: string;
+  inviterName: string;
+  freelancerId: string;
+  freelancerName: string;
+  message?: string;
+  status: InvitationStatus;
+  createdAt: Date;
+  respondedAt?: Date;
+}
+
+// ---- Seasonal Challenges (Phase 4) ----
+export interface Challenge {
+  id?: string;
+  title: string;
+  description: string;
+  category: JobCategory;
+  target: number;
+  rewardBadge: BadgeType;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  participants: Record<string, { progress: number; completed: boolean }>;
+}
+
+// ---- Invoices (Phase 4) ----
+export interface Invoice {
+  id?: string;
+  invoiceNumber: string;
+  jobId: string;
+  jobTitle: string;
+  paymentId: string;
+  milestoneId: string;
+  partyA: {
+    name: string;
+    representative: string;
+    address?: string;
+    taxId?: string;
+  };
+  partyB: {
+    name: string;
+    idNumber: string;
+    bankAccount: string;
+    bankName: string;
+    taxId?: string;
+  };
+  amount: number;
+  description: string;
+  pdfURL?: string;
+  status: 'draft' | 'issued' | 'sent';
+  issuedAt: Date;
+  createdAt: Date;
+}
 

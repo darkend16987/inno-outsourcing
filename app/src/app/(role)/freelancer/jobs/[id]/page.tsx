@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Clock, MessageSquare, UploadCloud, CheckCircle2, X, Loader2, Inbox } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
+import { EscrowStatus } from '@/components/escrow/EscrowStatus';
+import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { getJobById } from '@/lib/firebase/firestore';
 import type { Job } from '@/types';
 import styles from './page.module.css';
@@ -185,6 +187,27 @@ export default function FreelancerJobDetail() {
               <li><Link href={`/jobs/${job.id}`}>Xem lại yêu cầu gốc</Link></li>
             </ul>
           </Card>
+
+          {/* Deadline Indicator */}
+          {job.deadline && (() => {
+            const dl = job.deadline instanceof Date ? job.deadline : new Date(job.deadline as string);
+            const daysRemaining = Math.ceil((dl.getTime() - Date.now()) / 86400000);
+            return (
+              <Card className={styles.linksCard}>
+                <h3 className={styles.sTitle}>Thời hạn dự án</h3>
+                <DeadlineIndicator daysRemaining={daysRemaining} />
+              </Card>
+            );
+          })()}
+
+          {/* Escrow Status */}
+          {job.milestones && job.milestones.length > 0 && (
+            <EscrowStatus
+              totalFee={job.totalFee || 0}
+              milestones={job.milestones}
+              compact
+            />
+          )}
         </motion.div>
       </div>
 

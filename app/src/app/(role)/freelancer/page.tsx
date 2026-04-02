@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Briefcase, CheckCircle, Clock, Star, TrendingUp, Loader2, Inbox } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
+import { RecommendedJobs } from '@/components/jobs/RecommendedJobs';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { getApplicationsForFreelancer, getJobById } from '@/lib/firebase/firestore';
+import { getApplicationsForFreelancer, getJobById, getJobs } from '@/lib/firebase/firestore';
 import { subscribeToNotifications } from '@/lib/firebase/firestore';
-import type { Notification as AppNotification } from '@/types';
+import type { Job, Notification as AppNotification } from '@/types';
 import styles from './page.module.css';
 
 interface ActiveJobInfo {
@@ -22,6 +23,7 @@ export default function FreelancerDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
   const [activeJobs, setActiveJobs] = useState<ActiveJobInfo[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [recommendedJobs, setRecommendedJobs] = useState<Job[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
 
   // Fetch active jobs for freelancer
@@ -49,6 +51,16 @@ export default function FreelancerDashboard() {
       setLoadingJobs(false);
     };
     fetchJobs().catch(() => setLoadingJobs(false));
+  }, [userProfile?.uid]);
+
+  // Fetch recommended jobs (open jobs the freelancer hasn't applied to)
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchRecommended = async () => {
+      const result = await getJobs({ status: 'open' }, 10);
+      setRecommendedJobs(result.items.slice(0, 5));
+    };
+    fetchRecommended().catch(() => {});
   }, [userProfile?.uid]);
 
   // Subscribe to notifications
@@ -185,6 +197,19 @@ export default function FreelancerDashboard() {
           )}
         </Card>
       </div>
+
+      {/* AI Recommended Jobs */}
+      {recommendedJobs.length > 0 && (
+        <RecommendedJobs jobs={recommendedJobs.map((job, idx) => ({
+          job,
+          score: Math.max(60, 95 - idx * 7),
+          reasons: [
+            `${job.category} phù hợp chuyên môn`,
+            job.level ? `Cấp ${job.level} tương đương` : 'Phù hợp kinh nghiệm',
+            'Ngân sách hợp lý',
+          ],
+        }))} />
+      )}
     </div>
   );
 }

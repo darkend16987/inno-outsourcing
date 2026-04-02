@@ -1,0 +1,309 @@
+/* ============================================
+   ApplicantRanking — CSS Module
+   ============================================ */
+
+.container {
+  background: var(--card-bg, #fff);
+  border-radius: 16px;
+  border: 1px solid var(--border, #e2e8f0);
+  overflow: hidden;
+}
+
+.header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text, #1e293b);
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.list {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card {
+  border-radius: 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-primary, #0d7c66);
+  box-shadow: 0 2px 8px rgba(13, 124, 102, 0.08);
+}
+
+.topCard {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.03), rgba(234, 179, 8, 0.02));
+}
+
+.topCard:hover {
+  border-color: rgba(234, 179, 8, 0.6);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.12);
+}
+
+.cardMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cardMain:hover {
+  background: var(--hover-bg, rgba(0, 0, 0, 0.02));
+}
+
+.rank {
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.rankGold,
+.rankSilver,
+.rankBronze {
+  font-size: 1.5rem;
+}
+
+.rankNum {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--text, #1e293b);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.level {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(13, 124, 102, 0.08);
+  color: var(--color-primary, #0d7c66);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.scoreCol {
+  flex-shrink: 0;
+  width: 120px;
+}
+
+.expandIcon {
+  flex-shrink: 0;
+  color: var(--text-secondary, #94a3b8);
+  display: flex;
+  align-items: center;
+}
+
+/* ---- Expanded Details ---- */
+.expanded {
+  padding: 0 16px 16px;
+  border-top: 1px dashed var(--border, #e2e8f0);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.breakdownIcon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.breakdownLabel {
+  color: var(--text-secondary, #64748b);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.breakdownBar {
+  flex: 1;
+  height: 4px;
+  background: var(--border, #e2e8f0);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.breakdownFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.breakdownValue {
+  font-weight: 700;
+  font-size: 0.75rem;
+  min-width: 24px;
+  text-align: right;
+}
+
+.reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px dashed var(--border, #e2e8f0);
+}
+
+.reasonsTitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  margin-right: 4px;
+}
+
+.reasonTag {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(13, 124, 102, 0.06);
+  color: var(--color-primary, #0d7c66);
+}
+
+.expandedActions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.profileBtn,
+.selectBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+
+.profileBtn {
+  background: var(--border, #e2e8f0);
+  color: var(--text, #1e293b);
+}
+
+.profileBtn:hover {
+  background: var(--hover-bg, #cbd5e1);
+}
+
+.selectBtn {
+  background: var(--color-primary, #0d7c66);
+  color: #fff;
+}
+
+.selectBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ---- Dark mode ---- */
+:global([data-theme="dark"]) .container {
+  background: var(--card-bg, #1e293b);
+  border-color: var(--border, #334155);
+}
+
+:global([data-theme="dark"]) .card {
+  border-color: var(--border, #334155);
+}
+
+:global([data-theme="dark"]) .name {
+  color: #f1f5f9;
+}
+
+:global([data-theme="dark"]) .rankNum {
+  color: #94a3b8;
+}
+
+:global([data-theme="dark"]) .profileBtn {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+:global([data-theme="dark"]) .profileBtn:hover {
+  background: #475569;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .breakdownGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .scoreCol {
+    width: 80px;
+  }
+
+  .cardMain {
+    padding: 10px 12px;
+  }
+}

@@ -1,0 +1,176 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.wrapper:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 99px;
+  font-weight: 600;
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.badge:hover {
+  transform: translateY(-1px);
+}
+
+/* Sizes */
+.sm {
+  font-size: 0.6875rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.md {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.625rem;
+}
+
+/* Match types */
+.top_match {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.1));
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.top_match:hover {
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+
+.recommended {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.recommended:hover {
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2);
+}
+
+.score {
+  font-size: 0.625rem;
+  opacity: 0.75;
+  margin-left: 0.125rem;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  z-index: 100;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  padding: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 200px;
+  max-width: 260px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  pointer-events: none;
+}
+
+.tooltipTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.reasonList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.reasonList li {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, #64748b);
+  padding-left: 0.875rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.reasonList li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: 700;
+  font-size: 0.625rem;
+}
+
+/* Score bar */
+.scoreBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 80px;
+}
+
+.scoreTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--color-neutral-100, #f1f5f9);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.scoreFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.scoreValue {
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 1.5rem;
+  text-align: right;
+}
+
+/* Dark mode */
+:global([data-theme='dark']) .tooltip {
+  background: var(--card-bg-dark, #1e293b);
+  border-color: var(--border-color-dark, #334155);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+:global([data-theme='dark']) .tooltipTitle {
+  color: var(--text-primary-dark, #f1f5f9);
+}
+
+:global([data-theme='dark']) .top_match {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+:global([data-theme='dark']) .recommended {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+:global([data-theme='dark']) .scoreTrack {
+  background: var(--color-neutral-700, #334155);
+}

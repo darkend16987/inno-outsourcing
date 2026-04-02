@@ -6,3 +6,6 @@ export { Progress } from './Progress';
 export { Skeleton } from './Skeleton';
 export { ThemeToggle } from './ThemeToggle';
 export { ErrorBoundary } from './ErrorBoundary';
+export { TrustBadge } from './TrustBadge';
+export { AvailabilityBadge } from './AvailabilityBadge';
+export { MatchBadge, MatchScoreBar } from './MatchBadge';

@@ -4,11 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Menu, X, LogOut, ChevronDown, LayoutDashboard, User } from 'lucide-react';
+import { Search, Menu, X, LogOut, ChevronDown, LayoutDashboard, User, Bell } from 'lucide-react';
 import { Button, Avatar } from '@/components/ui';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './Header.module.css';
+import { NotificationHub } from '@/components/notifications/NotificationHub';
+import { subscribeToNotifications, markNotificationRead } from '@/lib/firebase/firestore';
+import type { Notification as AppNotification } from '@/types';
 
 const ROLE_DASHBOARD: Record<string, string> = {
   admin: '/admin',
@@ -29,6 +32,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notiRef = useRef<HTMLDivElement>(null);
 
   const { userProfile, signOut, loading } = useAuth();
   const router = useRouter();
@@ -89,6 +93,11 @@ export function Header() {
             <Search size={18} />
           </Button>
           <ThemeToggle />
+
+          {/* Notification Bell (logged-in only) */}
+          {!loading && userProfile && (
+            <NotificationBellWrapper userId={userProfile.uid} notiRef={notiRef} />
+          )}
 
           {!loading && userProfile ? (
             /* ── Logged-in state ── */
@@ -181,5 +190,67 @@ export function Header() {
         </motion.div>
       )}
     </header>
+  );
+}
+
+// ── Notification Bell Sub-component ──
+function NotificationBellWrapper({ userId, notiRef }: { userId: string; notiRef: React.RefObject<HTMLDivElement | null> }) {
+  const [notiOpen, setNotiOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    const unsub = subscribeToNotifications(userId, (notis) => {
+      setNotifications(notis.slice(0, 20));
+    });
+    return unsub;
+  }, [userId]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notiRef.current && !notiRef.current.contains(e.target as Node)) {
+        setNotiOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [notiRef]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkRead = (id: string) => {
+    markNotificationRead(id).catch(() => {});
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleMarkAllRead = () => {
+    notifications.filter(n => !n.read).forEach(n => {
+      markNotificationRead(n.id).catch(() => {});
+    });
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  return (
+    <div className={styles.notiWrap} ref={notiRef}>
+      <button
+        className={styles.notiBtn}
+        onClick={() => setNotiOpen(!notiOpen)}
+        aria-label="Thông báo"
+      >
+        <Bell size={18} />
+        {unreadCount > 0 && (
+          <span className={styles.notiBadge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+        )}
+      </button>
+      {notiOpen && (
+        <div className={styles.notiDropdown}>
+          <NotificationHub
+            notifications={notifications}
+            onMarkRead={handleMarkRead}
+            onMarkAllRead={handleMarkAllRead}
+          />
+        </div>
+      )}
+    </div>
   );
 }
