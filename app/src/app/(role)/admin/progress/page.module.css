@@ -1,0 +1,40 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.pageHeader { display: flex; justify-content: space-between; align-items: flex-end; }
+.pageTitle { font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: var(--space-2); }
+.pageSubtitle { color: var(--color-text-muted); font-size: 15px; }
+
+.summaryRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+.sumLabel { font-size: 13px; color: var(--color-text-muted); margin-bottom: 4px; }
+.sumValue { font-size: 28px; font-weight: 800; font-family: var(--font-heading); }
+
+.jobsList { display: flex; flex-direction: column; gap: var(--space-5); }
+.jobCard { padding: var(--space-5) !important; }
+
+.jobHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-4); }
+.jobInfo { flex: 1; }
+.jobTitle { font-size: 16px; font-weight: 700; margin-bottom: var(--space-2); }
+.jobMeta { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.metaItem { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--color-text-muted); }
+.deadlineWarning { color: var(--color-error) !important; font-weight: 700; }
+
+.progressSection { margin-bottom: var(--space-4); }
+.progressLabel { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--color-text-muted); }
+.progressLabel strong { color: var(--color-primary); }
+
+.milestonesRow { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.msLabel { font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.msChip {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-md);
+  font-size: 12px; background: var(--color-bg);
+}
+.msAmount { font-weight: 700; color: var(--color-primary); }
+
+.warningBanner {
+  display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4); background: #fff0f0; border: 1.5px solid var(--color-error, #e74c3c);
+  border-radius: var(--radius-md); font-size: 13px; font-weight: 600; color: var(--color-error, #e74c3c);
+}
+
+@media (max-width: 1024px) { .summaryRow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 768px) { .summaryRow { grid-template-columns: 1fr; } .milestonesRow { flex-direction: column; align-items: flex-start; } }

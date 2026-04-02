@@ -47,7 +47,13 @@
 .success { background: var(--color-success-bg); color: var(--color-success); border-color: var(--color-success); }
 .warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: var(--color-warning); }
 .error { background: var(--color-danger-bg); color: var(--color-danger); border-color: var(--color-danger); }
-.outline { background: transparent; color: var(--color-text-muted); border-color: var(--color-border); }
+.outline { background: transparent; color: var(--color-text-secondary); border-color: var(--color-border); }
+.secondary { background: var(--color-surface-2); color: var(--color-text-secondary); border-color: var(--color-border); }
+
+.glow {
+  box-shadow: 0 0 12px 1px rgba(var(--color-primary-rgb), 0.15);
+  border-color: var(--color-primary-light);
+}
 
 /* Dot indicator */
 .withDot { padding-left: 8px; }

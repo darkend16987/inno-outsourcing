@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet, Activity, MessageSquare } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import styles from './Sidebar.module.css';
 
@@ -20,22 +20,23 @@ const NAV_CONFIG = {
   ],
   admin: [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { label: 'Quản lý Users', href: '/admin/users', icon: Users },
     { label: 'Quản lý Jobs', href: '/admin/jobs', icon: FolderKanban },
+    { label: 'Duyệt ứng tuyển', href: '/admin/applications', icon: CheckSquare },
+    { label: 'Theo dõi tiến độ', href: '/admin/progress', icon: Activity },
+    { label: 'Hợp đồng', href: '/admin/contracts', icon: FileSignature },
+    { label: 'Quản lý Users', href: '/admin/users', icon: Users },
     { label: 'Báo cáo', href: '/admin/reports', icon: FileSpreadsheet },
   ],
   jobmaster: [
     { label: 'Tổng quan', href: '/jobmaster', icon: LayoutDashboard },
     { label: 'Dự án của tôi', href: '/jobmaster/jobs', icon: FolderKanban },
     { label: 'Duyệt ứng viên', href: '/jobmaster/applications', icon: CheckSquare },
-    { label: 'Nghiệm thu', href: '/jobmaster/reviews', icon: FileSignature },
+    { label: 'Tin nhắn', href: '/jobmaster/chat', icon: MessageSquare },
   ],
   accountant: [
     { label: 'Tổng quan', href: '/accountant', icon: LayoutDashboard },
     { label: 'Lệnh thanh toán', href: '/accountant/payments', icon: DollarSign },
-    { label: 'Hợp đồng', href: '/accountant/contracts', icon: FileSignature },
-    { label: 'Báo cáo công nợ', href: '/accountant/reports', icon: FileSpreadsheet },
-  ]
+  ],
 };
 
 export function Sidebar({ role }: SidebarProps) {

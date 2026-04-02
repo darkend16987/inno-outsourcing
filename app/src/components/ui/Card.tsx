@@ -7,9 +7,10 @@ interface CardProps {
   children: React.ReactNode;
   variant?: 'default' | 'metric' | 'elevated' | 'bordered' | 'accent';
   className?: string;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
   onClick?: () => void;
   hover?: boolean;
+  glow?: boolean;
 }
 
 export function Card({
@@ -19,12 +20,14 @@ export function Card({
   padding = 'md',
   onClick,
   hover = false,
+  glow = false,
 }: CardProps) {
   const classes = [
     styles.card,
     styles[variant],
     styles[`pad_${padding}`],
     hover ? styles.hover : '',
+    glow ? styles.glow : '',
     onClick ? styles.clickable : '',
     className,
   ].filter(Boolean).join(' ');

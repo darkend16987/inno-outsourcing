@@ -5,7 +5,6 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
@@ -16,14 +15,13 @@ import {
   addDoc,
   DocumentSnapshot,
   QueryConstraint,
-  Timestamp,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, app } from './config';
 import type {
   Job, UserProfile, JobApplication, Contract, Payment,
   Notification, Conversation, Message, LeaderboardEntry,
-  JobStatus, JobCategory, JobLevel,
+  JobStatus, JobCategory, JobLevel, UserBadge
 } from '@/types';
 
 // =====================
@@ -404,6 +402,31 @@ export const subscribeToConversations = (
     const convs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Conversation));
     callback(convs);
   });
+};
+
+// =====================
+// BADGES
+// =====================
+/**
+ * Fetches all badge definitions from the 'badge_definitions' collection.
+ */
+export const getBadgeDefinitions = async (): Promise<{id: string, title: string, desc: string, icon: string}[]> => {
+  if (!db) return [];
+  const q = query(collection(db, 'badge_definitions'), orderBy('id', 'asc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as {id: string, title: string, desc: string, icon: string}));
+};
+
+/**
+ * Fetches badges earned by a specific user.
+ * Note: If we use a subcollection 'users/{uid}/badges', we fetch from there.
+ * If we use a simple array in profile, we return it.
+ */
+export const getUserBadges = async (uid: string): Promise<UserBadge[]> => {
+  if (!db) return [];
+  const q = query(collection(db, `users/${uid}/badges`), orderBy('earnedAt', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserBadge));
 };
 
 // =====================

@@ -1,8 +1,15 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'vaa-job-session-secret-change-in-production-min-32-chars!'
-);
+function getSessionSecret() {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production!');
+  }
+  return new TextEncoder().encode(
+    secret || 'vaa-job-dev-only-session-secret-not-for-production!'
+  );
+}
+const SESSION_SECRET = getSessionSecret();
 
 export const COOKIE_NAME = 'vaa_session';
 

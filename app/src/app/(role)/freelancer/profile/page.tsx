@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Mail, Phone, MapPin, Award, Star, Briefcase, Calendar } from 'lucide-react';
+import { Mail, Phone, MapPin, Award, Star, Calendar } from 'lucide-react';
 import { Card, Badge, LevelBadge, Avatar, Button } from '@/components/ui';
 import styles from './page.module.css';
 
@@ -40,7 +40,7 @@ export default function ProfilePage() {
         <div className={styles.leftCol}>
           <Card className={styles.profileCard}>
             <div className={styles.pHeader}>
-              <Avatar name={MOCK_PROFILE.name} level={MOCK_PROFILE.level as any} size="lg" />
+              <Avatar name={MOCK_PROFILE.name} level={MOCK_PROFILE.level as never} size="lg" />
               <div className={styles.pNameWrap}>
                 <h2 className={styles.pName}>{MOCK_PROFILE.name}</h2>
                 <div className={styles.pRole}>{MOCK_PROFILE.role}</div>
@@ -48,7 +48,7 @@ export default function ProfilePage() {
             </div>
 
             <div className={styles.pTags}>
-              <LevelBadge level={MOCK_PROFILE.level as any} showLabel />
+              <LevelBadge level={MOCK_PROFILE.level as never} />
               {MOCK_PROFILE.kyc && <Badge variant="success" size="sm">Đã xác minh KYC</Badge>}
             </div>
 

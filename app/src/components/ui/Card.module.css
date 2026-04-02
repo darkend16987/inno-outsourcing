@@ -9,6 +9,7 @@
 .pad_sm { padding: var(--space-3); }
 .pad_md { padding: var(--space-5); }
 .pad_lg { padding: var(--space-8); }
+.pad_xl { padding: var(--space-12); }
 
 /* Variants */
 .default {
@@ -42,6 +43,20 @@
   box-shadow: var(--shadow-md);
   border-color: var(--color-primary);
   transform: translateY(-2px);
+}
+
+.glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at 50% 0%, var(--color-primary-light), transparent 70%);
+  opacity: 0.08;
+  pointer-events: none;
 }
 
 .clickable {

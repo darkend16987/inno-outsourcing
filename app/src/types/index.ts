@@ -122,6 +122,8 @@ export interface Attachment {
   size?: number;
 }
 
+export type JobTag = 'Siêu tốc' | 'HOT' | 'Phù hợp mọi level' | 'Remote 100%' | 'Thưởng hiệu suất' | 'Tech-lead' | string;
+
 export interface Job {
   id: string;
   title: string;
@@ -159,6 +161,7 @@ export interface Job {
   assignedWorkerName?: string;
   searchKeywords: string[];
   isPublic: boolean;
+  highlightTags?: JobTag[];
 }
 
 // ---- Applications ----
@@ -323,6 +326,7 @@ export interface Notification {
 export interface LeaderboardEntry {
   uid: string;
   name: string;
+  avatar?: string;
   level: JobLevel;
   specialty: string;
   earnings: number;

@@ -1,0 +1,36 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.pageHeader { display: flex; justify-content: space-between; align-items: flex-end; }
+.pageTitle { font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin-bottom: var(--space-2); }
+.pageSubtitle { color: var(--color-text-muted); font-size: 15px; }
+
+.filterRow { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.filterBtn {
+  padding: 8px 16px; border-radius: var(--radius-pill); border: 2px solid var(--color-border);
+  background: var(--color-surface); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.filterBtn:hover { border-color: var(--color-primary); }
+.filterActive { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+.appGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: var(--space-5); }
+.appCard { padding: var(--space-5) !important; display: flex; flex-direction: column; gap: var(--space-4); }
+
+.appHeader { display: flex; align-items: center; gap: var(--space-3); }
+.appInfo { flex: 1; }
+.appName { font-size: 16px; font-weight: 700; }
+.appMeta { display: flex; align-items: center; gap: var(--space-3); margin-top: 4px; font-size: 13px; color: var(--color-text-muted); }
+.rating { display: flex; align-items: center; gap: 3px; font-weight: 600; color: var(--color-warning); }
+
+.jobRef { font-size: 13px; padding: var(--space-2) var(--space-3); background: var(--color-bg); border-radius: var(--radius-md); }
+.forLabel { color: var(--color-text-muted); }
+
+.specialties { display: flex; gap: 6px; flex-wrap: wrap; }
+.coverLetter { font-size: 14px; line-height: 1.6; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.appDetails { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--color-text-muted); }
+.detailItem { display: flex; align-items: center; gap: 6px; }
+.portfolioLink { display: flex; align-items: center; gap: 4px; color: var(--color-primary); text-decoration: none; font-weight: 600; }
+.portfolioLink:hover { text-decoration: underline; }
+
+.appActions { display: flex; gap: var(--space-2); padding-top: var(--space-3); border-top: 1.5px solid var(--color-border); }
+
+@media (max-width: 768px) { .appGrid { grid-template-columns: 1fr; } }

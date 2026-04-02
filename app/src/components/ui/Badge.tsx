@@ -2,9 +2,9 @@
 
 import React from 'react';
 import styles from './Badge.module.css';
-import type { JobLevel, JobStatus, BadgeType as BadgeTypeEnum } from '@/types';
+import type { JobLevel, JobStatus } from '@/types';
 
-type BadgeVariant = 'level' | 'status' | 'role' | 'default' | 'info' | 'success' | 'warning' | 'error' | 'outline';
+type BadgeVariant = 'level' | 'status' | 'role' | 'default' | 'info' | 'success' | 'warning' | 'error' | 'outline' | 'secondary';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -14,6 +14,7 @@ interface BadgeProps {
   className?: string;
   size?: 'sm' | 'md';
   dot?: boolean;
+  glow?: boolean;
 }
 
 export function Badge({
@@ -24,6 +25,7 @@ export function Badge({
   className = '',
   size = 'md',
   dot = false,
+  glow = false,
 }: BadgeProps) {
   const classes = [
     styles.badge,
@@ -37,7 +39,9 @@ export function Badge({
     variant === 'error' ? styles.error : '',
     variant === 'outline' ? styles.outline : '',
     variant === 'default' ? styles.default : '',
+    variant === 'secondary' ? styles.secondary : '',
     dot ? styles.withDot : '',
+    glow ? styles.glow : '',
     className,
   ].filter(Boolean).join(' ');
 

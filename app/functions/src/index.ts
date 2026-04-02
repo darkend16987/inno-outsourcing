@@ -1,16 +1,17 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import * as PDFDocument from 'pdfkit';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import {
-  Contract,
-  Job,
-  Payment,
-  UserProfile
-} from '../../src/types'; // Reference to existing types
+  onDocumentCreated,
+  onDocumentUpdated,
+} from 'firebase-functions/v2/firestore';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import PDFDocument from 'pdfkit';
 
-admin.initializeApp();
-const db = admin.firestore();
-const storage = admin.storage();
+initializeApp();
+const db = getFirestore();
+const storage = getStorage();
 
 // ============================================================
 // HELPER: Create notification document
@@ -26,7 +27,7 @@ async function createNotification(data: {
   await db.collection('notifications').add({
     ...data,
     read: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
 }
 
@@ -53,7 +54,7 @@ async function checkAndAwardBadges(userId: string) {
   if (stats.completedJobs >= 20 && !existingTypes.has('loyal_partner')) {
     await badgesRef.add({
       badgeType: 'loyal_partner',
-      earnedAt: admin.firestore.FieldValue.serverTimestamp(),
+      earnedAt: FieldValue.serverTimestamp(),
     });
     await createNotification({
       recipientId: userId,
@@ -68,7 +69,7 @@ async function checkAndAwardBadges(userId: string) {
   if (stats.avgRating >= 4.8 && stats.ratingCount >= 5 && !existingTypes.has('5_stars')) {
     await badgesRef.add({
       badgeType: '5_stars',
-      earnedAt: admin.firestore.FieldValue.serverTimestamp(),
+      earnedAt: FieldValue.serverTimestamp(),
     });
     await createNotification({
       recipientId: userId,
@@ -83,16 +84,20 @@ async function checkAndAwardBadges(userId: string) {
 // ============================================================
 // 1. onCreateContractPDF — Generate PDF on contract creation
 // ============================================================
-export const onCreateContractPDF = functions.firestore
-  .document('contracts/{contractId}')
-  .onCreate(async (snap, context) => {
-    const contract = snap.data() as Contract;
+export const onCreateContractPDF = onDocumentCreated(
+  'contracts/{contractId}',
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const contract = snap.data();
+    const contractId = event.params.contractId;
     const bucket = storage.bucket();
-    const filePath = `contracts/${context.params.contractId}.pdf`;
+    const filePath = `contracts/${contractId}.pdf`;
     const doc = new PDFDocument();
 
-    const buffers: any[] = [];
-    doc.on('data', (chunk) => buffers.push(chunk));
+    const buffers: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => buffers.push(chunk));
 
     // Simple PDF Structure
     doc.fontSize(20).text('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { align: 'center' });
@@ -101,92 +106,105 @@ export const onCreateContractPDF = functions.firestore
     doc.fontSize(12).text(`Số hợp đồng: ${contract.contractNumber}`);
     doc.text(`Tên dự án: ${contract.jobTitle}`);
     doc.moveDown();
-    doc.text(`BÊN A (Chủ sở hữu): ${contract.partyA.name}`);
-    doc.text(`BÊN B (Freelancer): ${contract.partyB.name}`);
+    doc.text(`BÊN A (Chủ sở hữu): ${contract.partyA?.name || ''}`);
+    doc.text(`BÊN B (Freelancer): ${contract.partyB?.name || ''}`);
     doc.moveDown();
     doc.text('ĐIỀU KHOẢN THANH TOÁN:');
-    doc.text(contract.paymentTerms);
+    doc.text(contract.paymentTerms || '');
     doc.moveDown();
     doc.text('XÁC NHẬN KÝ KẾT ĐIỆN TỬ:');
-    doc.text(`Thời điểm khởi tạo: ${new Date(contract.createdAt).toLocaleString()}`);
+    doc.text(`Thời điểm khởi tạo: ${new Date().toLocaleString('vi-VN')}`);
 
     doc.end();
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       doc.on('end', async () => {
-        const finalBuffer = Buffer.concat(buffers);
-        const file = bucket.file(filePath);
-        await file.save(finalBuffer, {
-          metadata: { contentType: 'application/pdf' }
-        });
+        try {
+          const finalBuffer = Buffer.concat(buffers);
+          const file = bucket.file(filePath);
+          await file.save(finalBuffer, {
+            metadata: { contentType: 'application/pdf' },
+          });
 
-        // Update document with PDF URL
-        const pdfURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-        await snap.ref.update({ pdfURL });
-        resolve(true);
+          const pdfURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+          await snap.ref.update({ pdfURL });
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
       });
       doc.on('error', reject);
     });
-  });
+  }
+);
 
 // ============================================================
 // 2. requestPaymentOrder — Callable function for payment orders
 // ============================================================
-export const requestPaymentOrder = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Yêu cầu đăng nhập.');
+export const requestPaymentOrder = onCall(
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Yêu cầu đăng nhập.');
+    }
 
-  const { jobId, milestoneId, amount, workerId, workerName, reason } = data;
+    const { jobId, milestoneId, amount, workerId, workerName, reason } = request.data;
 
-  // Verify Role is Job Master or Admin via collection lookup
-  const userSnap = await db.collection('users').doc(context.auth.uid).get();
-  const profile = userSnap.data() as UserProfile;
-  if (profile.role !== 'jobmaster' && profile.role !== 'admin') {
-    throw new functions.https.HttpsError('permission-denied', 'Bạn không có quyền thực hiện thanh toán.');
+    // Verify Role is Job Master or Admin via collection lookup
+    const userSnap = await db.collection('users').doc(request.auth.uid).get();
+    const profile = userSnap.data();
+    if (!profile || (profile.role !== 'jobmaster' && profile.role !== 'admin')) {
+      throw new HttpsError('permission-denied', 'Bạn không có quyền thực hiện thanh toán.');
+    }
+
+    // Create payment document
+    const paymentData = {
+      jobId,
+      milestoneId,
+      workerId,
+      workerName,
+      amount,
+      reason,
+      status: 'pending',
+      triggeredByMilestone: true,
+      approvedByJobMaster: request.auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    const paymentRef = await db.collection('payments').add(paymentData);
+
+    // Update Milestone status in the job document
+    const jobRef = db.collection('jobs').doc(jobId);
+    const jobSnap = await jobRef.get();
+    const jobData = jobSnap.data();
+    if (jobData && jobData.milestones) {
+      const updatedMilestones = jobData.milestones.map((m: any) =>
+        m.id === milestoneId
+          ? { ...m, status: 'approved', approvedBy: request.auth!.uid, approvedAt: new Date() }
+          : m
+      );
+      await jobRef.update({ milestones: updatedMilestones });
+    }
+
+    return { success: true, paymentId: paymentRef.id };
   }
-
-  // Create Transaction Document in /payments collection
-  const paymentData: Partial<Payment> = {
-    jobId,
-    milestoneId,
-    workerId,
-    workerName,
-    amount,
-    reason,
-    status: 'pending',
-    triggeredByMilestone: true,
-    approvedByJobMaster: context.auth.uid,
-    createdAt: admin.firestore.FieldValue.serverTimestamp() as any,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp() as any,
-  };
-
-  const paymentRef = await db.collection('payments').add(paymentData);
-
-  // Update Milestone status in the job document
-  const jobRef = db.collection('jobs').doc(jobId);
-  const jobSnap = await jobRef.get();
-  const jobData = jobSnap.data() as Job;
-  const updatedMilestones = jobData.milestones.map(m =>
-    m.id === milestoneId ? { ...m, status: 'approved', approvedBy: context.auth!.uid, approvedAt: new Date() } : m
-  );
-
-  await jobRef.update({ milestones: updatedMilestones });
-
-  return { success: true, paymentId: paymentRef.id };
-});
+);
 
 // ============================================================
 // 3. onJobStatusChange — When job status changes
 // ============================================================
-export const onJobStatusChange = functions.firestore
-  .document('jobs/{jobId}')
-  .onUpdate(async (change, context) => {
+export const onJobStatusChange = onDocumentUpdated(
+  'jobs/{jobId}',
+  async (event) => {
+    const change = event.data;
+    if (!change) return;
+
     const before = change.before.data();
     const after = change.after.data();
-    const jobId = context.params.jobId;
+    const jobId = event.params.jobId;
 
     // Job approved: pending_approval -> open
     if (before.status === 'pending_approval' && after.status === 'open') {
-      // Notify freelancers with matching specialties
       const category = after.category;
       const matchingUsers = await db.collection('users')
         .where('role', '==', 'freelancer')
@@ -205,7 +223,7 @@ export const onJobStatusChange = functions.firestore
           body: `"${after.title}" (${category}) - ${after.level} - Thù lao: ${Number(after.totalFee).toLocaleString('vi-VN')}₫`,
           link: `/jobs/${jobId}`,
           read: false,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
         });
       });
       await batch.commit();
@@ -224,7 +242,6 @@ export const onJobStatusChange = functions.firestore
 
     // Job completed: review -> completed
     if (before.status !== 'completed' && after.status === 'completed') {
-      // Notify admin
       const admins = await getUsersByRole('admin');
       for (const adminId of admins) {
         await createNotification({
@@ -244,22 +261,25 @@ export const onJobStatusChange = functions.firestore
           const stats = workerSnap.data()?.stats || {};
           await workerRef.update({
             'stats.completedJobs': (stats.completedJobs || 0) + 1,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
           });
 
-          // Check badges
           await checkAndAwardBadges(after.assignedTo);
         }
       }
     }
-  });
+  }
+);
 
 // ============================================================
 // 4. onApplicationSubmitted — Notify job master + admin
 // ============================================================
-export const onApplicationSubmitted = functions.firestore
-  .document('applications/{applicationId}')
-  .onCreate(async (snap, context) => {
+export const onApplicationSubmitted = onDocumentCreated(
+  'applications/{applicationId}',
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
     const application = snap.data();
     const jobSnap = await db.collection('jobs').doc(application.jobId).get();
     const job = jobSnap.data();
@@ -272,7 +292,7 @@ export const onApplicationSubmitted = functions.firestore
         recipientId: job.jobMaster,
         type: 'application_received',
         title: 'Ứng tuyển mới',
-        body: `${application.applicantName} đã ứng tuyển job "${job.title}"`,
+        body: `${application.applicantName || application.freelancerName || 'Ứng viên'} đã ứng tuyển job "${job.title}"`,
         link: `/jobmaster/applications`,
       });
     }
@@ -284,18 +304,22 @@ export const onApplicationSubmitted = functions.firestore
         recipientId: adminId,
         type: 'application_received',
         title: 'Ứng tuyển mới',
-        body: `${application.applicantName} ứng tuyển "${job.title}"`,
+        body: `${application.applicantName || application.freelancerName || 'Ứng viên'} ứng tuyển "${job.title}"`,
         link: `/admin`,
       });
     }
-  });
+  }
+);
 
 // ============================================================
 // 5. onApplicationUpdated — Notify freelancer on accept/reject
 // ============================================================
-export const onApplicationUpdated = functions.firestore
-  .document('applications/{applicationId}')
-  .onUpdate(async (change, context) => {
+export const onApplicationUpdated = onDocumentUpdated(
+  'applications/{applicationId}',
+  async (event) => {
+    const change = event.data;
+    if (!change) return;
+
     const before = change.before.data();
     const after = change.after.data();
 
@@ -322,14 +346,18 @@ export const onApplicationUpdated = functions.firestore
         link: `/freelancer/jobs`,
       });
     }
-  });
+  }
+);
 
 // ============================================================
 // 6. onPaymentUpdated — Notify freelancer + admin on payment
 // ============================================================
-export const onPaymentUpdated = functions.firestore
-  .document('payments/{paymentId}')
-  .onUpdate(async (change, context) => {
+export const onPaymentUpdated = onDocumentUpdated(
+  'payments/{paymentId}',
+  async (event) => {
+    const change = event.data;
+    if (!change) return;
+
     const before = change.before.data();
     const after = change.after.data();
 
@@ -364,7 +392,7 @@ export const onPaymentUpdated = functions.firestore
         await workerRef.update({
           'stats.totalEarnings': (stats.totalEarnings || 0) + after.amount,
           'stats.currentMonthEarnings': (stats.currentMonthEarnings || 0) + after.amount,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         });
       }
 
@@ -376,7 +404,7 @@ export const onPaymentUpdated = functions.firestore
         if (job && job.milestones) {
           const allPaid = job.milestones.every((m: any) => m.status === 'paid');
           if (allPaid) {
-            await jobRef.update({ status: 'paid', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            await jobRef.update({ status: 'paid', updatedAt: FieldValue.serverTimestamp() });
           }
         }
       }
@@ -395,14 +423,18 @@ export const onPaymentUpdated = functions.firestore
         });
       }
     }
-  });
+  }
+);
 
 // ============================================================
 // 7. onContractStatusChange — Notify freelancer to sign
 // ============================================================
-export const onContractStatusChange = functions.firestore
-  .document('contracts/{contractId}')
-  .onUpdate(async (change, context) => {
+export const onContractStatusChange = onDocumentUpdated(
+  'contracts/{contractId}',
+  async (event) => {
+    const change = event.data;
+    if (!change) return;
+
     const before = change.before.data();
     const after = change.after.data();
 
@@ -419,15 +451,18 @@ export const onContractStatusChange = functions.firestore
         });
       }
     }
-  });
+  }
+);
 
 // ============================================================
 // 8. scheduledDeadlineCheck — Daily cron, warn 3 days before deadline
 // ============================================================
-export const scheduledDeadlineCheck = functions.pubsub
-  .schedule('every day 09:00')
-  .timeZone('Asia/Ho_Chi_Minh')
-  .onRun(async () => {
+export const scheduledDeadlineCheck = onSchedule(
+  {
+    schedule: 'every day 09:00',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  },
+  async () => {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
@@ -465,21 +500,22 @@ export const scheduledDeadlineCheck = functions.pubsub
         }
       }
     }
-
-    return null;
-  });
+  }
+);
 
 // ============================================================
 // 9. scheduledLeaderboard — Monthly cron, generate leaderboard
 // ============================================================
-export const scheduledLeaderboard = functions.pubsub
-  .schedule('1 of month 00:00')
-  .timeZone('Asia/Ho_Chi_Minh')
-  .onRun(async () => {
+export const scheduledLeaderboard = onSchedule(
+  {
+    schedule: '0 0 1 * *', // 1st of every month at midnight
+    timeZone: 'Asia/Ho_Chi_Minh',
+  },
+  async () => {
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`; // Previous month
 
-    // Get all active freelancers
+    // Get all active freelancers sorted by earnings
     const usersSnap = await db.collection('users')
       .where('role', '==', 'freelancer')
       .where('status', '==', 'active')
@@ -510,7 +546,7 @@ export const scheduledLeaderboard = functions.pubsub
         rank,
         period: month,
         type: 'monthly',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       });
       rank++;
     }
@@ -522,6 +558,5 @@ export const scheduledLeaderboard = functions.pubsub
     for (const userDoc of top3) {
       await checkAndAwardBadges(userDoc.id);
     }
-
-    return null;
-  });
+  }
+);

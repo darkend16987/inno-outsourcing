@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -39,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Firebase service account key (NEVER commit)
+serviceAccountKey.json
+firebase-debug.log
+
+# Cloud Functions compiled output
+/functions/lib

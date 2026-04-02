@@ -10,6 +10,10 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
   sendPasswordResetEmail,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  PhoneAuthProvider,
+  signInWithCredential,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -25,8 +29,10 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, extraData: Partial<UserProfile>) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithPhone: (phoneNumber: string, recaptchaContainerId: string) => Promise<string>;
+  verifyOTP: (verificationId: string, otp: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -145,20 +151,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (err: any) {
-      setState(prev => ({ ...prev, loading: false, error: err.message }));
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setState(prev => ({ ...prev, loading: false, error: err.message }));
+      }
       throw err;
     }
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string, displayName: string) => {
+  const signUpWithEmail = useCallback(async (email: string, password: string, extraData: Partial<UserProfile>) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName });
-      await ensureUserProfile(cred.user, { displayName });
-    } catch (err: any) {
-      setState(prev => ({ ...prev, loading: false, error: err.message }));
+      if (extraData.displayName) {
+        await updateProfile(cred.user, { displayName: extraData.displayName });
+      }
+      await ensureUserProfile(cred.user, extraData);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setState(prev => ({ ...prev, loading: false, error: err.message }));
+      }
       throw err;
     }
   }, []);
@@ -168,8 +180,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (err: any) {
-      setState(prev => ({ ...prev, loading: false, error: err.message }));
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setState(prev => ({ ...prev, loading: false, error: err.message }));
+      }
+      throw err;
+    }
+  }, []);
+
+  const signInWithPhone = useCallback(async (phoneNumber: string, recaptchaContainerId: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      // Setup recaptcha verifier
+      const recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerId, {
+        size: 'invisible',
+      });
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+      setState(prev => ({ ...prev, loading: false }));
+      return confirmationResult.verificationId;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setState(prev => ({ ...prev, loading: false, error: err.message }));
+      }
+      throw err;
+    }
+  }, []);
+
+  const verifyOTP = useCallback(async (verificationId: string, otp: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      await signInWithCredential(auth, credential);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setState(prev => ({ ...prev, loading: false, error: err.message }));
+      }
       throw err;
     }
   }, []);
@@ -196,6 +241,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signInWithGoogle,
+      signInWithPhone,
+      verifyOTP,
       signOut,
       resetPassword,
       refreshProfile,

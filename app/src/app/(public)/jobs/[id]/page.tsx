@@ -1,50 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
-  ArrowLeft, MapPin, Clock, Briefcase, Calendar, 
-  CheckCircle2, FileText, UploadCloud, ChevronRight 
+  ArrowLeft, Clock, Briefcase, Calendar, 
+  Sparkles, Zap, Star, Target, Send,
+  FileText, MessageSquare, Info
 } from 'lucide-react';
-import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
-import type { JobLevel, WorkMode } from '@/types';
+import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
+import type { Job } from '@/types';
+import { getJobById } from '@/lib/firebase/firestore';
+import { formatFriendlyMoney, formatDate } from '@/lib/formatters';
 import styles from './page.module.css';
-
-// Extended mock job data for detail page
-const MOCK_JOB = {
-  id: '3',
-  title: 'Thiết kế kết cấu Bệnh viện Đa khoa Cần Thơ',
-  category: 'Kết cấu',
-  level: 'L5' as JobLevel,
-  fee: '120,000,000₫',
-  duration: '90 ngày',
-  workMode: 'on-site' as WorkMode,
-  createdAt: '2026-04-01',
-  deadline: '2026-04-15',
-  startDate: '2026-05-01',
-  status: 'open',
-  jobMaster: {
-    name: 'Trần Văn Hoàng',
-    role: 'Trưởng phòng Kết cấu',
-    level: 'L5' as JobLevel,
-  },
-  desc: `Thiết kế kết cấu BTCT, thép cho bệnh viện 200 giường, 8 tầng + 2 tầng hầm.
-Dự án trọng điểm yêu cầu độ chính xác cao và xử lý móng phức tạp do địa chất nền đất yếu tại khu vực đồng bằng sông Cửu Long. Khối lượng công việc bao gồm tính toán kết cấu toàn công trình, bóc tách khối lượng và ra bản vẽ thi công.`,
-  requirements: {
-    experience: 'Ít nhất 7 năm kinh nghiệm thiết kế kết cấu nhà cao tầng hoặc công trình công cộng lớn.',
-    certifications: 'Chứng chỉ hành nghề Thiết kế Kết cấu hạng I.',
-    software: ['Etabs', 'Safe', 'Revit Structure', 'AutoCAD'],
-    standards: ['TCVN 5574:2018', 'TCVN 2737:2023', 'QCVN 06:2022'],
-  },
-  milestones: [
-    { id: 'm1', name: 'Thiết kế cơ sở & Thống nhất phương án', percentage: 20, amount: '24,000,000₫' },
-    { id: 'm2', name: 'Bản vẽ Thiết kế Kỹ thuật (TKKT)', percentage: 40, amount: '48,000,000₫' },
-    { id: 'm3', name: 'Bản vẽ Thi công (BVTC) & Bóc khối lượng', percentage: 30, amount: '36,000,000₫' },
-    { id: 'm4', name: 'Bảo hành thiết kế (sau khi ra giấy phép)', percentage: 10, amount: '12,000,000₫' },
-  ]
-};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -53,19 +22,83 @@ const fadeUp = {
 
 export default function JobDetailPage() {
   const params = useParams();
+  const jobId = params.id as string;
+  const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
 
-  // In real app, fetch job based on params.id
-  const job = { ...MOCK_JOB, id: params.id as string };
+  useEffect(() => {
+    async function fetchJob() {
+      try {
+        setLoading(true);
+        const data = await getJobById(jobId);
+        setJob(data);
+      } catch (error) {
+        console.error('Error fetching job:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (jobId) fetchJob();
+  }, [jobId]);
 
   const handleApply = () => {
     setIsApplying(true);
     // Simulate application process
     setTimeout(() => {
       setIsApplying(false);
-      alert('Đã gửi yêu cầu nhận việc thành công!');
+      alert('Đã gửi yêu cầu nhận việc thành công! Hệ thống sẽ thông báo kết quả cho bạn sớm nhất.');
     }, 1500);
   };
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.breadcrumb}>
+            <Skeleton width="200px" height="20px" />
+          </div>
+          <div className={styles.layout}>
+            <div className={styles.main}>
+              <Card padding="xl">
+                <Skeleton width="100px" height="30px" className="mb-4" />
+                <Skeleton width="80%" height="40px" className="mb-6" />
+                <div className="flex gap-4 mb-8">
+                  <Skeleton width="150px" height="20px" />
+                  <Skeleton width="150px" height="20px" />
+                  <Skeleton width="150px" height="20px" />
+                </div>
+                <Skeleton width="100%" height="200px" />
+              </Card>
+            </div>
+            <div className={styles.sidebar}>
+              <Card padding="xl">
+                <Skeleton width="100%" height="150px" className="mb-6" />
+                <Skeleton width="100%" height="50px" />
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.errorState}>
+            <Info size={48} className={styles.errorIcon} />
+            <h2>Không tìm thấy công việc</h2>
+            <p>Công việc này có thể đã bị xóa hoặc bạn không có quyền truy cập.</p>
+            <Link href="/jobs">
+              <Button variant="primary">Quay lại danh sách</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -87,36 +120,41 @@ export default function JobDetailPage() {
           <motion.div className={styles.main} initial="hidden" animate="visible" variants={fadeUp}>
             <div className={styles.header}>
               <div className={styles.tags}>
-                <Badge variant="default">{job.category}</Badge>
+                <Badge variant="default" glow>{job.category}</Badge>
                 <LevelBadge level={job.level} />
-                <Badge size="sm">{job.workMode === 'remote' ? 'Từ xa' : job.workMode === 'on-site' ? 'Tại công trường' : 'Kết hợp'}</Badge>
+                <Badge size="sm" variant="outline">
+                  {job.workMode === 'remote' ? 'Từ xa 🏠' : job.workMode === 'on-site' ? 'Tại công trường 🏗️' : 'Kết hợp 🏢'}
+                </Badge>
+                {job.highlightTags?.map(tag => (
+                  <Badge key={tag} size="sm" variant="secondary">#{tag}</Badge>
+                ))}
               </div>
               <h1 className={styles.title}>{job.title}</h1>
               
               <div className={styles.meta}>
-                <div className={styles.metaItem}><Clock size={16}/> Đăng ngày: {job.createdAt}</div>
-                <div className={styles.metaItem}><Calendar size={16}/> Hạn nộp: {job.deadline}</div>
-                <div className={styles.metaItem}><Briefcase size={16}/> Bắt đầu: {job.startDate}</div>
+                <div className={styles.metaItem}><Clock size={16} color="var(--color-primary)"/> Đăng ngày: {formatDate(job.createdAt)}</div>
+                <div className={styles.metaItem}><Calendar size={16} color="var(--color-warning)"/> Hạn nộp: {formatDate(job.deadline)}</div>
+                <div className={styles.metaItem}><Target size={16} color="var(--color-success)"/> Bắt đầu: {job.startDate ? formatDate(job.startDate) : 'Thỏa thuận'}</div>
               </div>
             </div>
 
             <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>Mô tả công việc</h2>
+              <h2 className={styles.sectionTitle}><Briefcase size={20} /> Mô tả công việc</h2>
               <div className={styles.content}>
-                {job.desc.split('\n').map((para, i) => (
+                {job.description.split('\n').map((para, i) => (
                   <p key={i}>{para}</p>
                 ))}
               </div>
             </section>
 
             <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>Yêu cầu công việc</h2>
+              <h2 className={styles.sectionTitle}><Zap size={20} /> Yêu cầu công việc</h2>
               <ul className={styles.reqList}>
                 <li><strong>Kinh nghiệm:</strong> {job.requirements.experience}</li>
                 <li><strong>Chứng chỉ:</strong> {job.requirements.certifications}</li>
                 <li><strong>Phần mềm:</strong> 
                   <div className={styles.softwareGrid}>
-                    {job.requirements.software.map(sw => <Badge key={sw} size="sm" variant="outline">{sw}</Badge>)}
+                    {job.requirements.software.map(sw => <Badge key={sw} size="sm" variant="outline" className={styles.swBadge}>{sw}</Badge>)}
                   </div>
                 </li>
                 <li><strong>Tiêu chuẩn:</strong> {job.requirements.standards.join(', ')}</li>
@@ -124,7 +162,7 @@ export default function JobDetailPage() {
             </section>
 
             <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>Giai đoạn thanh toán (Milestones)</h2>
+              <h2 className={styles.sectionTitle}><Star size={20} /> Giai đoạn thanh toán (Milestones)</h2>
               <div className={styles.milestones}>
                 {job.milestones.map((ms, index) => (
                   <div key={ms.id} className={styles.milestone}>
@@ -134,48 +172,110 @@ export default function JobDetailPage() {
                     </div>
                     <div className={styles.mRight}>
                       <div className={styles.mPercent}>{ms.percentage}%</div>
-                      <div className={styles.mAmount}>{ms.amount}</div>
+                      <div className={styles.mAmount}>{formatFriendlyMoney(ms.amount)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
+            {job.attachments && job.attachments.length > 0 && (
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}><FileText size={20} /> File đính kèm</h2>
+                <div className={styles.chipRow}>
+                  {job.attachments.map((file, idx) => (
+                    <Badge key={idx} variant="outline" className={styles.fileChip}>
+                      {file.type.toUpperCase()} | {file.name}
+                    </Badge>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}><MessageSquare size={20} /> Bình luận (4)</h2>
+              <div className={styles.commentBox}>
+                <div className={styles.commentTop}>
+                  <Avatar name="Me" size="md" />
+                  <div className={styles.commentBody}>
+                    <strong>Bạn</strong>
+                    <textarea className={styles.commentInput} placeholder="Đặt câu hỏi về công việc này..." />
+                  </div>
+                </div>
+                <div className={styles.commentActions}>
+                  <Button size="sm" icon={<Send size={14}/>}>Gửi câu hỏi</Button>
+                </div>
+              </div>
+              
+              {/* Note: In real app, these would be fetched from a comments collection */}
+              <div className={styles.commentStream}>
+                <Card className={styles.commentCard} padding="sm">
+                  <div className={styles.commentTop}>
+                    <Avatar name={job.jobMasterName} size="md" />
+                    <div className={styles.commentBody}>
+                      <div className={styles.metaRow}>
+                        <strong className={styles.commentName}>{job.jobMasterName}</strong>
+                        <Badge variant="status" status="in_progress" size="sm">Quản lý</Badge>
+                      </div>
+                      <span className={styles.commentTime}>Vừa xong</span>
+                      <p className={styles.commentText}>Mốc 50% được xác nhận khi hoàn thành toàn bộ model core, façade và coordination sheet tầng điển hình.</p>
+                      <div className={styles.commentFooter}>
+                        <span>Thích</span><span>Trả lời</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </section>
           </motion.div>
 
           {/* Sidebar */}
           <motion.div className={styles.sidebar} initial="hidden" animate="visible" variants={fadeUp}>
-            <Card className={styles.actionCard}>
+            <Card className={styles.actionCard} glow>
               <div className={styles.feeBlock}>
                 <span className={styles.feeLabel}>Ngân sách dự kiến</span>
-                <div className={styles.feeVal}>{job.fee}</div>
-                <div className={styles.duration}>Thời gian: <strong>{job.duration}</strong></div>
+                <div className={styles.feeVal}>{formatFriendlyMoney(job.totalFee)}</div>
+                <div className={styles.duration}>Thời gian: <strong>{job.duration} ngày</strong></div>
               </div>
 
               <div className={styles.actionBlock}>
-                <Button fullWidth size="lg" onClick={handleApply} isLoading={isApplying}>Nộp hồ sơ ứng tuyển</Button>
-                <div className={styles.actionHint}>Bạn cần có hồ sơ đạt level {job.level} để ứng tuyển.</div>
+                <Button 
+                  fullWidth 
+                  size="lg" 
+                  onClick={handleApply} 
+                  loading={isApplying}
+                  icon={<Sparkles size={18} />}
+                >
+                  Nộp hồ sơ ứng tuyển
+                </Button>
+                <div className={styles.actionHint}>
+                  Yêu cầu Level {job.level} để tối ưu cơ hội trúng tuyển.
+                </div>
               </div>
 
               <div className={styles.masterInfo}>
-                <div className={styles.mLabel}>Job Master</div>
+                <div className={styles.mLabel}>Người quản lý công việc</div>
                 <div className={styles.mProfile}>
-                  <Avatar name={job.jobMaster.name} level={job.jobMaster.level} size="md" />
+                  <Avatar name={job.jobMasterName} level={job.level} size="md" />
                   <div className={styles.mDetails}>
-                    <div className={styles.mName}>{job.jobMaster.name}</div>
-                    <div className={styles.mRole}>{job.jobMaster.role}</div>
+                    <div className={styles.mName}>{job.jobMasterName}</div>
+                    <div className={styles.mRole}>Job Master @ INNO</div>
                   </div>
+                </div>
+                <div className={styles.mContact}>
+                  <div className={styles.contactRow}><span>Hỗ trợ:</span> <strong>Chat ngay</strong></div>
+                  <Button variant="outline" size="sm" fullWidth className={styles.contactBtn} icon={<MessageSquare size={14}/>}>Nhắn trao đổi</Button>
                 </div>
               </div>
             </Card>
 
             <Card className={styles.infoCard}>
-              <h3 className={styles.infoTitle}>Quy trình làm việc</h3>
+              <h3 className={styles.infoTitle}><Sparkles size={18} color="var(--color-warning)"/> Quy trình làm việc</h3>
               <ul className={styles.checklist}>
-                <li><CheckCircle2 size={16} /> Ứng tuyển & Xét duyệt hồ sơ</li>
-                <li><CheckCircle2 size={16} /> Phỏng vấn & Chốt hợp đồng</li>
-                <li><CheckCircle2 size={16} /> Nhận việc & Báo cáo tiến độ</li>
-                <li><CheckCircle2 size={16} /> Nghiệm thu & Thanh toán</li>
+                <li><Sparkles size={16} /> Ứng tuyển & Xét duyệt hồ sơ</li>
+                <li><Zap size={16} /> Phỏng vấn & Chốt hợp đồng</li>
+                <li><Target size={16} /> Nhận việc & Báo cáo</li>
+                <li><Star size={16} /> Nghiệm thu & Thanh toán</li>
               </ul>
             </Card>
           </motion.div>

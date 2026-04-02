@@ -25,24 +25,26 @@ export default function JobMasterDashboard() {
 
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Dự án phụ trách"
+          label="Dự án phụ trách"
           value={MOCK_STATS.myJobs.toString()}
           icon={<FolderKanban size={20} />}
-          trend={{ value: '2 dự án sắp đến hạn', label: '', isPositive: false }}
+          trend="down"
+          trendValue="2 dự án sắp đến hạn"
         />
         <MetricCard
-          title="Freelancer đang quản lý"
+          label="Freelancer đang quản lý"
           value={MOCK_STATS.activeFreelancers.toString()}
           icon={<Users size={20} />}
         />
         <MetricCard
-          title="Ứng viên mới chờ duyệt"
+          label="Ứng viên mới chờ duyệt"
           value={MOCK_STATS.newApplications.toString()}
           icon={<CheckSquare size={20} />}
-          trend={{ value: 'Mới cập nhật', label: '', isPositive: true }}
+          trend="up"
+          trendValue="Mới cập nhật"
         />
         <MetricCard
-          title="Nghiệm thu chờ phê duyệt"
+          label="Nghiệm thu chờ phê duyệt"
           value={MOCK_STATS.pendingReviews.toString()}
           icon={<Clock size={20} />}
         />

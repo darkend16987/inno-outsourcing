@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  Briefcase, Users, TrendingUp, Award,
+  Briefcase, Users, TrendingUp,
   ArrowRight, Search, Building2, Zap,
   Shield, Clock, Star, ChevronRight
 } from 'lucide-react';
@@ -12,6 +12,14 @@ import { Button, Badge, Card, MetricCard, Avatar, LevelBadge } from '@/component
 import styles from './page.module.css';
 
 // Mock data for demo
+const MOCK_ACTIVITIES = [
+  { id: 1, type: 'assign', user: 'Trần Minh Tuấn', job: 'BIM Modeling tổ hợp văn phòng', time: '10 phút trước' },
+  { id: 2, type: 'payment', user: 'Lê Thị Hoa', job: 'Hệ thống MEP chung cư', time: '1 giờ trước', note: 'nhận thanh toán 100%' },
+  { id: 3, type: 'complete', user: 'Nguyễn Thanh Hùng', job: 'Thiết kế kiến trúc Nhà xưởng', time: '3 giờ trước', note: 'vừa hoàn thành xuất sắc' },
+  { id: 4, type: 'assign', user: 'Phạm Đức Anh', job: 'Dự toán công trình trường học', time: '5 giờ trước' },
+  { id: 5, type: 'new', job: 'Thẩm tra PCCC tòa nhà hỗn hợp Hà Nội', time: 'Vừa xong', note: 'mới được đăng tải' },
+];
+
 const MOCK_STATS = [
   { label: 'Dự án đang mở', value: '42', icon: <Briefcase size={20} /> },
   { label: 'Freelancers', value: '186', icon: <Users size={20} /> },
@@ -46,12 +54,42 @@ const CATEGORIES = [
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] } }),
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } }),
 };
 
 export default function LandingClient() {
   return (
     <div className={styles.page}>
+      {/* ── Activity Feed ── */}
+      <section className={styles.activityFeedWrapper}>
+        <div className={styles.activityFeedLabel}>
+          <Zap size={16} /> Hoạt động mới:
+        </div>
+        <div className={styles.activityMarquee}>
+          {/* Double track to create seamless infinite loop */}
+          <div className={styles.activityTrack}>
+            {[...MOCK_ACTIVITIES, ...MOCK_ACTIVITIES].map((activity, idx) => (
+              <div key={`${activity.id}-${idx}`} className={styles.activityItem}>
+                <span className={styles.activityTime}>{activity.time}</span>
+                {activity.type === 'new' ? (
+                  <>
+                    Dự án <span className={styles.activityHighlight}>{activity.job}</span> {activity.note}
+                  </>
+                ) : activity.type === 'assign' ? (
+                  <>
+                    <span className={styles.activityHighlight}>{activity.user}</span> đã nhận dự án <span className={styles.activityHighlight}>{activity.job}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={styles.activityHighlight}>{activity.user}</span> {activity.note} dự án <span className={styles.activityHighlight}>{activity.job}</span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Hero Section ── */}
       <section className={styles.hero}>
         <div className={styles.heroBg} />

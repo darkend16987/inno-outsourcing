@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Briefcase, CheckCircle, Clock, Star, TrendingUp } from 'lucide-react';
-import { Card, MetricCard, Badge, LevelBadge, Button } from '@/components/ui';
+import { Card, MetricCard, Badge, Button } from '@/components/ui';
 import styles from './page.module.css';
 
 const MOCK_STATS = {
@@ -27,26 +27,29 @@ export default function FreelancerDashboard() {
       {/* Metrics */}
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Tổng thu nhập"
+          label="Tổng thu nhập"
           value={MOCK_STATS.totalEarned}
           icon={<TrendingUp size={20} />}
-          trend={{ value: '+15%', label: 'so với tháng trước', isPositive: true }}
+          trend="up"
+          trendValue="+15%"
+          subtitle="so với tháng trước"
         />
         <MetricCard
-          title="Đã hoàn thành"
+          label="Đã hoàn thành"
           value={MOCK_STATS.completedJobs.toString()}
           icon={<CheckCircle size={20} />}
         />
         <MetricCard
-          title="Đang thực hiện"
+          label="Đang thực hiện"
           value={MOCK_STATS.inProgressJobs.toString()}
           icon={<Briefcase size={20} />}
         />
         <MetricCard
-          title="Đánh giá trung bình"
+          label="Đánh giá trung bình"
           value={MOCK_STATS.rating.toString()}
           icon={<Star size={20} />}
-          trend={{ value: MOCK_STATS.onTimeRate + ' đúng hạn', label: '', isPositive: true }}
+          trend="up"
+          trendValue={MOCK_STATS.onTimeRate + ' đúng hạn'}
         />
       </div>
 

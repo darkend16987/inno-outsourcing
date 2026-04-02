@@ -25,28 +25,32 @@ export default function AdminReportsPage() {
 
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Tổng Doanh Thu (GMV)"
+          label="Tổng Doanh Thu (GMV)"
           value="450.5M ₫"
           icon={<TrendingUp size={20} />}
-          trend={{ value: '+22% so với kỳ trước', label: '', isPositive: true }}
+          trend="up"
+          trendValue="+22% so với kỳ trước"
         />
         <MetricCard
-          title="Tổng số Freelancer"
+          label="Tổng số Freelancer"
           value="1,245"
           icon={<Users size={20} />}
-          trend={{ value: '+12 đăng ký mới', label: '', isPositive: true }}
+          trend="up"
+          trendValue="+12 đăng ký mới"
         />
         <MetricCard
-          title="Dự án đang chạy"
+          label="Dự án đang chạy"
           value="48"
           icon={<FolderKanban size={20} />}
-          trend={{ value: 'Ổn định', label: '', isPositive: true }}
+          trend="up"
+          trendValue="Ổn định"
         />
         <MetricCard
-          title="Dự án hoàn thành"
+          label="Dự án hoàn thành"
           value="312"
           icon={<CheckCircle size={20} />}
-          trend={{ value: 'Tỉ lệ success 98%', label: '', isPositive: true }}
+          trend="up"
+          trendValue="Tỉ lệ success 98%"
         />
       </div>
 

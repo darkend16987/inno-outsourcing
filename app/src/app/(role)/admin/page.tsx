@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, FolderKanban, DollarSign, Activity, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, FolderKanban, DollarSign, Activity, AlertCircle } from 'lucide-react';
 import { Card, MetricCard, Badge } from '@/components/ui';
 import styles from './page.module.css';
 
@@ -24,27 +24,30 @@ export default function AdminDashboard() {
 
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Tổng số Người dùng"
+          label="Tổng số Người dùng"
           value={MOCK_STATS.totalUsers.toString()}
           icon={<Users size={20} />}
-          trend={{ value: '+24 tuần này', label: '', isPositive: true }}
+          trend="up"
+          trendValue="+24 tuần này"
         />
         <MetricCard
-          title="Dự án đang thực hiện"
+          label="Dự án đang thực hiện"
           value={MOCK_STATS.activeJobs.toString()}
           icon={<FolderKanban size={20} />}
         />
         <MetricCard
-          title="Ứng tuyển chờ duyệt"
+          label="Ứng tuyển chờ duyệt"
           value={MOCK_STATS.pendingApps.toString()}
           icon={<Activity size={20} />}
-          trend={{ value: 'Cần chú ý', label: '', isPositive: false }}
+          trend="down"
+          trendValue="Cần chú ý"
         />
         <MetricCard
-          title="Doanh thu hệ thống (Năm)"
+          label="Doanh thu hệ thống (Năm)"
           value={MOCK_STATS.revenue}
           icon={<DollarSign size={20} />}
-          trend={{ value: '+12% so với 2025', label: '', isPositive: true }}
+          trend="up"
+          trendValue="+12% so với 2025"
         />
       </div>
 

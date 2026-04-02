@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Search, Menu, X, Bell, User, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import styles from './Header.module.css';
 
 export function Header() {
@@ -43,6 +44,7 @@ export function Header() {
           <Button variant="ghost" size="sm" className={styles.searchBtn}>
             <Search size={18} />
           </Button>
+          <ThemeToggle />
           <Link href="/login">
             <Button variant="outline" size="sm">Đăng nhập</Button>
           </Link>

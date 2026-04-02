@@ -25,22 +25,25 @@ export default function AccountantDashboard() {
 
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Đã thanh toán (Tháng)"
+          label="Đã thanh toán (Tháng)"
           value={MOCK_STATS.totalPaid}
           icon={<Wallet size={20} />}
-          trend={{ value: '+15% so với tháng trước', label: '', isPositive: true }}
+          trend="up"
+          trendValue="+15% so với tháng trước"
         />
         <MetricCard
-          title="Chờ thanh toán"
+          label="Chờ thanh toán"
           value={MOCK_STATS.pendingPayments}
           icon={<DollarSign size={20} />}
-          trend={{ value: `${MOCK_STATS.pendingCount} khoản cần duyệt`, label: '', isPositive: false }}
+          trend="down"
+          trendValue={`${MOCK_STATS.pendingCount} khoản cần duyệt`}
         />
         <MetricCard
-          title="Lỗi Hợp đồng / Hóa đơn"
+          label="Lỗi Hợp đồng / Hóa đơn"
           value={MOCK_STATS.contractIssues.toString()}
           icon={<FileSignature size={20} />}
-          trend={{ value: 'Cần bổ sung', label: '', isPositive: false }}
+          trend="down"
+          trendValue="Cần bổ sung"
         />
       </div>
 
