@@ -121,6 +121,8 @@ exports.onCreateContractPDF = (0, firestore_2.onDocumentCreated)('contracts/{con
 });
 // ============================================================
 // 2. requestPaymentOrder — Callable function for payment orders
+//    A1: Uses transaction to prevent race conditions
+//    A2: Idempotency check to prevent duplicate payments
 // ============================================================
 exports.requestPaymentOrder = (0, https_1.onCall)(async (request) => {
     if (!request.auth) {
@@ -133,32 +135,59 @@ exports.requestPaymentOrder = (0, https_1.onCall)(async (request) => {
     if (!profile || (profile.role !== 'jobmaster' && profile.role !== 'admin')) {
         throw new https_1.HttpsError('permission-denied', 'Bạn không có quyền thực hiện thanh toán.');
     }
-    // Create payment document
-    const paymentData = {
-        jobId,
-        milestoneId,
-        workerId,
-        workerName,
-        amount,
-        reason,
-        status: 'pending',
-        triggeredByMilestone: true,
-        approvedByJobMaster: request.auth.uid,
-        createdAt: firestore_1.FieldValue.serverTimestamp(),
-        updatedAt: firestore_1.FieldValue.serverTimestamp(),
-    };
-    const paymentRef = await db.collection('payments').add(paymentData);
-    // Update Milestone status in the job document
-    const jobRef = db.collection('jobs').doc(jobId);
-    const jobSnap = await jobRef.get();
-    const jobData = jobSnap.data();
-    if (jobData && jobData.milestones) {
-        const updatedMilestones = jobData.milestones.map((m) => m.id === milestoneId
-            ? { ...m, status: 'approved', approvedBy: request.auth.uid, approvedAt: new Date() }
-            : m);
-        await jobRef.update({ milestones: updatedMilestones });
+    // A2: Idempotency — check if payment for this milestone already exists
+    const existingPayment = await db.collection('payments')
+        .where('jobId', '==', jobId)
+        .where('milestoneId', '==', milestoneId)
+        .where('status', 'in', ['pending', 'approved', 'paid'])
+        .limit(1)
+        .get();
+    if (!existingPayment.empty) {
+        throw new https_1.HttpsError('already-exists', `Yêu cầu thanh toán cho milestone này đã tồn tại (ID: ${existingPayment.docs[0].id}).`);
     }
-    return { success: true, paymentId: paymentRef.id };
+    // A1: Use Firestore transaction to prevent race conditions
+    const paymentId = await db.runTransaction(async (transaction) => {
+        const jobRef = db.collection('jobs').doc(jobId);
+        const jobSnap = await transaction.get(jobRef);
+        const jobData = jobSnap.data();
+        if (!jobData) {
+            throw new https_1.HttpsError('not-found', 'Job không tồn tại.');
+        }
+        // Verify milestone exists and is not already approved/paid
+        if (jobData.milestones) {
+            const milestone = jobData.milestones.find((m) => m.id === milestoneId);
+            if (!milestone) {
+                throw new https_1.HttpsError('not-found', 'Milestone không tồn tại.');
+            }
+            if (milestone.status === 'approved' || milestone.status === 'paid') {
+                throw new https_1.HttpsError('failed-precondition', 'Milestone này đã được duyệt.');
+            }
+        }
+        // Create payment document within transaction
+        const paymentRef = db.collection('payments').doc();
+        transaction.set(paymentRef, {
+            jobId,
+            milestoneId,
+            workerId,
+            workerName,
+            amount,
+            reason,
+            status: 'pending',
+            triggeredByMilestone: true,
+            approvedByJobMaster: request.auth.uid,
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+        // Update milestone status atomically
+        if (jobData.milestones) {
+            const updatedMilestones = jobData.milestones.map((m) => m.id === milestoneId
+                ? { ...m, status: 'approved', approvedBy: request.auth.uid, approvedAt: new Date() }
+                : m);
+            transaction.update(jobRef, { milestones: updatedMilestones });
+        }
+        return paymentRef.id;
+    });
+    return { success: true, paymentId };
 });
 // ============================================================
 // 3. onJobStatusChange — When job status changes
@@ -430,18 +459,23 @@ exports.scheduledDeadlineCheck = (0, scheduler_1.onSchedule)({
 });
 // ============================================================
 // 9. scheduledLeaderboard — Monthly cron, generate leaderboard
+//    S3: Fixed month bug (getMonth() is 0-indexed)
+//    A6: Properly computes previous month, resets currentMonthEarnings
 // ============================================================
 exports.scheduledLeaderboard = (0, scheduler_1.onSchedule)({
     schedule: '0 0 1 * *', // 1st of every month at midnight
     timeZone: 'Asia/Ho_Chi_Minh',
 }, async () => {
     const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`; // Previous month
-    // Get all active freelancers sorted by earnings
+    // S3 FIX: getMonth() is 0-indexed. On the 1st, we generate for the PREVIOUS month.
+    // e.g., Running on Apr 1 → generate for March (month=3, but getMonth()=2 for March)
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const month = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    // A6: Sort by currentMonthEarnings (not totalEarnings) for monthly ranking
     const usersSnap = await db.collection('users')
         .where('role', '==', 'freelancer')
         .where('status', '==', 'active')
-        .orderBy('stats.totalEarnings', 'desc')
+        .orderBy('stats.currentMonthEarnings', 'desc')
         .limit(50)
         .get();
     const batch = db.batch();
@@ -452,13 +486,18 @@ exports.scheduledLeaderboard = (0, scheduler_1.onSchedule)({
     let rank = 1;
     for (const userDoc of usersSnap.docs) {
         const user = userDoc.data();
+        const monthlyEarnings = user.stats?.currentMonthEarnings || 0;
+        // Skip users with 0 earnings for the month
+        if (monthlyEarnings === 0)
+            continue;
         const entryRef = db.collection('leaderboard').doc();
         batch.set(entryRef, {
             uid: userDoc.id,
             name: user.displayName,
             level: user.currentLevel,
             specialty: user.specialties?.[0] || '',
-            earnings: user.stats?.totalEarnings || 0,
+            earnings: monthlyEarnings,
+            totalEarnings: user.stats?.totalEarnings || 0,
             rating: user.stats?.avgRating || 0,
             completedJobs: user.stats?.completedJobs || 0,
             badges: [],
@@ -468,6 +507,13 @@ exports.scheduledLeaderboard = (0, scheduler_1.onSchedule)({
             createdAt: firestore_1.FieldValue.serverTimestamp(),
         });
         rank++;
+    }
+    // A6: Reset currentMonthEarnings for all freelancers at start of new month
+    for (const userDoc of usersSnap.docs) {
+        batch.update(userDoc.ref, {
+            'stats.currentMonthEarnings': 0,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
     }
     await batch.commit();
     // Award Top Earner badges to top 3
