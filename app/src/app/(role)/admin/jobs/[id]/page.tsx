@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/firebase/auth-context';
 import { cache } from '@/lib/cache/swr-cache';
 import { formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import { getConfigItems, type SystemConfigItem, type ConfigCategory } from '@/lib/firebase/system-config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import type { Job } from '@/types';
 import styles from './page.module.css';
@@ -215,7 +215,7 @@ export default function AdminJobReviewPage() {
     if (!confirm('Thu hồi trạng thái duyệt? Job sẽ chuyển về "Chờ duyệt" để Job Master có thể chỉnh sửa.')) return;
     setActionLoading(true);
     try {
-      await updateJob(job.id, { status: 'pending_approval', approvedBy: undefined } as Partial<Job>, {
+      await updateJob(job.id, { status: 'pending_approval', approvedBy: deleteField() } as unknown as Partial<Job>, {
         uid: userProfile.uid,
         name: userProfile.displayName,
         role: userProfile.role,
