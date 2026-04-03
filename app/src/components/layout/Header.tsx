@@ -90,7 +90,7 @@ export function Header() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <Button variant="ghost" size="sm" className={styles.searchBtn}>
+          <Button variant="ghost" size="sm" className={styles.searchBtn} onClick={() => router.push('/jobs')}>
             <Search size={18} />
           </Button>
           <ThemeToggle />
