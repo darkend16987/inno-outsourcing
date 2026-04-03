@@ -239,5 +239,49 @@ service cloud.firestore {
       // Nobody can delete disputes
       allow delete: if false;
     }
+
+    // =====================
+    // JOB INVITATIONS
+    // =====================
+    match /invitations/{invId} {
+      // Inviter and invitee can read
+      allow read: if isSignedIn()
+                  && (resource.data.jobmasterId == request.auth.uid
+                      || resource.data.freelancerId == request.auth.uid
+                      || isAdmin());
+
+      // Job masters and admins can create invitations
+      allow create: if isAdminOrJobMaster();
+
+      // Invited freelancer can update (accept/decline)
+      allow update: if isSignedIn()
+                    && resource.data.freelancerId == request.auth.uid;
+
+      allow delete: if false;
+    }
+
+    // =====================
+    // CHALLENGES (Seasonal)
+    // =====================
+    match /challenges/{challengeId} {
+      // Public read
+      allow read: if true;
+
+      // Only admins can manage challenges
+      allow write: if isAdmin();
+    }
+
+    // =====================
+    // INVOICES
+    // =====================
+    match /invoices/{invoiceId} {
+      // Authenticated users can read their own invoices
+      allow read: if isSignedIn();
+
+      // Admins and accountants can create/update invoices
+      allow create: if isAdmin() || isAccountant();
+      allow update: if isAdmin() || isAccountant();
+      allow delete: if false;
+    }
   }
 }

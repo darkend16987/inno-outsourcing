@@ -9,6 +9,8 @@ import {
   Loader2, AlertTriangle, Edit3, GraduationCap
 } from 'lucide-react';
 import { Button, Card, Badge, Avatar, LevelBadge } from '@/components/ui';
+import { AvailabilityBadge } from '@/components/ui/AvailabilityBadge';
+import { VerifiedBadge } from '@/components/profile/VerifiedBadge';
 import { getUserProfile, updateUserProfile } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getConfigItems, type SystemConfigItem, type ConfigCategory } from '@/lib/firebase/system-config';
@@ -186,6 +188,7 @@ export default function AdminUserDetailPage() {
               <span><Phone size={14} /> {user.phone || '-'}</span>
               <span><Shield size={14} /> {ROLE_LABELS[user.role] || user.role}</span>
               <span><Calendar size={14} /> Tham gia: {formatDate(user.createdAt)}</span>
+              {user.availability && <AvailabilityBadge status={user.availability} size="sm" showLabel />}
             </div>
           </div>
         </div>
@@ -405,24 +408,54 @@ export default function AdminUserDetailPage() {
               </div>
             </Card>
 
-            {/* Certificates */}
-            {(user.certificates && user.certificates.length > 0) && (
-              <Card className={styles.infoCard}>
-                <h3 className={styles.sectionTitle}><Award size={18} /> Chứng chỉ nghề nghiệp ({user.certificates.length})</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {user.certificates.map((cert, i) => (
-                    <div key={i} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', background: 'var(--color-bg, #fff)' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-charcoal, #1a1a2e)' }}>{cert.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #666)', marginTop: 4 }}>
-                        {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy} | </span>}
-                        {cert.issuedDate && <span>Ngày: {cert.issuedDate} | </span>}
-                        {cert.expiryDate && <span>Hết hạn: {cert.expiryDate}</span>}
+            {/* Certificates with Verification */}
+            {(user.certificates && user.certificates.length > 0) && (() => {
+              const certs = user.certificates;
+              const verified = certs.filter(c => c.status === 'verified').length;
+              const pending = certs.filter(c => c.status === 'pending' || !c.status).length;
+              const rejected = certs.filter(c => c.status === 'rejected').length;
+              return (
+                <Card className={styles.infoCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <h3 className={styles.sectionTitle}><Award size={18} /> Chứng chỉ nghề nghiệp ({certs.length})</h3>
+                    <VerifiedBadge verifiedCount={verified} pendingCount={pending} rejectedCount={rejected} size="sm" showDetails />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {certs.map((cert, i) => (
+                      <div key={i} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', background: 'var(--color-bg, #fff)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-charcoal, #1a1a2e)' }}>{cert.name}</div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #666)', marginTop: 4 }}>
+                            {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy} | </span>}
+                            {cert.issuedDate && <span>Ngày: {cert.issuedDate} | </span>}
+                            {cert.expiryDate && <span>Hết hạn: {cert.expiryDate}</span>}
+                          </div>
+                        </div>
+                        {editing && (!cert.status || cert.status === 'pending') && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <Button size="sm" variant="success" onClick={() => {
+                              const updated = [...certs];
+                              updated[i] = { ...updated[i], status: 'verified' };
+                              setUser(prev => prev ? { ...prev, certificates: updated } : prev);
+                            }}>Xác minh</Button>
+                            <Button size="sm" variant="danger" onClick={() => {
+                              const updated = [...certs];
+                              updated[i] = { ...updated[i], status: 'rejected' };
+                              setUser(prev => prev ? { ...prev, certificates: updated } : prev);
+                            }}>Từ chối</Button>
+                          </div>
+                        )}
+                        {!editing && (
+                          <Badge variant={cert.status === 'verified' ? 'success' : cert.status === 'rejected' ? 'error' : 'warning'}>
+                            {cert.status === 'verified' ? 'Đã xác minh' : cert.status === 'rejected' ? 'Từ chối' : 'Chờ xác minh'}
+                          </Badge>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
+                    ))}
+                  </div>
+                </Card>
+              );
+            })()}
           </div>
         </div>
       </div>

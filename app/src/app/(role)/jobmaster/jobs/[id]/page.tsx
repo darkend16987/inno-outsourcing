@@ -12,6 +12,7 @@ import { submitReview, hasUserReviewedJob } from '@/lib/firebase/firestore-exten
 import { getJobById } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
+import { DisputeForm } from '@/components/disputes/DisputeForm';
 import type { Job, PaymentMilestone } from '@/types';
 import styles from './page.module.css';
 
@@ -71,6 +72,7 @@ export default function JobMasterJobDetailPage() {
   const [hasReviewed, setHasReviewed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMilestone, setSelectedMilestone] = useState({ name: '', amount: '' });
+  const [showDispute, setShowDispute] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -183,10 +185,25 @@ export default function JobMasterJobDetailPage() {
           </div>
         </div>
         <div className={styles.hRight}>
-           <Button variant="outline"><AlertTriangle size={16}/> Báo cáo vấn đề</Button>
+           <Button variant="outline" onClick={() => setShowDispute(!showDispute)}><AlertTriangle size={16}/> Báo cáo vấn đề</Button>
            <Button><CheckCircle size={16}/> Nghiệm thu toàn bộ</Button>
         </div>
       </div>
+
+      {/* Dispute Form — shown when "Báo cáo vấn đề" is clicked */}
+      {showDispute && userProfile && (job.status === 'in_progress' || job.status === 'review') && (
+        <DisputeForm
+          jobId={job.id}
+          jobTitle={job.title}
+          initiatorId={userProfile.uid}
+          initiatorName={userProfile.displayName || 'Job Master'}
+          initiatorRole="jobmaster"
+          respondentId={job.assignedTo || ''}
+          respondentName={job.assignedWorkerName || 'Freelancer'}
+          onSuccess={() => setShowDispute(false)}
+          onCancel={() => setShowDispute(false)}
+        />
+      )}
 
       <div className={styles.grid}>
         <div className={styles.mainCol}>

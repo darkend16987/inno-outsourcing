@@ -75,6 +75,7 @@ export interface UserCertificateEntry {
   issuedDate: string;
   expiryDate?: string;
   imageUrl?: string;
+  status?: 'pending' | 'verified' | 'rejected';
 }
 
 export interface Certificate {

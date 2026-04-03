@@ -319,6 +319,87 @@ export const respondToInvitation = async (
 };
 
 // =====================
+// SAVED QUERIES — getSavedJobs, getSavedFreelancers
+// =====================
+
+export const getSavedJobs = async (userId: string): Promise<string[]> => {
+  if (!db) return [];
+  const snap = await getDoc(doc(db, 'users', userId));
+  if (!snap.exists()) return [];
+  return (snap.data().savedJobs || []) as string[];
+};
+
+export const getSavedFreelancers = async (userId: string): Promise<string[]> => {
+  if (!db) return [];
+  const snap = await getDoc(doc(db, 'users', userId));
+  if (!snap.exists()) return [];
+  return (snap.data().savedFreelancers || []) as string[];
+};
+
+// =====================
+// REHIRE — Collaboration History
+// =====================
+
+export const getCollaborationHistory = async (
+  jobmasterId: string,
+  freelancerId: string,
+): Promise<number> => {
+  if (!db) return 0;
+  const q = query(
+    collection(db, 'jobs'),
+    where('jobMaster', '==', jobmasterId),
+    where('assignedTo', '==', freelancerId),
+    where('status', 'in', ['completed', 'paid']),
+  );
+  const snap = await getDocs(q);
+  return snap.size;
+};
+
+export const rehireFreelancer = async (
+  jobId: string,
+  freelancerId: string,
+  freelancerName: string,
+): Promise<void> => {
+  if (!db) return;
+  const jobRef = doc(db, 'jobs', jobId);
+  await updateDoc(jobRef, {
+    assignedTo: freelancerId,
+    assignedWorkerName: freelancerName,
+    status: 'assigned',
+    escrowStatus: 'not_started',
+  });
+
+  // Notify the freelancer
+  await createNotification({
+    recipientId: freelancerId,
+    type: 'application_accepted',
+    title: 'Bạn được giao dự án mới!',
+    body: `Bạn được thuê lại cho dự án mới.`,
+    link: `/freelancer/jobs/${jobId}`,
+    read: false,
+  });
+};
+
+// =====================
+// INVITATIONS — Query for freelancer
+// =====================
+
+export const getInvitationsForFreelancer = async (
+  freelancerId: string,
+): Promise<Array<{ id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }>> => {
+  if (!db) return [];
+  const q = query(
+    collection(db, 'invitations'),
+    where('freelancerId', '==', freelancerId),
+    where('status', '==', 'pending'),
+    orderBy('createdAt', 'desc'),
+    limit(10),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }));
+};
+
+// =====================
 // PROGRESS UPDATE
 // =====================
 

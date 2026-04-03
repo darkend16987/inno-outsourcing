@@ -21,6 +21,7 @@ import { db, app } from './config';
 import { logAuditEvent } from './audit-log';
 import { validateTransition } from '@/lib/state/job-state-machine';
 import { withRetry } from '@/lib/utils/retry';
+import { encryptSensitiveFields, decryptSensitiveFields, SENSITIVE_FIELDS } from '@/lib/security/crypto';
 import type {
   Job, UserProfile, JobApplication, Contract, Payment,
   Notification, Conversation, Message, LeaderboardEntry,
@@ -68,7 +69,14 @@ export const requestPaymentOrder = async (data: {
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   if (!db) return null;
   const snap = await getDoc(doc(db, 'users', uid));
-  return snap.exists() ? ({ uid: snap.id, ...snap.data() } as UserProfile) : null;
+  if (!snap.exists()) return null;
+  const data = { uid: snap.id, ...snap.data() } as UserProfile;
+  // Decrypt sensitive KYC fields (S5)
+  try {
+    return await decryptSensitiveFields(data as unknown as Record<string, unknown>) as unknown as UserProfile;
+  } catch {
+    return data;
+  }
 };
 
 export const createUserProfile = async (uid: string, data: Partial<UserProfile>) => {
@@ -82,8 +90,18 @@ export const createUserProfile = async (uid: string, data: Partial<UserProfile>)
 
 export const updateUserProfile = async (uid: string, data: Partial<UserProfile>) => {
   if (!db) return;
+  // Encrypt sensitive KYC fields before saving (S5)
+  let dataToSave = { ...data };
+  const hasSensitive = SENSITIVE_FIELDS.some(f => f in dataToSave);
+  if (hasSensitive) {
+    try {
+      dataToSave = await encryptSensitiveFields(dataToSave);
+    } catch {
+      // Continue without encryption if key not configured
+    }
+  }
   await updateDoc(doc(db, 'users', uid), {
-    ...data,
+    ...dataToSave,
     updatedAt: serverTimestamp(),
   });
 };

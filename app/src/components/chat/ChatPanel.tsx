@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, X } from 'lucide-react';
+import { Send, Paperclip, X, Video } from 'lucide-react';
 import { useMessages, useSendMessage } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { Avatar } from '@/components/ui';
@@ -30,6 +30,13 @@ export default function ChatPanel({ conversationId, participantName, onClose }: 
     const content = input.trim();
     setInput('');
     await send(userProfile.uid, content);
+  };
+
+  const handleCreateMeeting = async () => {
+    if (!userProfile) return;
+    const meetUrl = 'https://meet.google.com/new';
+    await send(userProfile.uid, `📹 Đã tạo cuộc họp Google Meet — Tham gia tại: ${meetUrl}`);
+    window.open(meetUrl, '_blank');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -85,6 +92,15 @@ export default function ChatPanel({ conversationId, participantName, onClose }: 
 
       {/* Input */}
       <div className={styles.inputContainer}>
+        <button
+          className={styles.sendBtn}
+          onClick={handleCreateMeeting}
+          aria-label="Create meeting"
+          title="Tạo cuộc họp Google Meet"
+          style={{ marginRight: 4 }}
+        >
+          <Video size={18} />
+        </button>
         <textarea
           className={styles.textInput}
           value={input}

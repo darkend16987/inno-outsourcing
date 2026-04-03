@@ -6,6 +6,7 @@ import { Briefcase, CheckCircle, Clock, Star, TrendingUp, Loader2, Inbox } from 
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
 import { RecommendedJobs } from '@/components/jobs/RecommendedJobs';
 import { EarningsChart } from '@/components/analytics/EarningsChart';
+import { OnboardingChecklist } from '@/components/checklist/OnboardingChecklist';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getApplicationsForFreelancer, getJobById, getJobs } from '@/lib/firebase/firestore';
 import { subscribeToNotifications } from '@/lib/firebase/firestore';
@@ -103,6 +104,14 @@ export default function FreelancerDashboard() {
           <Button variant="outline">Cập nhật hồ sơ</Button>
         </Link>
       </div>
+
+      {/* Onboarding Checklist — shown when profile is incomplete */}
+      {userProfile && (
+        <OnboardingChecklist
+          profile={userProfile}
+          onNavigate={() => window.location.href = '/freelancer/profile'}
+        />
+      )}
 
       {/* Metrics */}
       <div className={styles.metricsGrid}>

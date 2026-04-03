@@ -9,8 +9,10 @@ import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
+import { DisputeForm } from '@/components/disputes/DisputeForm';
 import { getJobById } from '@/lib/firebase/firestore';
 import { submitReview, hasUserReviewedJob } from '@/lib/firebase/firestore-extended';
+import { useAuth } from '@/lib/firebase/auth-context';
 import type { Job } from '@/types';
 import styles from './page.module.css';
 
@@ -30,11 +32,13 @@ const fadeUp = {
 
 export default function FreelancerJobDetail() {
   const params = useParams();
+  const { userProfile } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [submittingMilestone, setSubmittingMilestone] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [showDispute, setShowDispute] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -215,6 +219,29 @@ export default function FreelancerJobDetail() {
               milestones={job.milestones}
               compact
             />
+          )}
+
+          {/* Dispute Form — for in_progress or review jobs */}
+          {(job.status === 'in_progress' || job.status === 'review') && userProfile && (
+            showDispute ? (
+              <DisputeForm
+                jobId={job.id}
+                jobTitle={job.title}
+                initiatorId={userProfile.uid}
+                initiatorName={userProfile.displayName || 'Freelancer'}
+                initiatorRole="freelancer"
+                respondentId={job.jobMaster}
+                respondentName={job.jobMasterName || 'Job Master'}
+                onSuccess={() => setShowDispute(false)}
+                onCancel={() => setShowDispute(false)}
+              />
+            ) : (
+              <Card className={styles.linksCard}>
+                <Button fullWidth variant="outline" onClick={() => setShowDispute(true)} style={{ color: 'var(--color-warning)' }}>
+                  Báo cáo vấn đề
+                </Button>
+              </Card>
+            )
           )}
 
           {/* MutualReview for completed jobs */}

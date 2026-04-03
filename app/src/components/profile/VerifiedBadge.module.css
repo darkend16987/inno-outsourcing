@@ -1,0 +1,48 @@
+.badge {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.badge.sm {
+  gap: 4px;
+}
+
+.verified,
+.pending,
+.rejected {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  border-radius: 99px;
+  padding: 4px 10px;
+}
+
+.md .verified,
+.md .pending,
+.md .rejected {
+  font-size: 13px;
+}
+
+.sm .verified,
+.sm .pending,
+.sm .rejected {
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.verified {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+
+.pending {
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+}
+
+.rejected {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+}
