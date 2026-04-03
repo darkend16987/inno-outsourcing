@@ -37,11 +37,23 @@ export function Header() {
   const { userProfile, signOut, loading } = useAuth();
   const router = useRouter();
 
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Auto-focus search input when opened
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -90,9 +102,43 @@ export function Header() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <Button variant="ghost" size="sm" className={styles.searchBtn} onClick={() => router.push('/jobs')}>
-            <Search size={18} />
-          </Button>
+          <div className={styles.searchWrap}>
+            <Button variant="ghost" size="sm" className={styles.searchBtn} onClick={() => setSearchOpen(o => !o)}>
+              <Search size={18} />
+            </Button>
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div
+                  className={styles.searchDropdown}
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 280 }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Search size={15} className={styles.searchInputIcon} />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className={styles.searchInput}
+                    placeholder="Tìm việc theo tên, chuyên ngành..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        router.push(`/jobs?q=${encodeURIComponent(searchQuery.trim())}`);
+                        setSearchOpen(false);
+                        setSearchQuery('');
+                      }
+                      if (e.key === 'Escape') {
+                        setSearchOpen(false);
+                        setSearchQuery('');
+                      }
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <ThemeToggle />
 
           {/* Notification Bell (logged-in only) */}

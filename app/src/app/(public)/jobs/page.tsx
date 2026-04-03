@@ -49,7 +49,7 @@ function getJobDuration(job: Record<string, unknown>): string {
 
 function JobsPageContent() {
   const searchParams = useSearchParams();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [catFilter, setCatFilter] = useState<string>(() => searchParams.get('category') || 'all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [workModeFilter, setWorkModeFilter] = useState<string>('all');

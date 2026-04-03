@@ -25,7 +25,9 @@
       "Bash(bash /tmp/comprehensive_check.sh)",
       "Bash(wc -l /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/freelancer/jobs/[id]/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/jobmaster/jobs/[id]/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(public\\\\\\)/jobs/[id]/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/admin/users/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/jobmaster/page.tsx /d/GitHub/inno-outsourcing/app/src/components/chat/ChatPanel.tsx /d/GitHub/inno-outsourcing/firestore.rules /d/GitHub/inno-outsourcing/app/src/lib/firebase/reviews.ts /d/GitHub/inno-outsourcing/app/src/lib/security/crypto.ts)",
       "Bash(npm run:*)",
-      "Bash(npx firebase:*)"
+      "Bash(npx firebase:*)",
+      "Bash(find /d/github/inno-outsourcing/app/src -type f -path *admin* -name *page.tsx)",
+      "Bash(find /d/github/inno-outsourcing/app/src -type f -path *jobmaster* -name *page.tsx)"
     ]
   }
 }

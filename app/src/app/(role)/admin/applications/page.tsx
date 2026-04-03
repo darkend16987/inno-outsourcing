@@ -24,23 +24,22 @@ const STATUS_BADGE_VARIANT: Record<string, string> = {
 
 export default function AdminApplicationsPage() {
   const [filter, setFilter] = useState('all');
-  const [applications, setApplications] = useState<(JobApplication & { jobTitle?: string })[]>([]);
+  const [allApplications, setAllApplications] = useState<(JobApplication & { jobTitle?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
-      const filters: { status?: string } = {};
-      if (filter !== 'all') filters.status = filter;
-      const result = await getAllApplications(filters);
-      setApplications(result.items);
+      // Always fetch ALL applications, filter client-side for accurate counts
+      const result = await getAllApplications({}, 200);
+      setAllApplications(result.items);
     } catch (error) {
       console.error('Error fetching applications:', error);
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, []);
 
   useEffect(() => {
     fetchApplications();
@@ -51,7 +50,7 @@ export default function AdminApplicationsPage() {
       setActionLoading(appId);
       await updateApplication(appId, { status: newStatus } as Partial<JobApplication>);
       // Update local state
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus as JobApplication['status'] } : a));
+      setAllApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus as JobApplication['status'] } : a));
     } catch (error) {
       console.error('Error updating application:', error);
     } finally {
@@ -59,11 +58,17 @@ export default function AdminApplicationsPage() {
     }
   };
 
-  const statusCounts = applications.reduce((acc, a) => {
+  // Counts computed from ALL applications (not filtered)
+  const statusCounts = allApplications.reduce((acc, a) => {
     acc[a.status] = (acc[a.status] || 0) + 1;
     acc['all'] = (acc['all'] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  // Client-side filtering
+  const applications = filter === 'all'
+    ? allApplications
+    : allApplications.filter(a => a.status === filter);
 
   return (
     <div className={styles.page}>
