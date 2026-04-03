@@ -60,7 +60,8 @@ export function Sidebar({ role }: SidebarProps) {
     <aside className={styles.sidebar}>
       {/* Brand */}
       <div className={styles.brand}>
-        <div className={styles.logo}>V</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-white.png" alt="VAA Job" className={styles.logoImg} />
         <div className={styles.brandText}>VAA JOB<br /><span>CMS Portal</span></div>
       </div>
 

@@ -72,7 +72,8 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className={styles.brand}>
           <div className={styles.logo}>
-            <span className={styles.logoIcon}>V</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="VAA Job" className={styles.logoImg} />
           </div>
           <div className={styles.brandText}>
             <strong className={styles.brandName}>VAA JOB</strong>

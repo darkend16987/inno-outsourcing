@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Phone, MapPin, Globe } from 'lucide-react';
+import { Mail, Phone, MapPin } from 'lucide-react';
 import styles from './Footer.module.css';
 
 export function Footer() {
@@ -13,7 +13,8 @@ export function Footer() {
           {/* Brand Column */}
           <div className={styles.brandCol}>
             <div className={styles.brand}>
-              <div className={styles.logo}><span>V</span></div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-white.png" alt="VAA Job" className={styles.logoImg} />
               <div>
                 <strong className={styles.brandName}>VAA JOB</strong>
                 <p className={styles.brandTag}>Construction Outsourcing Platform</p>
