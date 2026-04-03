@@ -17,6 +17,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   review: { label: 'Nghiệm thu', color: 'accent' },
   completed: { label: 'Hoàn thành', color: 'success' },
   draft: { label: 'Nháp', color: 'default' },
+  pending_approval: { label: 'Chờ duyệt', color: 'warning' },
 };
 
 const formatDate = (d: unknown): string => {

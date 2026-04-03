@@ -9,7 +9,7 @@ import {
   Sparkles, Zap, Star, Target, Send,
   FileText, MessageSquare, Info, X,
   CheckCircle, ExternalLink, AlertCircle,
-  Share2, Copy, Check
+  Copy, Check
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
 import { CommentSection } from '@/components/comments/CommentSection';
@@ -619,7 +619,6 @@ export default function JobDetailPage() {
                       size="lg" 
                       onClick={handleApplyClick} 
                       loading={checkingApplication}
-                      icon={<Sparkles size={18} />}
                     >
                       Nộp hồ sơ ứng tuyển
                     </Button>
@@ -648,7 +647,7 @@ export default function JobDetailPage() {
 
             {/* Social Share */}
             <Card className={styles.infoCard}>
-              <h3 className={styles.infoTitle}><Share2 size={18} color="var(--color-primary)"/> Chia sẻ công việc</h3>
+              <h3 className={styles.infoTitle}>Chia sẻ công việc</h3>
               <div className={styles.shareRow}>
                 <button
                   className={styles.shareBtn}
@@ -682,7 +681,7 @@ export default function JobDetailPage() {
             </Card>
 
             <Card className={styles.infoCard}>
-              <h3 className={styles.infoTitle}><Sparkles size={18} color="var(--color-warning)"/> Quy trình làm việc</h3>
+              <h3 className={styles.infoTitle}>Quy trình làm việc</h3>
               <ul className={styles.checklist}>
                 <li><Sparkles size={16} /> Ứng tuyển & Xét duyệt hồ sơ</li>
                 <li><Zap size={16} /> Phỏng vấn & Chốt hợp đồng</li>

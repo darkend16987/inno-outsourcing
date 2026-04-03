@@ -80,3 +80,15 @@ export function formatOGBudget(amount: number): string {
   if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K`;
   return `${amount}₫`;
 }
+
+/**
+ * Generate job URL — uses slug if available, falls back to raw ID.
+ * Ensures backward compatibility for old jobs without slugs.
+ */
+export function getJobUrl(job: { id: string; slug?: string; title?: string }): string {
+  if (job.slug) return `/jobs/${job.slug}`;
+  // Generate slug on the fly for existing jobs without stored slug
+  if (job.title) return `/jobs/${toSlugWithId(job.title, job.id)}`;
+  return `/jobs/${job.id}`;
+}
+

@@ -210,6 +210,9 @@ export interface Job {
   // Project info
   projectScale?: string;
   projectImages?: string[];
+
+  // SEO
+  slug?: string;
 }
 
 // ---- Applications ----

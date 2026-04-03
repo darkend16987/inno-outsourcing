@@ -14,6 +14,7 @@ import { formatFriendlyMoney } from '@/lib/formatters';
 import { getJobs, getLeaderboard } from '@/lib/firebase/firestore';
 import { getTestimonials, type TestimonialItem } from '@/lib/firebase/system-config';
 import type { LeaderboardEntry, Job } from '@/types';
+import { getJobUrl } from '@/lib/seo/slug';
 import styles from './page.module.css';
 
 // Category icons using distinct Lucide icons with playful colors
@@ -275,7 +276,7 @@ export default function LandingClient() {
             <div className={styles.jobsGrid}>
               {displayJobs.map((job, i) => (
                 <motion.div key={job.id} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
-                  <Link href={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
+                  <Link href={getJobUrl(job)} style={{ textDecoration: 'none' }}>
                     <Card hover className={styles.jobCard}>
                       <div className={styles.jobTop}>
                         <Badge variant="default">{job.category}</Badge>

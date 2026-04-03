@@ -129,8 +129,12 @@ export const getUsers = async (filters: { role?: string; status?: string } = {},
 export const createJob = async (data: Omit<Job, 'id'>) => {
   if (!db) return;
   const newJobRef = doc(collection(db, 'jobs'));
+  // Generate SEO slug from title
+  const { toSlugWithId } = await import('@/lib/seo/slug');
+  const slug = toSlugWithId(data.title || '', newJobRef.id);
   await setDoc(newJobRef, {
     ...data,
+    slug,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -165,11 +169,25 @@ export const getJobs = async (
   };
 };
 
-export const getJobById = async (id: string): Promise<Job | null> => {
+export const getJobById = async (idOrSlug: string): Promise<Job | null> => {
   if (!db) return null;
-  const snap = await getDoc(doc(db, 'jobs', id));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as Job;
+  // 1. Try direct Firestore ID lookup first
+  const snap = await getDoc(doc(db, 'jobs', idOrSlug));
+  if (snap.exists()) return { id: snap.id, ...snap.data() } as Job;
+  // 2. Fallback: slug-based lookup
+  const { extractIdFromSlug } = await import('@/lib/seo/slug');
+  const extractedId = extractIdFromSlug(idOrSlug);
+  if (extractedId !== idOrSlug) {
+    // Try with extracted short ID — query by slug field
+    const q = query(collection(db, 'jobs'), where('slug', '==', idOrSlug), limit(1));
+    const qs = await getDocs(q);
+    if (!qs.empty) return { id: qs.docs[0].id, ...qs.docs[0].data() } as Job;
+  }
+  // 3. Final fallback: query by slug field for any match
+  const q2 = query(collection(db, 'jobs'), where('slug', '==', idOrSlug), limit(1));
+  const qs2 = await getDocs(q2);
+  if (!qs2.empty) return { id: qs2.docs[0].id, ...qs2.docs[0].data() } as Job;
+  return null;
 };
 
 export const updateJob = async (id: string, data: Partial<Job>, actor?: { uid: string; name: string; role: string }) => {

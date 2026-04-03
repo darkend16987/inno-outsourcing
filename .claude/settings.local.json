@@ -6,7 +6,26 @@
       "Bash(ls /d/GitHub/inno-outsourcing/*.md /d/GitHub/inno-outsourcing/app/*.md)",
       "Bash(ls /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/admin/)",
       "Bash(ls -d /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/admin/)",
-      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)/jobmaster/\")"
+      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)/jobmaster/\")",
+      "Bash(find /d/GitHub/inno-outsourcing/app -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(xargs grep:*)",
+      "Bash(find /d/GitHub/inno-outsourcing/app/src/app -name page.tsx -path *jobs* -type f)",
+      "Bash(grep -n \"from ''@/lib/security/crypto''\\\\|from ''./crypto''\" /d/GitHub/inno-outsourcing/app/src/lib/firebase/firestore.ts)",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/components/jobs/*.module.css)",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/components/checklist/*.module.css)",
+      "Bash(head -100 \"/d/GitHub/inno-outsourcing/app/src/app/\\(role\\)/freelancer/page.tsx\")",
+      "Bash(find /d/GitHub/inno-outsourcing/app/src/components -name *Card* -o -name *card*)",
+      "Read(//d/GitHub/inno-outsourcing/**)",
+      "Bash(bash /tmp/verify.sh)",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/components/jobs/RecommendedJobs.*)",
+      "Bash(grep -n \"email\\\\|phone\\\\|contact\\\\|zalo\\\\|mailto\" /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(public\\\\\\)/jobs/[id]/page.tsx)",
+      "Bash(/tmp/verify_phase34.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(bash /tmp/final_check.sh)",
+      "Bash(bash /tmp/comprehensive_check.sh)",
+      "Bash(wc -l /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/freelancer/jobs/[id]/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/jobmaster/jobs/[id]/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(public\\\\\\)/jobs/[id]/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/admin/users/page.tsx /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/jobmaster/page.tsx /d/GitHub/inno-outsourcing/app/src/components/chat/ChatPanel.tsx /d/GitHub/inno-outsourcing/firestore.rules /d/GitHub/inno-outsourcing/app/src/lib/firebase/reviews.ts /d/GitHub/inno-outsourcing/app/src/lib/security/crypto.ts)",
+      "Bash(npm run:*)",
+      "Bash(npx firebase:*)"
     ]
   }
 }

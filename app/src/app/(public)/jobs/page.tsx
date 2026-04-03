@@ -9,6 +9,7 @@ import { Button, Badge, Card, LevelBadge } from '@/components/ui';
 import { JOB_CATEGORIES, JOB_LEVELS } from '@/types';
 import { getConfigItems, type SystemConfigItem } from '@/lib/firebase/system-config';
 import { formatFriendlyMoney } from '@/lib/formatters';
+import { getJobUrl } from '@/lib/seo/slug';
 import styles from './page.module.css';
 
 import { getJobs } from '@/lib/firebase/firestore';
@@ -280,7 +281,7 @@ function JobsPageContent() {
             <div className={viewMode === 'grid' ? styles.jobsGrid : styles.jobsList}>
               {filtered.map((job, i) => (
                 <motion.div key={job.id} initial="hidden" animate="visible" custom={i} variants={fadeUp}>
-                  <Link href={`/jobs/${job.id}`} className={styles.jobLink}>
+                  <Link href={getJobUrl(job)} className={styles.jobLink}>
                     <Card hover className={`${styles.jobCard} ${viewMode === 'grid' ? styles.jobCardGrid : ''}`}>
                       <div className={styles.jobLeft}>
                         <div className={styles.jobTags}>
