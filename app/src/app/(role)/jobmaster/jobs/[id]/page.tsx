@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon } from 'lucide-react';
 import { Button, Card, Badge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
@@ -94,6 +94,9 @@ export default function JobMasterJobDetailPage() {
   const [editDescription, setEditDescription] = useState('');
   const [editTotalFee, setEditTotalFee] = useState('');
   const [editDuration, setEditDuration] = useState('');
+  const [editProjectScale, setEditProjectScale] = useState('');
+  const [editProjectImages, setEditProjectImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
@@ -122,6 +125,9 @@ export default function JobMasterJobDetailPage() {
     setEditDescription(job.description || '');
     setEditTotalFee(formatCurrencyInput(String(job.totalFee || 0)));
     setEditDuration(String(job.duration || ''));
+    setEditProjectScale(job.projectScale || '');
+    setEditProjectImages(job.projectImages || []);
+    setNewImageUrl('');
     setIsEditing(true);
   };
 
@@ -138,7 +144,9 @@ export default function JobMasterJobDetailPage() {
         description: editDescription.trim(),
         totalFee: parseCurrencyInput(editTotalFee),
         duration: Number(editDuration),
-      }, {
+        projectScale: editProjectScale.trim() || undefined,
+        projectImages: editProjectImages.length > 0 ? editProjectImages : undefined,
+      } as Partial<Job>, {
         uid: userProfile.uid,
         name: userProfile.displayName || 'Job Master',
         role: 'jobmaster',
@@ -359,6 +367,46 @@ export default function JobMasterJobDetailPage() {
                     />
                   </div>
                 </div>
+
+                {/* Project Scale */}
+                <div className={styles.editField}>
+                  <label>Quy mô dự án</label>
+                  <textarea
+                    rows={3}
+                    className={styles.editTextarea}
+                    value={editProjectScale}
+                    onChange={e => setEditProjectScale(e.target.value)}
+                    placeholder="VD: 8 tầng, 3000m² sàn, khoảng 50 căn hộ..."
+                  />
+                </div>
+
+                {/* Project Images */}
+                <div className={styles.editField}>
+                  <label>Hình ảnh công trình <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>(URL trực tiếp)</span></label>
+                  {editProjectImages.length > 0 && (
+                    <div className={styles.imageGallery}>
+                      {editProjectImages.map((url, i) => (
+                        <div key={i} className={styles.galleryItem}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`Project ${i + 1}`} className={styles.galleryImg} />
+                          <button className={styles.removeImgBtn} onClick={() => setEditProjectImages(prev => prev.filter((_, idx) => idx !== i))}><X size={14}/></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className={styles.addImageRow}>
+                    <input
+                      type="url"
+                      className={styles.editInput}
+                      value={newImageUrl}
+                      onChange={e => setNewImageUrl(e.target.value)}
+                      placeholder="https://i.ibb.co/xxx/image.jpg"
+                    />
+                    <Button variant="outline" size="sm" onClick={() => { if (newImageUrl.trim()) { setEditProjectImages(p => [...p, newImageUrl.trim()]); setNewImageUrl(''); }}} disabled={!newImageUrl.trim()}>
+                      <ImageIcon size={14}/> Thêm
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
           )}
@@ -385,6 +433,28 @@ export default function JobMasterJobDetailPage() {
                   <span className={styles.jobInfoLabel}>Thời gian</span>
                   <strong>{job.duration} ngày</strong>
                 </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Project Scale & Images (read only) */}
+          {!isEditing && job.projectScale && (
+            <Card className={styles.sectionCard}>
+              <h3 className={styles.secTitle}>📐 Quy mô dự án</h3>
+              <p className={styles.descText}>{job.projectScale}</p>
+            </Card>
+          )}
+
+          {!isEditing && job.projectImages && job.projectImages.length > 0 && (
+            <Card className={styles.sectionCard}>
+              <h3 className={styles.secTitle}>🏗️ Hình ảnh công trình</h3>
+              <div className={styles.imageGallery}>
+                {job.projectImages.map((url: string, i: number) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.galleryItemLarge}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Project ${i + 1}`} className={styles.galleryImg} />
+                  </a>
+                ))}
               </div>
             </Card>
           )}
