@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MessageSquare, Search, Briefcase, Loader2, Inbox } from 'lucide-react';
 import { ChatPanel } from '@/components/chat';
@@ -28,6 +28,14 @@ function formatTime(d: unknown): string {
 }
 
 export default function FreelancerChatPage() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '2rem', color: 'var(--text-secondary)' }}><Loader2 size={18} /> Đang tải...</div>}>
+      <FreelancerChatContent />
+    </Suspense>
+  );
+}
+
+function FreelancerChatContent() {
   const { userProfile } = useAuth();
   const searchParams = useSearchParams();
   const convParam = searchParams.get('conv');

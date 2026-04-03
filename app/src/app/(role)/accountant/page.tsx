@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DollarSign, Wallet, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
 import { getAllPayments, updatePayment } from '@/lib/firebase/firestore';
+import { onPaymentConfirmed } from '@/lib/firebase/firestore-extended';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { cache, TTL } from '@/lib/cache/swr-cache';
 import type { Payment } from '@/types';
@@ -94,6 +95,22 @@ export default function AccountantDashboard() {
                   setActionLoading(pay.id);
                   try {
                     await updatePayment(pay.id, { status: 'paid' }, { uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role });
+                    // Also update job milestone status + check if job should be 'paid'
+                    if (pay.jobId && pay.milestoneId) {
+                      try {
+                        await onPaymentConfirmed({
+                          paymentId: pay.id,
+                          jobId: pay.jobId,
+                          milestoneId: pay.milestoneId,
+                          workerId: pay.workerId,
+                          workerName: pay.workerName || 'Freelancer',
+                          jobMasterId: (pay as unknown as Record<string, unknown>).approvedByJobMaster as string || '',
+                          accountantId: userProfile.uid,
+                          accountantName: userProfile.displayName || 'Kế toán',
+                          amount: pay.amount,
+                        });
+                      } catch (e) { console.warn('onPaymentConfirmed side-effect failed:', e); }
+                    }
                     setPendingPayments(prev => prev.filter(p => p.id !== pay.id));
                     setTotalPending(prev => prev - pay.amount);
                     setTotalPaid(prev => prev + pay.amount);

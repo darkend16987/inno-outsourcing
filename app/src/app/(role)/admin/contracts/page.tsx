@@ -8,6 +8,16 @@ import { cache, TTL } from '@/lib/cache/swr-cache';
 import type { Contract } from '@/types';
 import styles from './page.module.css';
 
+const settleContract = async (contractId: string) => {
+  const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+  const { db } = await import('@/lib/firebase/config');
+  if (!db) throw new Error('DB not initialized');
+  await updateDoc(doc(db, 'contracts', contractId), {
+    status: 'completed',
+    updatedAt: serverTimestamp(),
+  });
+};
+
 const formatDate = (d: unknown): string => {
   if (!d) return '-';
   if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
@@ -105,7 +115,7 @@ export default function AdminContractsPage() {
                     {c.status === 'completed' && <Badge variant="default" size="sm"><CheckCircle size={12}/> Đã thanh lý</Badge>}
                     {c.status === 'draft' && <Badge variant="default" size="sm">Nháp</Badge>}
                   </td>
-                  <td className={styles.tAction}>
+                  <td>
                      <div className={styles.fileActions}>
                         <button className={styles.urlBtn} onClick={() => {
                           if (c.pdfURL) {
@@ -114,6 +124,17 @@ export default function AdminContractsPage() {
                             alert('🚧 File PDF chưa được tạo cho hợp đồng này.');
                           }
                         }}>Xem PDF</button>
+                        {c.status === 'active' && (
+                          <button className={styles.urlBtn} style={{ color: 'var(--color-success, #22c55e)' }} onClick={async () => {
+                            if (!confirm(`Xác nhận thanh lý hợp đồng ${c.contractNumber}?`)) return;
+                            try {
+                              await settleContract(c.id);
+                              setContracts(prev => prev.map(cc => cc.id === c.id ? { ...cc, status: 'completed' as const } : cc));
+                              cache.invalidate('admin:contracts');
+                              alert('✅ Đã thanh lý hợp đồng.');
+                            } catch { alert('❌ Lỗi khi thanh lý.'); }
+                          }}>Thanh lý HĐ</button>
+                        )}
                      </div>
                   </td>
                 </tr>

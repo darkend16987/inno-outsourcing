@@ -11,7 +11,7 @@ import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
 import { getJobById } from '@/lib/firebase/firestore';
-import { submitReview, hasUserReviewedJob, updateMilestoneStatus, updateJobProgress } from '@/lib/firebase/firestore-extended';
+import { submitReview, hasUserReviewedJob, updateMilestoneStatus, updateJobProgress, createNotification } from '@/lib/firebase/firestore-extended';
 import { getOrCreateConversation } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import type { Job } from '@/types';
@@ -97,6 +97,18 @@ export default function FreelancerJobDetail() {
       );
       setJob({ ...job, milestones: newMilestones });
       setIsSubmitModalOpen(false);
+      // Notify jobmaster that freelancer submitted a milestone
+      if (job.jobMaster) {
+        const msData = (job.milestones || []).find(m => m.id === submittingMilestone);
+        createNotification({
+          recipientId: job.jobMaster,
+          type: 'milestone_reached',
+          title: `Freelancer nộp kết quả: ${msData?.name || 'Giai đoạn'}`,
+          body: `${job.assignedWorkerName || 'Freelancer'} đã nộp kết quả cho dự án "${job.title}". Vui lòng nghiệm thu.`,
+          link: `/jobmaster/jobs/${job.id}`,
+          read: false,
+        }).catch(() => {});
+      }
       alert('Báo cáo hoàn thành đã được gửi đến Job Master!');
     } catch (err) {
       console.error('Error submitting milestone:', err);

@@ -189,6 +189,335 @@ export const releaseMilestoneEscrow = async (
 };
 
 // =====================
+// PAYMENT ORDER CREATION
+// =====================
+
+/**
+ * Create a payment order document in Firestore for accountant to process.
+ * Called when jobmaster approves a milestone.
+ */
+export const createPaymentOrder = async (data: {
+  jobId: string;
+  jobTitle: string;
+  milestoneId: string;
+  milestoneName: string;
+  amount: number;
+  workerId: string;
+  workerName: string;
+  approvedBy: string;
+  approvedByName: string;
+}): Promise<string | null> => {
+  if (!db) return null;
+  const ref = await addDoc(collection(db, 'payments'), {
+    jobId: data.jobId,
+    contractId: '',
+    milestoneId: data.milestoneId,
+    workerId: data.workerId,
+    workerName: data.workerName,
+    amount: data.amount,
+    reason: `[${data.milestoneName}] — ${data.jobTitle}`,
+    status: 'pending',
+    triggeredByMilestone: true,
+    approvedByJobMaster: data.approvedBy,
+    approvedAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+/**
+ * Orchestrator: Approve a milestone, release escrow, create payment, notify.
+ * Called from jobmaster page when they click "Phê duyệt & Yêu cầu thanh toán".
+ */
+export const approveMilestoneAndPay = async (params: {
+  jobId: string;
+  milestoneId: string;
+  jobTitle: string;
+  milestoneName: string;
+  milestoneAmount: number;
+  workerId: string;
+  workerName: string;
+  jobMasterId: string;
+  jobMasterName: string;
+}): Promise<{ allDone: boolean; paymentId: string | null }> => {
+  if (!db) return { allDone: false, paymentId: null };
+
+  const jobRef = doc(db, 'jobs', params.jobId);
+  const jobSnap = await getDoc(jobRef);
+  if (!jobSnap.exists()) throw new Error('Job not found');
+
+  const data = jobSnap.data();
+  const milestones = (data.milestones || []) as (PaymentMilestone & { submissionNote?: string; submissionLinks?: string[] })[];
+
+  // 1. Update milestone status → released + approvedAt/By
+  const updated = milestones.map(m =>
+    m.id === params.milestoneId
+      ? { ...m, status: 'released' as const, approvedAt: new Date().toISOString(), approvedBy: params.jobMasterId }
+      : m
+  );
+
+  // 2. Check if all milestones are now released/paid → update escrow + job status
+  const allReleased = updated.every(m => m.status === 'released' || m.status === 'paid' || m.status === 'approved');
+  const escrowStatus = allReleased ? 'fully_released' : 'partially_released';
+
+  const jobUpdate: Record<string, unknown> = {
+    milestones: updated,
+    escrowStatus,
+    updatedAt: serverTimestamp(),
+  };
+
+  // If all milestones approved → job is completed
+  if (allReleased) {
+    jobUpdate.status = 'completed';
+    jobUpdate.progress = 100;
+  } else if (data.status === 'assigned' || data.status === 'in_progress') {
+    jobUpdate.status = 'review';
+  }
+
+  await updateDoc(jobRef, jobUpdate);
+
+  // 3. Create payment order for accountant
+  const paymentId = await createPaymentOrder({
+    jobId: params.jobId,
+    jobTitle: params.jobTitle,
+    milestoneId: params.milestoneId,
+    milestoneName: params.milestoneName,
+    amount: params.milestoneAmount,
+    workerId: params.workerId,
+    workerName: params.workerName,
+    approvedBy: params.jobMasterId,
+    approvedByName: params.jobMasterName,
+  });
+
+  // 4. Send notifications
+  // Notify freelancer
+  await createNotification({
+    recipientId: params.workerId,
+    type: 'payment_pending' as NotificationType,
+    title: `Milestone "${params.milestoneName}" đã được phê duyệt`,
+    body: `Job Master đã nghiệm thu giai đoạn của bạn. Kế toán sẽ thanh toán ${params.milestoneAmount.toLocaleString('vi-VN')}₫ sớm.`,
+    link: `/freelancer/jobs/${params.jobId}`,
+    read: false,
+  });
+
+  // Notify all accountants (we send to special topic — in practice, query users with role=accountant)
+  // For now, we create a generic notification that accountants will see
+  try {
+    const accountantsQ = query(collection(db, 'users'), where('role', '==', 'accountant'), limit(10));
+    const accSnap = await getDocs(accountantsQ);
+    for (const accDoc of accSnap.docs) {
+      await createNotification({
+        recipientId: accDoc.id,
+        type: 'payment_pending' as NotificationType,
+        title: `Lệnh chi mới: ${params.milestoneName}`,
+        body: `JM ${params.jobMasterName} phê duyệt ${params.milestoneAmount.toLocaleString('vi-VN')}₫ cho ${params.workerName}.`,
+        link: '/accountant/payments',
+        read: false,
+      });
+    }
+  } catch {
+    // Non-critical — don't block the approval on notification failure
+    console.warn('Failed to send accountant notifications');
+  }
+
+  if (allReleased) {
+    // Notify jobmaster that job is completed
+    await createNotification({
+      recipientId: params.jobMasterId,
+      type: 'progress_update' as NotificationType,
+      title: `Dự án "${params.jobTitle}" đã hoàn thành 100%`,
+      body: 'Tất cả các giai đoạn đã được nghiệm thu. Đang chờ kế toán thanh toán.',
+      link: `/jobmaster/jobs/${params.jobId}`,
+      read: false,
+    });
+  }
+
+  return { allDone: allReleased, paymentId };
+};
+
+/**
+ * Reject a milestone — send it back to in_progress for revision.
+ */
+export const rejectMilestone = async (params: {
+  jobId: string;
+  milestoneId: string;
+  jobTitle: string;
+  milestoneName: string;
+  workerId: string;
+  jobMasterName: string;
+}): Promise<void> => {
+  if (!db) return;
+  await updateMilestoneStatus(params.jobId, params.milestoneId, 'in_progress');
+
+  // Notify freelancer
+  await createNotification({
+    recipientId: params.workerId,
+    type: 'milestone_reached' as NotificationType,
+    title: `Yêu cầu sửa đổi: ${params.milestoneName}`,
+    body: `JM ${params.jobMasterName} yêu cầu sửa đổi giai đoạn này. Vui lòng kiểm tra và nộp lại.`,
+    link: `/freelancer/jobs/${params.jobId}`,
+    read: false,
+  });
+};
+
+/**
+ * Approve ALL milestones in review status at once (bulk approve).
+ */
+export const approveAllMilestones = async (params: {
+  jobId: string;
+  jobTitle: string;
+  workerId: string;
+  workerName: string;
+  jobMasterId: string;
+  jobMasterName: string;
+}): Promise<{ paymentIds: string[] }> => {
+  if (!db) return { paymentIds: [] };
+
+  const jobRef = doc(db, 'jobs', params.jobId);
+  const jobSnap = await getDoc(jobRef);
+  if (!jobSnap.exists()) throw new Error('Job not found');
+
+  const data = jobSnap.data();
+  const milestones = (data.milestones || []) as PaymentMilestone[];
+  const paymentIds: string[] = [];
+
+  // Approve all milestones (those in review go to released, those pending/in_progress/locked also go to released)
+  const updated = milestones.map(m => {
+    if (m.status === 'released' || m.status === 'paid' || m.status === 'approved') return m;
+    return { ...m, status: 'released' as const, approvedAt: new Date().toISOString(), approvedBy: params.jobMasterId };
+  });
+
+  // Update job
+  await updateDoc(jobRef, {
+    milestones: updated,
+    escrowStatus: 'fully_released',
+    status: 'completed',
+    progress: 100,
+    updatedAt: serverTimestamp(),
+  });
+
+  // Create payment orders for each newly released milestone
+  for (const ms of updated) {
+    const original = milestones.find(m => m.id === ms.id);
+    if (original && original.status !== 'released' && original.status !== 'paid' && original.status !== 'approved') {
+      const pid = await createPaymentOrder({
+        jobId: params.jobId,
+        jobTitle: params.jobTitle,
+        milestoneId: ms.id,
+        milestoneName: ms.name,
+        amount: ms.amount,
+        workerId: params.workerId,
+        workerName: params.workerName,
+        approvedBy: params.jobMasterId,
+        approvedByName: params.jobMasterName,
+      });
+      if (pid) paymentIds.push(pid);
+    }
+  }
+
+  // Notify freelancer
+  await createNotification({
+    recipientId: params.workerId,
+    type: 'payment_pending' as NotificationType,
+    title: `Toàn bộ dự án "${params.jobTitle}" đã được nghiệm thu`,
+    body: `Tất cả giai đoạn đã được phê duyệt. Thanh toán sẽ được xử lý bởi kế toán.`,
+    link: `/freelancer/jobs/${params.jobId}`,
+    read: false,
+  });
+
+  // Notify accountants
+  try {
+    const accountantsQ = query(collection(db, 'users'), where('role', '==', 'accountant'), limit(10));
+    const accSnap = await getDocs(accountantsQ);
+    for (const accDoc of accSnap.docs) {
+      await createNotification({
+        recipientId: accDoc.id,
+        type: 'payment_pending' as NotificationType,
+        title: `${paymentIds.length} lệnh chi mới — ${params.jobTitle}`,
+        body: `JM ${params.jobMasterName} nghiệm thu toàn bộ dự án cho ${params.workerName}.`,
+        link: '/accountant/payments',
+        read: false,
+      });
+    }
+  } catch {
+    console.warn('Failed to send accountant notifications');
+  }
+
+  return { paymentIds };
+};
+
+/**
+ * Called when accountant confirms payment — update milestone + check if job should be "paid"
+ */
+export const onPaymentConfirmed = async (params: {
+  paymentId: string;
+  jobId: string;
+  milestoneId: string;
+  workerId: string;
+  workerName: string;
+  jobMasterId: string;
+  accountantId: string;
+  accountantName: string;
+  amount: number;
+}): Promise<{ jobFullyPaid: boolean }> => {
+  if (!db) return { jobFullyPaid: false };
+
+  const jobRef = doc(db, 'jobs', params.jobId);
+  const jobSnap = await getDoc(jobRef);
+  if (!jobSnap.exists()) return { jobFullyPaid: false };
+
+  const data = jobSnap.data();
+  const milestones = (data.milestones || []) as PaymentMilestone[];
+
+  // Update milestone status → paid
+  const updated = milestones.map(m =>
+    m.id === params.milestoneId
+      ? { ...m, status: 'paid' as const, paidAt: new Date().toISOString(), paidBy: params.accountantId }
+      : m
+  );
+
+  const allPaid = updated.every(m => m.status === 'paid');
+
+  const jobUpdate: Record<string, unknown> = {
+    milestones: updated,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (allPaid) {
+    jobUpdate.status = 'paid';
+  }
+
+  await updateDoc(jobRef, jobUpdate);
+
+  // Notify freelancer
+  await createNotification({
+    recipientId: params.workerId,
+    type: 'payment_completed' as NotificationType,
+    title: `Thanh toán ${params.amount.toLocaleString('vi-VN')}₫ đã hoàn tất`,
+    body: allPaid
+      ? 'Toàn bộ dự án đã được thanh toán. Cảm ơn bạn!'
+      : 'Khoản thanh toán đã được chuyển khoản thành công.',
+    link: `/freelancer/jobs/${params.jobId}`,
+    read: false,
+  });
+
+  // Notify jobmaster
+  if (params.jobMasterId) {
+    await createNotification({
+      recipientId: params.jobMasterId,
+      type: 'payment_completed' as NotificationType,
+      title: allPaid ? `Dự án hoàn tất thanh toán` : `Thanh toán milestone thành công`,
+      body: `${params.accountantName} đã xác nhận chuyển khoản ${params.amount.toLocaleString('vi-VN')}₫ cho ${params.workerName}.`,
+      link: `/jobmaster/jobs/${params.jobId}`,
+      read: false,
+    });
+  }
+
+  return { jobFullyPaid: allPaid };
+};
+
+// =====================
 // NOTIFICATIONS
 // =====================
 

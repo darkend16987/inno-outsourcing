@@ -8,7 +8,7 @@ import { Button, Card, Badge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
-import { submitReview, hasUserReviewedJob } from '@/lib/firebase/firestore-extended';
+import { submitReview, hasUserReviewedJob, approveMilestoneAndPay, rejectMilestone, approveAllMilestones } from '@/lib/firebase/firestore-extended';
 import { getJobById, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
@@ -84,8 +84,10 @@ export default function JobMasterJobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMilestone, setSelectedMilestone] = useState({ name: '', amount: '' });
+  const [selectedMilestone, setSelectedMilestone] = useState({ id: '', name: '', amount: '', numericAmount: 0 });
   const [showDispute, setShowDispute] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [bulkApproving, setBulkApproving] = useState(false);
   const [now] = useState(() => Date.now());
 
   // Edit mode state
@@ -163,14 +165,84 @@ export default function JobMasterJobDetailPage() {
     setEditSaving(false);
   };
 
-  const handleApproveClick = (name: string, amount: string) => {
-    setSelectedMilestone({ name, amount });
+  const handleApproveClick = (ms: PaymentMilestone) => {
+    setSelectedMilestone({ id: ms.id, name: ms.name, amount: formatCurrency(ms.amount), numericAmount: ms.amount });
     setIsModalOpen(true);
   };
 
-  const handleConfirmOrder = () => {
-    setIsModalOpen(false);
-    alert(`Yêu cầu thanh toán ${selectedMilestone.amount} đã được gửi cho Kế toán!`);
+  const handleConfirmOrder = async () => {
+    if (!job || !userProfile || approving) return;
+    setApproving(true);
+    try {
+      const result = await approveMilestoneAndPay({
+        jobId: job.id,
+        milestoneId: selectedMilestone.id,
+        jobTitle: job.title,
+        milestoneName: selectedMilestone.name,
+        milestoneAmount: selectedMilestone.numericAmount,
+        workerId: job.assignedTo || '',
+        workerName: job.assignedWorkerName || 'Freelancer',
+        jobMasterId: userProfile.uid,
+        jobMasterName: userProfile.displayName || 'Job Master',
+      });
+      // Refresh job data
+      const updated = await getJobById(job.id);
+      setJob(updated);
+      setIsModalOpen(false);
+      if (result.allDone) {
+        alert('✅ Toàn bộ dự án đã được nghiệm thu! Lệnh chi đã gửi cho Kế toán.');
+      } else {
+        alert('✅ Đã phê duyệt giai đoạn và gửi lệnh chi cho Kế toán.');
+      }
+    } catch (err) {
+      console.error('Approve failed:', err);
+      alert('❌ Lỗi: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
+    }
+    setApproving(false);
+  };
+
+  const handleRejectMilestone = async (ms: PaymentMilestone) => {
+    if (!job || !userProfile) return;
+    if (!confirm(`Xác nhận yêu cầu freelancer sửa đổi giai đoạn "${ms.name}"?`)) return;
+    try {
+      await rejectMilestone({
+        jobId: job.id,
+        milestoneId: ms.id,
+        jobTitle: job.title,
+        milestoneName: ms.name,
+        workerId: job.assignedTo || '',
+        jobMasterName: userProfile.displayName || 'Job Master',
+      });
+      const updated = await getJobById(job.id);
+      setJob(updated);
+      alert('✅ Đã yêu cầu freelancer sửa đổi.');
+    } catch (err) {
+      console.error('Reject failed:', err);
+      alert('❌ Lỗi khi yêu cầu sửa đổi.');
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (!job || !userProfile || bulkApproving) return;
+    if (!confirm('Xác nhận nghiệm thu và tạo lệnh chi cho TẤT CẢ các giai đoạn còn lại?')) return;
+    setBulkApproving(true);
+    try {
+      await approveAllMilestones({
+        jobId: job.id,
+        jobTitle: job.title,
+        workerId: job.assignedTo || '',
+        workerName: job.assignedWorkerName || 'Freelancer',
+        jobMasterId: userProfile.uid,
+        jobMasterName: userProfile.displayName || 'Job Master',
+      });
+      const updated = await getJobById(job.id);
+      setJob(updated);
+      alert('✅ Toàn bộ dự án đã được nghiệm thu! Lệnh chi đã gửi cho Kế toán.');
+    } catch (err) {
+      console.error('Bulk approve failed:', err);
+      alert('❌ Lỗi: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
+    }
+    setBulkApproving(false);
   };
 
   if (loading) {
@@ -285,8 +357,8 @@ export default function JobMasterJobDetailPage() {
               <Button variant="outline" onClick={() => setShowDispute(!showDispute)}>
                 <AlertTriangle size={16}/> Báo cáo vấn đề
               </Button>
-              <Button>
-                <CheckCircle size={16}/> Nghiệm thu toàn bộ
+              <Button onClick={handleBulkApprove} disabled={bulkApproving}>
+                <CheckCircle size={16}/> {bulkApproving ? 'Đang xử lý...' : 'Nghiệm thu toàn bộ'}
               </Button>
             </>
           )}
@@ -494,6 +566,26 @@ export default function JobMasterJobDetailPage() {
                         {isReview && (
                           <div className={styles.submissionBox}>
                             <h5><FileText size={14}/> Freelancer đã nộp kết quả — đang chờ duyệt</h5>
+                            {Boolean((ms as unknown as Record<string, unknown>).submissionNote) && (
+                              <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
+                                <strong>Ghi chú:</strong> {String((ms as unknown as Record<string, unknown>).submissionNote)}
+                              </p>
+                            )}
+                            {Array.isArray((ms as unknown as Record<string, unknown>).submissionLinks) && ((ms as unknown as Record<string, unknown>).submissionLinks as string[]).filter(Boolean).length > 0 && (
+                              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
+                                {((ms as unknown as Record<string, unknown>).submissionLinks as string[]).filter(Boolean).map((link, li) => (
+                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                    📎 {link}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            {Boolean((ms as unknown as Record<string, unknown>).submittedAt) && (
+                              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                                Gửi lúc: {new Date(String((ms as unknown as Record<string, unknown>).submittedAt)).toLocaleString('vi-VN')}
+                              </p>
+                            )}
                           </div>
                         )}
 
@@ -502,10 +594,10 @@ export default function JobMasterJobDetailPage() {
                             <Badge variant="success">Đã nghiệm thu & Thanh toán</Badge>
                           ) : isReview ? (
                             <>
-                              <Button size="sm" onClick={() => handleApproveClick(ms.name, formatCurrency(ms.amount))}>
+                              <Button size="sm" onClick={() => handleApproveClick(ms)}>
                                 <CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán
                               </Button>
-                              <Button variant="outline" size="sm" className={styles.rejectBtn}>
+                              <Button variant="outline" size="sm" className={styles.rejectBtn} onClick={() => handleRejectMilestone(ms)}>
                                 <AlertTriangle size={14}/> Yêu cầu sửa đổi
                               </Button>
                             </>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Download, FileText, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 import { getAllPayments, updatePayment } from '@/lib/firebase/firestore';
+import { onPaymentConfirmed } from '@/lib/firebase/firestore-extended';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { cache } from '@/lib/cache/swr-cache';
 import type { Payment } from '@/types';
@@ -32,6 +33,22 @@ export default function AccountantPaymentsPage() {
     setActionLoading(pay.id);
     try {
       await updatePayment(pay.id, { status: 'paid' }, { uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role });
+      // Also update job milestone + check if job fully paid
+      if (pay.jobId && pay.milestoneId) {
+        try {
+          await onPaymentConfirmed({
+            paymentId: pay.id,
+            jobId: pay.jobId,
+            milestoneId: pay.milestoneId,
+            workerId: pay.workerId,
+            workerName: pay.workerName || 'Freelancer',
+            jobMasterId: (pay as unknown as Record<string, unknown>).approvedByJobMaster as string || '',
+            accountantId: userProfile.uid,
+            accountantName: userProfile.displayName || 'Kế toán',
+            amount: pay.amount,
+          });
+        } catch (e) { console.warn('onPaymentConfirmed side-effect:', e); }
+      }
       setPayments(prev => prev.map(p => p.id === pay.id ? { ...p, status: 'paid' as const } : p));
       cache.invalidate('acct:paid');
       cache.invalidate('acct:pending');
