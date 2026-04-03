@@ -12,7 +12,7 @@ import type { JobStatus } from '@/types';
 const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   draft:             ['pending_approval', 'cancelled'],
   pending_approval:  ['open', 'draft', 'cancelled'],
-  open:              ['assigned', 'cancelled'],
+  open:              ['assigned', 'cancelled', 'pending_approval', 'draft'],
   assigned:          ['in_progress', 'open', 'cancelled'],
   in_progress:       ['review', 'cancelled'],
   review:            ['completed', 'in_progress'], // can send back for revision
