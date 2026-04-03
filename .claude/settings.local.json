@@ -27,7 +27,8 @@
       "Bash(npm run:*)",
       "Bash(npx firebase:*)",
       "Bash(find /d/github/inno-outsourcing/app/src -type f -path *admin* -name *page.tsx)",
-      "Bash(find /d/github/inno-outsourcing/app/src -type f -path *jobmaster* -name *page.tsx)"
+      "Bash(find /d/github/inno-outsourcing/app/src -type f -path *jobmaster* -name *page.tsx)",
+      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(public\\)/\")"
     ]
   }
 }

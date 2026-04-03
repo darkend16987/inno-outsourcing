@@ -1,0 +1,159 @@
+.chatPage {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  height: calc(100vh - 60px);
+  margin: calc(-1 * var(--space-6));
+}
+
+.convSidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid var(--color-border);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  padding: var(--space-5) var(--space-4);
+  border-bottom: 2px solid var(--color-border);
+}
+.sidebarTitle {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: var(--space-3) var(--space-4);
+  padding: 8px 12px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+.searchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-family: inherit;
+  flex: 1;
+}
+
+.convList {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.convItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.convItem:hover {
+  background: var(--color-bg);
+}
+.convActive {
+  background: var(--color-primary-bg, #e8f5f0) !important;
+  border-left: 3px solid var(--color-primary);
+}
+
+.convInfo {
+  flex: 1;
+  min-width: 0;
+}
+.convName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-charcoal);
+  margin-bottom: 2px;
+}
+.convJob {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.convLast {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.convMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.convTime {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.unreadBadge {
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 2px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.emptyConv {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.chatArea {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.noChatSelected {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+  .chatPage {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .convSidebar {
+    border-right: none;
+    border-bottom: 2px solid var(--color-border);
+    max-height: 300px;
+  }
+}

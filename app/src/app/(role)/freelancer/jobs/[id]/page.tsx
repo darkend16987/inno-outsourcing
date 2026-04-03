@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, MessageSquare, UploadCloud, CheckCircle2, X, Loader2, Inbox } from 'lucide-react';
+import { ArrowLeft, Clock, MessageSquare, CheckCircle2, X, Loader2, Inbox, Link2 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
-import { getJobById, updateJob } from '@/lib/firebase/firestore';
+import { getJobById } from '@/lib/firebase/firestore';
 import { submitReview, hasUserReviewedJob, updateMilestoneStatus, updateJobProgress } from '@/lib/firebase/firestore-extended';
 import { getOrCreateConversation } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -43,6 +43,9 @@ export default function FreelancerJobDetail() {
   const [updatingProgress, setUpdatingProgress] = useState(false);
   const [showProgressInput, setShowProgressInput] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
+  const [submitNote, setSubmitNote] = useState('');
+  const [submitLinks, setSubmitLinks] = useState<string[]>(['']);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -61,14 +64,34 @@ export default function FreelancerJobDetail() {
 
   const handleSubmitClick = (milestoneId: string) => {
     setSubmittingMilestone(milestoneId);
+    setSubmitNote('');
+    setSubmitLinks(['']);
     setIsSubmitModalOpen(true);
   };
 
   const handleConfirmSubmit = async () => {
-    if (!submittingMilestone || !job) return;
+    if (!submittingMilestone || !job || submitting) return;
+    setSubmitting(true);
     try {
-      // Update milestone status in Firestore
+      // Filter out empty links
+      const validLinks = submitLinks.filter(l => l.trim() !== '');
+      // Update milestone status + attach note/links
       await updateMilestoneStatus(job.id, submittingMilestone, 'review');
+      // Save submission data (note + links) in the milestone
+      const { doc: firestoreDoc, updateDoc: firestoreUpdateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase/config');
+      if (db) {
+        const jobRef = firestoreDoc(db, 'jobs', job.id);
+        const { getDoc: firestoreGetDoc } = await import('firebase/firestore');
+        const snap = await firestoreGetDoc(jobRef);
+        if (snap.exists()) {
+          const currentMilestones = (snap.data().milestones || []) as Array<Record<string, unknown>>;
+          const updatedMs = currentMilestones.map(ms =>
+            ms.id === submittingMilestone ? { ...ms, status: 'review', submissionNote: submitNote, submissionLinks: validLinks, submittedAt: new Date().toISOString() } : ms
+          );
+          await firestoreUpdateDoc(jobRef, { milestones: updatedMs });
+        }
+      }
       const newMilestones = (job.milestones || []).map((ms) =>
         ms.id === submittingMilestone ? { ...ms, status: 'review' as unknown as typeof ms.status } : ms
       );
@@ -77,8 +100,9 @@ export default function FreelancerJobDetail() {
       alert('Báo cáo hoàn thành đã được gửi đến Job Master!');
     } catch (err) {
       console.error('Error submitting milestone:', err);
-      alert('Có lỗi xảy ra, vui lòng thử lại.');
+      alert('Có lỗi xảy ra: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
     }
+    setSubmitting(false);
   };
 
   // Handle progress update
@@ -86,10 +110,18 @@ export default function FreelancerJobDetail() {
     if (!job || updatingProgress) return;
     setUpdatingProgress(true);
     try {
+      // Update progress value directly (bypasses state machine)
       await updateJobProgress(job.id, progressValue);
-      // Also update job status to in_progress if still assigned
+      // If job is still 'assigned', also transition to in_progress via direct updateDoc
       if (job.status === 'assigned') {
-        await updateJob(job.id, { status: 'in_progress' } as Partial<Job>);
+        const { doc: firestoreDoc, updateDoc: firestoreUpdateDoc, serverTimestamp } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase/config');
+        if (db) {
+          await firestoreUpdateDoc(firestoreDoc(db, 'jobs', job.id), {
+            status: 'in_progress',
+            updatedAt: serverTimestamp(),
+          });
+        }
         setJob({ ...job, progress: progressValue, status: 'in_progress' });
       } else {
         setJob({ ...job, progress: progressValue });
@@ -98,7 +130,7 @@ export default function FreelancerJobDetail() {
       alert('Đã cập nhật tiến độ!');
     } catch (err) {
       console.error('Error updating progress:', err);
-      alert('Có lỗi, vui lòng thử lại.');
+      alert('Có lỗi: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
     }
     setUpdatingProgress(false);
   };
@@ -126,7 +158,14 @@ export default function FreelancerJobDetail() {
       );
       // Also set job to in_progress if still assigned
       if (job.status === 'assigned') {
-        await updateJob(job.id, { status: 'in_progress' } as Partial<Job>);
+        const { doc: firestoreDoc, updateDoc: firestoreUpdateDoc, serverTimestamp } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase/config');
+        if (db) {
+          await firestoreUpdateDoc(firestoreDoc(db, 'jobs', job.id), {
+            status: 'in_progress',
+            updatedAt: serverTimestamp(),
+          });
+        }
         setJob({ ...job, milestones: newMilestones, status: 'in_progress' });
       } else {
         setJob({ ...job, milestones: newMilestones });
@@ -226,7 +265,7 @@ export default function FreelancerJobDetail() {
                   <div className={styles.mRight}>
                     {ms.status === 'in_progress' ? (
                       <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
-                        <UploadCloud size={14}/> Nộp kết quả
+                        <Link2 size={14}/> Nộp kết quả
                       </Button>
                     ) : ms.status === 'review' ? (
                       <Badge variant="info">Đang chờ duyệt</Badge>
@@ -376,17 +415,56 @@ export default function FreelancerJobDetail() {
               <div className={styles.modalBody}>
                 <div className={styles.formGroup}>
                   <label>Ghi chú gửi Job Master</label>
-                  <textarea placeholder="Mô tả tóm tắt các công việc đã hoàn thành hoặc các lưu ý đặc biệt..." className={styles.textarea}></textarea>
+                  <textarea
+                    placeholder="Mô tả tóm tắt các công việc đã hoàn thành hoặc các lưu ý đặc biệt..."
+                    className={styles.textarea}
+                    value={submitNote}
+                    onChange={e => setSubmitNote(e.target.value)}
+                  />
                 </div>
-                <div className={styles.uploadArea}>
-                  <UploadCloud size={32} className={styles.uploadIcon}/>
-                  <p>Kéo thả file kết quả hoặc nhấn để chọn file</p>
-                  <span>Hỗ trợ: PDF, DWG, RVT, ZIP (Max 100MB)</span>
+                <div className={styles.formGroup}>
+                  <label>Link kết quả (Google Drive, OneDrive, Dropbox...)</label>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '0 0 8px 0' }}>
+                    Đăng tải file lên cloud và dán link vào đây. Có thể thêm nhiều link.
+                  </p>
+                  {submitLinks.map((link, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                      <input
+                        type="url"
+                        className={styles.linkInput}
+                        placeholder="https://drive.google.com/... hoặc link cloud khác"
+                        value={link}
+                        onChange={e => {
+                          const updated = [...submitLinks];
+                          updated[idx] = e.target.value;
+                          setSubmitLinks(updated);
+                        }}
+                      />
+                      {submitLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setSubmitLinks(submitLinks.filter((_, i) => i !== idx))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-error, #ef4444)', padding: '4px' }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSubmitLinks([...submitLinks, ''])}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: '13px', fontWeight: 600, padding: '4px 0' }}
+                  >
+                    + Thêm link
+                  </button>
                 </div>
               </div>
               <div className={styles.modalFooter}>
                 <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)}>Hủy bỏ</Button>
-                <Button onClick={handleConfirmSubmit}>Xác nhận & Gửi báo cáo</Button>
+                <Button onClick={handleConfirmSubmit} disabled={submitting}>
+                  {submitting ? 'Đang gửi...' : 'Xác nhận & Gửi báo cáo'}
+                </Button>
               </div>
             </motion.div>
           </div>
