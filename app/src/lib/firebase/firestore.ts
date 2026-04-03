@@ -47,6 +47,55 @@ export interface JobFilters {
 const PAGE_SIZE = 12;
 
 // =====================
+// REPAIR: Sync job statuses for accepted applications that were accepted before auto-assign was deployed
+// =====================
+export const repairOrphanedAssignments = async (): Promise<number> => {
+  if (!db) return 0;
+  let repaired = 0;
+  try {
+    // Find all accepted applications
+    const acceptedApps = await getDocs(
+      query(collection(db, 'applications'), where('status', '==', 'accepted'))
+    );
+    for (const appDoc of acceptedApps.docs) {
+      const appData = appDoc.data();
+      const jobId = appData.jobId;
+      const applicantId = appData.applicantId;
+      const applicantName = appData.applicantName || 'Freelancer';
+      if (!jobId || !applicantId) continue;
+
+      const jobRef = doc(db, 'jobs', jobId);
+      const jobSnap = await getDoc(jobRef);
+      if (!jobSnap.exists()) continue;
+
+      const jobData = jobSnap.data();
+      // Only repair if job is still 'open' or 'pending_approval' but has an accepted application
+      if (jobData.status !== 'open' && jobData.status !== 'pending_approval') continue;
+
+      const milestones = (jobData.milestones || []) as Array<Record<string, unknown>>;
+      const updatedMilestones = milestones.map((ms, idx) => ({
+        ...ms,
+        status: idx === 0 ? 'in_progress' : 'locked',
+      }));
+
+      await updateDoc(jobRef, {
+        assignedTo: applicantId,
+        assignedWorkerName: applicantName,
+        status: 'assigned',
+        escrowStatus: 'locked',
+        milestones: updatedMilestones,
+        progress: 0,
+        updatedAt: serverTimestamp(),
+      });
+      repaired++;
+    }
+  } catch (err) {
+    console.error('repairOrphanedAssignments error:', err);
+  }
+  return repaired;
+};
+
+// =====================
 // FUNCTIONS CALLABLE
 // =====================
 export const requestPaymentOrder = async (data: {
