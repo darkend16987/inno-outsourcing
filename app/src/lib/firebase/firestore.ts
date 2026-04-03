@@ -100,8 +100,15 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
       // Continue without encryption if key not configured
     }
   }
+  // Strip undefined values — Firestore updateDoc() does not accept undefined
+  const cleanData: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(dataToSave)) {
+    if (value !== undefined) {
+      cleanData[key] = value;
+    }
+  }
   await updateDoc(doc(db, 'users', uid), {
-    ...dataToSave,
+    ...cleanData,
     updatedAt: serverTimestamp(),
   });
 };
