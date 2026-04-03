@@ -601,7 +601,20 @@ export default function JobDetailPage() {
               </div>
 
               <div className={styles.actionBlock}>
-                {hasApplied && applicationStatus ? (
+                {/* Job already assigned/in_progress — no longer accepting applications */}
+                {job.status !== 'open' && job.status !== 'pending_approval' && job.status !== 'draft' && !hasApplied ? (
+                  <div className={styles.appliedStatus} style={{ borderColor: 'var(--color-text-muted)' }}>
+                    <div className={styles.appliedIcon} style={{ color: 'var(--color-text-muted)' }}>
+                      <CheckCircle size={16} />
+                    </div>
+                    <div>
+                      <div className={styles.appliedLabel} style={{ color: 'var(--color-text-muted)' }}>
+                        Công việc đã được giao
+                      </div>
+                      <div className={styles.appliedHint}>Không còn nhận ứng tuyển</div>
+                    </div>
+                  </div>
+                ) : hasApplied && applicationStatus ? (
                   <div className={styles.appliedStatus} style={{ borderColor: STATUS_MAP[applicationStatus]?.color }}>
                     <div className={styles.appliedIcon} style={{ color: STATUS_MAP[applicationStatus]?.color }}>
                       {STATUS_MAP[applicationStatus]?.icon}
@@ -611,21 +624,29 @@ export default function JobDetailPage() {
                         {STATUS_MAP[applicationStatus]?.label}
                       </div>
                       <div className={styles.appliedHint}>Bạn đã ứng tuyển công việc này</div>
+                      {applicationStatus === 'accepted' && (
+                        <Link href={`/freelancer/jobs/${jobId}`} style={{ fontSize: 13, color: 'var(--color-primary)', marginTop: 4, display: 'block' }}>
+                          → Xem dự án được giao
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ) : (
                   <>
-                    <Button 
-                      fullWidth 
-                      size="lg" 
-                      onClick={handleApplyClick} 
+                    <Button
+                      fullWidth
+                      size="lg"
+                      onClick={handleApplyClick}
                       loading={checkingApplication}
+                      disabled={job.status !== 'open'}
                     >
-                      Nộp hồ sơ ứng tuyển
+                      {job.status === 'open' ? 'Nộp hồ sơ ứng tuyển' : 'Không còn nhận ứng tuyển'}
                     </Button>
-                    <div className={styles.actionHint}>
-                      Yêu cầu Level {job.level} để tối ưu cơ hội trúng tuyển.
-                    </div>
+                    {job.status === 'open' && (
+                      <div className={styles.actionHint}>
+                        Yêu cầu Level {job.level} để tối ưu cơ hội trúng tuyển.
+                      </div>
+                    )}
                   </>
                 )}
               </div>

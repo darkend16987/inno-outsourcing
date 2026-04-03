@@ -10,8 +10,9 @@ import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
-import { getJobById } from '@/lib/firebase/firestore';
-import { submitReview, hasUserReviewedJob } from '@/lib/firebase/firestore-extended';
+import { getJobById, updateJob } from '@/lib/firebase/firestore';
+import { submitReview, hasUserReviewedJob, updateMilestoneStatus, updateJobProgress } from '@/lib/firebase/firestore-extended';
+import { getOrCreateConversation } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import type { Job } from '@/types';
 import styles from './page.module.css';
@@ -39,14 +40,17 @@ export default function FreelancerJobDetail() {
   const [submittingMilestone, setSubmittingMilestone] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
+  const [updatingProgress, setUpdatingProgress] = useState(false);
+  const [showProgressInput, setShowProgressInput] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
 
   useEffect(() => {
     const fetchJob = async () => {
       if (!params.id) return;
       const result = await getJobById(params.id as string);
       setJob(result);
+      if (result) setProgressValue(result.progress ?? 0);
       setLoading(false);
-      // Check if already reviewed (mock userId for now)
       if (result && (result.status === 'completed' || result.status === 'paid') && result.assignedTo) {
         const reviewed = await hasUserReviewedJob(result.id, result.assignedTo);
         setHasReviewed(reviewed);
@@ -60,14 +64,76 @@ export default function FreelancerJobDetail() {
     setIsSubmitModalOpen(true);
   };
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     if (!submittingMilestone || !job) return;
-    const newMilestones = (job.milestones || []).map((ms) =>
-      ms.id === submittingMilestone ? { ...ms, status: 'review' as unknown as typeof ms.status } : ms
-    );
-    setJob({ ...job, milestones: newMilestones });
-    setIsSubmitModalOpen(false);
-    alert('Báo cáo hoàn thành đã được gửi đến Job Master!');
+    try {
+      // Update milestone status in Firestore
+      await updateMilestoneStatus(job.id, submittingMilestone, 'review');
+      const newMilestones = (job.milestones || []).map((ms) =>
+        ms.id === submittingMilestone ? { ...ms, status: 'review' as unknown as typeof ms.status } : ms
+      );
+      setJob({ ...job, milestones: newMilestones });
+      setIsSubmitModalOpen(false);
+      alert('Báo cáo hoàn thành đã được gửi đến Job Master!');
+    } catch (err) {
+      console.error('Error submitting milestone:', err);
+      alert('Có lỗi xảy ra, vui lòng thử lại.');
+    }
+  };
+
+  // Handle progress update
+  const handleUpdateProgress = async () => {
+    if (!job || updatingProgress) return;
+    setUpdatingProgress(true);
+    try {
+      await updateJobProgress(job.id, progressValue);
+      // Also update job status to in_progress if still assigned
+      if (job.status === 'assigned') {
+        await updateJob(job.id, { status: 'in_progress' } as Partial<Job>);
+        setJob({ ...job, progress: progressValue, status: 'in_progress' });
+      } else {
+        setJob({ ...job, progress: progressValue });
+      }
+      setShowProgressInput(false);
+      alert('Đã cập nhật tiến độ!');
+    } catch (err) {
+      console.error('Error updating progress:', err);
+      alert('Có lỗi, vui lòng thử lại.');
+    }
+    setUpdatingProgress(false);
+  };
+
+  // Navigate to chat with jobmaster
+  const handleOpenChat = async () => {
+    if (!userProfile?.uid || !job?.jobMaster) return;
+    try {
+      const convId = await getOrCreateConversation([userProfile.uid, job.jobMaster], job.id);
+      if (convId) {
+        window.location.href = `/freelancer/chat?conv=${convId}`;
+      }
+    } catch {
+      alert('Không thể mở hội thoại. Vui lòng thử lại.');
+    }
+  };
+
+  // Handle starting a milestone (change from pending/locked → in_progress)
+  const handleStartMilestone = async (milestoneId: string) => {
+    if (!job) return;
+    try {
+      await updateMilestoneStatus(job.id, milestoneId, 'in_progress');
+      const newMilestones = (job.milestones || []).map((ms) =>
+        ms.id === milestoneId ? { ...ms, status: 'in_progress' as unknown as typeof ms.status } : ms
+      );
+      // Also set job to in_progress if still assigned
+      if (job.status === 'assigned') {
+        await updateJob(job.id, { status: 'in_progress' } as Partial<Job>);
+        setJob({ ...job, milestones: newMilestones, status: 'in_progress' });
+      } else {
+        setJob({ ...job, milestones: newMilestones });
+      }
+    } catch (err) {
+      console.error('Error starting milestone:', err);
+    }
   };
 
   if (loading) {
@@ -120,11 +186,29 @@ export default function FreelancerJobDetail() {
           <Card className={styles.progressCard}>
             <div className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}>Tiến độ tổng thể ({job.progress ?? 0}%)</h3>
-              <Button size="sm" variant="outline">Cập nhật tiến độ</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowProgressInput(!showProgressInput)}>
+                Cập nhật tiến độ
+              </Button>
             </div>
             <div className={styles.progressBar}>
               <div className={styles.progressFill} style={{ width: `${job.progress ?? 0}%` }} />
             </div>
+            {showProgressInput && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={progressValue}
+                  onChange={(e) => setProgressValue(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontWeight: 600, minWidth: 40 }}>{progressValue}%</span>
+                <Button size="sm" onClick={handleUpdateProgress} disabled={updatingProgress}>
+                  {updatingProgress ? 'Đang lưu...' : 'Lưu'}
+                </Button>
+              </div>
+            )}
           </Card>
 
           <Card className={styles.tasksCard}>
@@ -146,10 +230,13 @@ export default function FreelancerJobDetail() {
                       </Button>
                     ) : ms.status === 'review' ? (
                       <Badge variant="info">Đang chờ duyệt</Badge>
-                    ) : ms.status === 'completed' ? (
+                    ) : ms.status === 'completed' || ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved' ? (
                       <Badge variant="success"><CheckCircle2 size={12}/> Hoàn thành</Badge>
                     ) : (
-                      <span className={styles.mPending}>Chưa bắt đầu</span>
+                      /* pending / locked / not started — allow freelancer to start */
+                      <Button size="sm" variant="outline" onClick={() => handleStartMilestone(ms.id)}>
+                        Bắt đầu giai đoạn
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -187,7 +274,7 @@ export default function FreelancerJobDetail() {
                 <div className={styles.mRole}>Job Master</div>
               </div>
             </div>
-            <Button fullWidth variant="outline" className={styles.msgBtn}>
+            <Button fullWidth variant="outline" className={styles.msgBtn} onClick={handleOpenChat}>
               <MessageSquare size={16} /> Nhắn tin trao đổi
             </Button>
           </Card>

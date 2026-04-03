@@ -321,6 +321,65 @@ export const updateApplication = async (id: string, data: Partial<JobApplication
   if (!db) return;
   await updateDoc(doc(db, 'applications', id), { ...data, updatedAt: serverTimestamp() });
 
+  // =====================
+  // CRITICAL: When application is ACCEPTED → auto-assign the job
+  // =====================
+  if (data.status === 'accepted') {
+    try {
+      // Fetch the application to get jobId, applicantId, applicantName
+      const appSnap = await getDoc(doc(db, 'applications', id));
+      if (appSnap.exists()) {
+        const appData = appSnap.data();
+        const jobId = appData.jobId;
+        const applicantId = appData.applicantId;
+        const applicantName = appData.applicantName || 'Freelancer';
+
+        if (jobId && applicantId) {
+          const jobRef = doc(db, 'jobs', jobId);
+          const jobSnap = await getDoc(jobRef);
+
+          if (jobSnap.exists()) {
+            const jobData = jobSnap.data();
+            const milestones = (jobData.milestones || []) as Array<Record<string, unknown>>;
+
+            // Set first milestone to 'in_progress', lock the rest
+            const updatedMilestones = milestones.map((ms, idx) => ({
+              ...ms,
+              status: idx === 0 ? 'in_progress' : 'locked',
+            }));
+
+            // Update job: assign freelancer, change status, set milestones
+            await updateDoc(jobRef, {
+              assignedTo: applicantId,
+              assignedWorkerName: applicantName,
+              status: 'assigned',
+              escrowStatus: 'locked',
+              milestones: updatedMilestones,
+              progress: 0,
+              updatedAt: serverTimestamp(),
+            });
+
+            // Reject all other pending applications for this job
+            const otherApps = await getDocs(
+              query(
+                collection(db, 'applications'),
+                where('jobId', '==', jobId),
+                where('status', '==', 'pending'),
+              )
+            );
+            for (const otherApp of otherApps.docs) {
+              if (otherApp.id !== id) {
+                await updateDoc(otherApp.ref, { status: 'rejected', updatedAt: serverTimestamp() });
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error auto-assigning job after application accepted:', err);
+    }
+  }
+
   // Audit log (A3)
   if (actor && data.status) {
     logAuditEvent({
