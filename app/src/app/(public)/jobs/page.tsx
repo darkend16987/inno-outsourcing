@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Clock, ArrowRight, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Search, SlidersHorizontal, Clock, ArrowRight, LayoutGrid, List as ListIcon, Users } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge } from '@/components/ui';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -38,12 +38,6 @@ function getJobFee(job: Record<string, unknown>): number {
   return 0;
 }
 
-function getJobDescription(job: Record<string, unknown>): string {
-  if (typeof job.description === 'string') return job.description;
-  if (typeof job.desc === 'string') return job.desc;
-  return '';
-}
-
 function getJobDuration(job: Record<string, unknown>): string {
   if (typeof job.duration === 'number') return `${job.duration} ngày`;
   if (typeof job.duration === 'string') return job.duration;
@@ -71,6 +65,7 @@ function JobsPageContent() {
   // Dynamic config-driven filters (with hardcoded fallbacks)
   const [categories, setCategories] = useState<string[]>(JOB_CATEGORIES);
   const [levels, setLevels] = useState<string[]>(JOB_LEVELS);
+  const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
 
   // Load saved jobs for logged-in freelancer
   useEffect(() => {
@@ -101,10 +96,14 @@ function JobsPageContent() {
           getConfigItems('specialties'),
           getConfigItems('levels'),
         ]);
-        const activeSp = sp.filter(i => i.isActive).map(i => i.label);
-        const activeLv = lv.filter(i => i.isActive).map(i => i.label);
+        const activeSp = sp.filter((i: SystemConfigItem) => i.isActive).map((i: SystemConfigItem) => i.label);
+        const activeLv = lv.filter((i: SystemConfigItem) => i.isActive).map((i: SystemConfigItem) => i.label);
         if (activeSp.length > 0) setCategories(activeSp);
         if (activeLv.length > 0) setLevels(activeLv);
+        // Build category color map
+        const colorMap: Record<string, string> = {};
+        sp.forEach((i: SystemConfigItem) => { if (i.color) colorMap[i.label] = i.color; });
+        setCategoryColors(colorMap);
       } catch (err) {
         console.error('Failed to load filter config, using fallbacks:', err);
       }
@@ -295,6 +294,13 @@ function JobsPageContent() {
                 <motion.div key={job.id} initial="hidden" animate="visible" custom={i} variants={fadeUp}>
                   <Link href={getJobUrl(job)} className={styles.jobLink}>
                     <Card hover className={`${styles.jobCard} ${viewMode === 'grid' ? styles.jobCardGrid : ''}`}>
+                      {/* Corner category color tag */}
+                      {(categoryColors[job.category] || job.category) && (
+                        <div
+                          className={styles.cornerTag}
+                          style={{ '--corner-color': categoryColors[job.category] || 'var(--color-primary)' } as React.CSSProperties}
+                        />
+                      )}
                       <div className={styles.jobLeft}>
                         <div className={styles.jobTags}>
                           {job.highlightTags?.map((tag: string) => (
@@ -305,7 +311,20 @@ function JobsPageContent() {
                           <Badge size="sm">{WORK_MODE_LABELS[job.workMode] || job.workMode}</Badge>
                         </div>
                         <h3 className={styles.jobTitle}>{job.title}</h3>
-                        <p className={styles.jobDesc}>{getJobDescription(job)}</p>
+                        {/* Software tags */}
+                        {job.requirements?.software?.length > 0 && (
+                          <div className={styles.softwareTags}>
+                            {job.requirements.software.slice(0, 4).map((sw: string) => (
+                              <span key={sw} className={styles.swTag}>{sw}</span>
+                            ))}
+                            {job.requirements.software.length > 4 && (
+                              <span className={styles.swTag}>+{job.requirements.software.length - 4}</span>
+                            )}
+                          </div>
+                        )}
+                        <div className={styles.jobApplicants}>
+                          <Users size={12} /> {job.applicantsCount || 0} người đã ứng tuyển
+                        </div>
                       </div>
                       <div className={styles.jobRight}>
                         {userProfile?.role === 'freelancer' && (

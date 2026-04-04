@@ -103,7 +103,10 @@ export default function RegisterPage() {
       <div className={styles.left}>
         <div className={styles.leftContent}>
           <div className={styles.brand}>
-            <div className={styles.logo}><span>V</span></div>
+            <div className={styles.logo}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="VAA Job" className={styles.logoImg} />
+            </div>
             <strong>VAA JOB</strong>
           </div>
           <h1 className={styles.leftTitle}>

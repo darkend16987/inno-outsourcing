@@ -2,11 +2,12 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(var(--color-surface-rgb, 255 255 255) / 0.85);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1.5px solid transparent;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  color: var(--color-text);
 }
 
 .header.scrolled {

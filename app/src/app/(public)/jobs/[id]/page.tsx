@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, Clock, Briefcase, Calendar, 
+import {
+  ArrowLeft, Clock, Briefcase, Calendar,
   Sparkles, Zap, Star, Target, Send,
   FileText, MessageSquare, Info, X,
   CheckCircle, ExternalLink, AlertCircle,
-  Copy, Check
+  Copy, ChevronDown, ChevronUp, Users, Check
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
 import { ActiveJobWarning } from '@/components/ui/ActiveJobWarning';
@@ -311,6 +311,8 @@ export default function JobDetailPage() {
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const [checkingApplication, setCheckingApplication] = useState(false);
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  const DESC_LIMIT = 400;
 
   useEffect(() => {
     async function fetchJob() {
@@ -500,11 +502,27 @@ export default function JobDetailPage() {
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}><Briefcase size={20} /> Mô tả công việc</h2>
               <div className={styles.content}>
-                {job.description ? (
-                  job.description.split('\n').map((para: string, i: number) => (
-                    <p key={i}>{para}</p>
-                  ))
-                ) : (
+                {job.description ? (() => {
+                  const isLong = job.description.length > DESC_LIMIT;
+                  const displayText = isLong && !showFullDesc
+                    ? job.description.slice(0, DESC_LIMIT) + '…'
+                    : job.description;
+                  return (
+                    <>
+                      {displayText.split('\n').map((para: string, i: number) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                      {isLong && (
+                        <button className={styles.showMoreBtn} onClick={() => setShowFullDesc(v => !v)}>
+                          {showFullDesc
+                            ? <><ChevronUp size={16} /> Thu gọn</>
+                            : <><ChevronDown size={16} /> Xem thêm</>
+                          }
+                        </button>
+                      )}
+                    </>
+                  );
+                })() : (
                   <p className={styles.placeholder}>Mô tả chi tiết sẽ được cập nhật sớm.</p>
                 )}
               </div>
@@ -534,26 +552,44 @@ export default function JobDetailPage() {
             )}
 
             {job.requirements && (
-              <section className={styles.section}>
-                <h2 className={styles.sectionTitle}><Zap size={20} /> Yêu cầu công việc</h2>
-                <ul className={styles.reqList}>
-                  {job.requirements.experience && <li><strong>Kinh nghiệm:</strong> {job.requirements.experience}</li>}
-                  {job.requirements.certifications && <li><strong>Chứng chỉ:</strong> {job.requirements.certifications}</li>}
-                  {job.requirements.software?.length > 0 && (
-                    <li><strong>Phần mềm:</strong> 
-                      <div className={styles.softwareGrid}>
-                        {job.requirements.software.map((sw: string) => <Badge key={sw} size="sm" variant="outline" className={styles.swBadge}>{sw}</Badge>)}
-                      </div>
-                    </li>
+              <section className={`${styles.section} ${styles.requirementsSection}`}>
+                <h2 className={styles.sectionTitleLg}><Zap size={22} /> Yêu cầu công việc</h2>
+                <div className={styles.reqGrid}>
+                  {job.requirements.experience && (
+                    <div className={styles.reqItem}>
+                      <span className={styles.reqLabel}>Kinh nghiệm</span>
+                      <span className={styles.reqValue}>{job.requirements.experience}</span>
+                    </div>
                   )}
-                  {job.requirements.standards?.length > 0 && <li><strong>Tiêu chuẩn:</strong> {job.requirements.standards.join(', ')}</li>}
-                </ul>
+                  {job.requirements.certifications && (
+                    <div className={styles.reqItem}>
+                      <span className={styles.reqLabel}>Chứng chỉ</span>
+                      <span className={styles.reqValue}>{job.requirements.certifications}</span>
+                    </div>
+                  )}
+                  {job.requirements.standards?.length > 0 && (
+                    <div className={styles.reqItem}>
+                      <span className={styles.reqLabel}>Tiêu chuẩn</span>
+                      <span className={styles.reqValue}>{job.requirements.standards.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+                {job.requirements.software?.length > 0 && (
+                  <div className={styles.softwareSection}>
+                    <span className={styles.reqLabel}>Phần mềm yêu cầu</span>
+                    <div className={styles.softwareGrid}>
+                      {job.requirements.software.map((sw: string) => (
+                        <span key={sw} className={styles.swChip}>{sw}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
             {job.milestones.length > 0 && (
               <section className={styles.section}>
-                <h2 className={styles.sectionTitle}><Star size={20} /> Giai đoạn thanh toán (Milestones)</h2>
+                <h2 className={styles.sectionTitle}><Star size={20} /> Giai đoạn thanh toán — Giai đoạn được duyệt, giải ngân ngay trong 24 giờ</h2>
                 <div className={styles.milestones}>
                   {job.milestones.map((ms: { id: string; name: string; percentage: number; amount: number }, index: number) => (
                     <div key={ms.id} className={styles.milestone}>
@@ -679,9 +715,19 @@ export default function JobDetailPage() {
                     <div className={styles.mRole}>Job Master @ INNO</div>
                   </div>
                 </div>
-                <div className={styles.mContact}>
-                  <div className={styles.contactRow}><span>Hỗ trợ:</span> <strong>Chat ngay</strong></div>
-                  <Button variant="outline" size="sm" fullWidth className={styles.contactBtn} icon={<MessageSquare size={14}/>}>Nhắn trao đổi</Button>
+                <div className={styles.masterStats}>
+                  <div className={styles.masterStatItem}>
+                    <Briefcase size={14} />
+                    <span>{job.jobMasterCompletedJobs || 0} việc đã giao</span>
+                  </div>
+                  <div className={styles.masterStatItem}>
+                    <Star size={14} />
+                    <span>Rating: {job.jobMasterRating ? `${job.jobMasterRating.toFixed(1)}⭐` : 'Chưa có'}</span>
+                  </div>
+                  <div className={styles.masterStatItem}>
+                    <Users size={14} />
+                    <span>{job.applicantsCount || 0} ứng viên</span>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -699,10 +745,14 @@ export default function JobDetailPage() {
                 </button>
                 <button
                   className={styles.shareBtn}
-                  data-type="zalo"
-                  onClick={() => window.open(`https://zalo.me/share/phone?link=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(job.title)}`, '_blank')}
+                  data-type="instagram"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Đã copy link! Dán vào Instagram Story hoặc Bio để chia sẻ.');
+                  }}
                 >
-                  💬 Zalo
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                  Instagram
                 </button>
                 <button
                   className={styles.shareBtn}

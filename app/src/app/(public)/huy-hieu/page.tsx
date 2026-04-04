@@ -6,32 +6,22 @@ import styles from './page.module.css';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getBadgeDefinitions, getUserBadges } from '@/lib/firebase/firestore';
 import type { UserBadge } from '@/types';
-import { 
-  Diamond, 
-  Zap, 
-  Star, 
-  HeartHandshake, 
-  Rocket, 
-  Award,
-  ShieldCheck,
-  Trophy,
-  Target,
-  Flame,
-  Info
+import {
+  Diamond, Zap, Star, HeartHandshake, Rocket, Award,
+  ShieldCheck, Trophy, Target, Flame, Info, Lock, ArrowUp, ArrowDown
 } from 'lucide-react';
 
-// Map icon names from DB to Lucide components
 const IconMap: Record<string, React.ReactNode> = {
-  'Diamond': <Diamond size={32} strokeWidth={1.5} />,
-  'Zap': <Zap size={32} strokeWidth={1.5} />,
-  'Star': <Star size={32} strokeWidth={1.5} />,
-  'HeartHandshake': <HeartHandshake size={32} strokeWidth={1.5} />,
-  'Rocket': <Rocket size={32} strokeWidth={1.5} />,
-  'Award': <Award size={32} strokeWidth={1.5} />,
-  'ShieldCheck': <ShieldCheck size={32} strokeWidth={1.5} />,
-  'Trophy': <Trophy size={32} strokeWidth={1.5} />,
-  'Target': <Target size={32} strokeWidth={1.5} />,
-  'Flame': <Flame size={32} strokeWidth={1.5} />,
+  'Diamond': <Diamond size={28} strokeWidth={1.5} />,
+  'Zap': <Zap size={28} strokeWidth={1.5} />,
+  'Star': <Star size={28} strokeWidth={1.5} />,
+  'HeartHandshake': <HeartHandshake size={28} strokeWidth={1.5} />,
+  'Rocket': <Rocket size={28} strokeWidth={1.5} />,
+  'Award': <Award size={28} strokeWidth={1.5} />,
+  'ShieldCheck': <ShieldCheck size={28} strokeWidth={1.5} />,
+  'Trophy': <Trophy size={28} strokeWidth={1.5} />,
+  'Target': <Target size={28} strokeWidth={1.5} />,
+  'Flame': <Flame size={28} strokeWidth={1.5} />,
 };
 
 interface BadgeDefinition {
@@ -41,13 +31,18 @@ interface BadgeDefinition {
   icon: string;
   color?: string;
   count?: number;
+  threshold?: number;
 }
+
+type SortOrder = 'asc' | 'desc';
 
 export default function BadgesPage() {
   const { userProfile: user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'mine' | 'all'>('all');
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [userEarned, setUserEarned] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   useEffect(() => {
     async function fetchData() {
@@ -57,14 +52,12 @@ export default function BadgesPage() {
           getBadgeDefinitions() as Promise<BadgeDefinition[]>,
           user ? getUserBadges(user.uid) : Promise.resolve([])
         ]);
-        
-        // Ensure consistent data structure
         const formattedDefs = defs.map(d => ({
           ...d,
           color: d.color || 'var(--color-primary)',
-          count: d.count || 0
+          count: d.count || 0,
+          threshold: d.threshold || 0,
         })) as BadgeDefinition[];
-
         setDefinitions(formattedDefs);
         setUserEarned(earned);
       } catch (error) {
@@ -73,23 +66,28 @@ export default function BadgesPage() {
         setLoading(false);
       }
     }
-
     fetchData();
   }, [user]);
 
   const renderIcon = (name: string, color?: string) => {
-    const icon = IconMap[name] || <Award size={32} strokeWidth={1.5} />;
+    const icon = IconMap[name] || <Award size={28} strokeWidth={1.5} />;
     return React.cloneElement(icon as React.ReactElement<{ color?: string }>, { color });
   };
 
-  // Helper to check if user has a badge
-  const getUserBadgeStatus = (badgeTypeId: string) => {
-    const earned = userEarned.find(b => b.badgeType === badgeTypeId);
-    if (earned) return { status: 'earned', progress: 100 };
-    
-    // In a real app, logic for "in_progress" might come from a different collection
-    // For now, we'll mark some as in_progress if user exists but not earned
-    return { status: 'locked', progress: 0 };
+  const hasEarned = (badgeTypeId: string) => userEarned.some(b => b.badgeType === badgeTypeId);
+
+  // Sorted my badges
+  const sortedMyBadges = [...userEarned].sort((a, b) => {
+    const aTime = a.earnedAt instanceof Date ? a.earnedAt.getTime() : 0;
+    const bTime = b.earnedAt instanceof Date ? b.earnedAt.getTime() : 0;
+    return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+  });
+
+  // Simulated user progress (completedJobs / threshold)
+  const getUserProgress = (badge: BadgeDefinition): number => {
+    if (!user || !badge.threshold) return 0;
+    const completed = (user as Record<string, unknown> & { stats?: { completedJobs?: number } }).stats?.completedJobs || 0;
+    return Math.min(100, Math.round((completed / badge.threshold) * 100));
   };
 
   if (loading) {
@@ -100,33 +98,8 @@ export default function BadgesPage() {
           <Skeleton className={styles.subtitleSkeleton} />
         </section>
         <div className={styles.container}>
-          <div className={styles.gridWrap}>
-            <div className={styles.leftCol}>
-              <Card padding="xl">
-                <Skeleton className="h-8 w-48 mb-6" />
-                {[1, 2].map(i => (
-                  <div key={i} className="mb-6">
-                    <div className="flex gap-4 mb-2">
-                      <Skeleton className="w-12 h-12 rounded-full" />
-                      <div className="flex-1">
-                        <Skeleton className="h-5 w-1/3 mb-2" />
-                        <Skeleton className="h-4 w-2/3" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            </div>
-            <div className={styles.rightCol}>
-              <Card padding="xl">
-                <Skeleton className="h-8 w-48 mb-6" />
-                <div className="grid grid-cols-1 gap-4">
-                  {[1, 2, 3].map(i => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
-                </div>
-              </Card>
-            </div>
+          <div className={styles.skeletonGrid}>
+            {[1,2,3,4].map(i => <Skeleton key={i} className={styles.skeletonItem} />)}
           </div>
         </div>
       </div>
@@ -142,96 +115,145 @@ export default function BadgesPage() {
       </section>
 
       <section className={styles.container}>
-        <div className={styles.gridWrap}>
-          
-          {/* User's Badges Section */}
-          <div className={styles.leftCol}>
-            <Card className={styles.card} padding="xl" glow>
-              <h2 className={styles.cardTitle}>Huy hiệu của tôi</h2>
-              {user ? (
-                <div className={styles.userList}>
-                  {userEarned.length > 0 ? (
-                    userEarned.map(b => {
-                      const def = definitions.find(d => d.id === b.badgeType);
-                      if (!def) return null;
-                      return (
-                        <div key={b.id} className={styles.userBadgeItem}>
-                          <div className={styles.userBadgeTop}>
-                            <div className={styles.userBadgeIcon}>
-                              {renderIcon(def.icon, def.color)}
-                            </div>
-                            <div className={styles.userBadgeInfo}>
-                              <strong>{def.title}</strong>
-                              <span className={styles.userBadgeDesc}>{def.desc}</span>
-                            </div>
-                            <Badge variant="secondary" glow>
-                              Đã nhận
-                            </Badge>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <Award size={48} className={styles.emptyIcon} />
-                      <p>Bạn chưa sở hữu huy hiệu nào.</p>
-                      <span>Hoàn thành job để bắt đầu sưu tầm!</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.emptyState}>
-                  <ShieldCheck size={48} className={styles.emptyIcon} />
-                  <p>Đăng nhập để xem huy hiệu của bạn</p>
-                </div>
+        {/* Tab Bar */}
+        <div className={styles.tabBar}>
+          {user && (
+            <button
+              className={`${styles.tabBtn} ${activeTab === 'mine' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('mine')}
+            >
+              <Trophy size={16} /> Huy hiệu của tôi
+              {userEarned.length > 0 && (
+                <span className={styles.tabCount}>{userEarned.length}</span>
               )}
-            </Card>
-          </div>
-
-          {/* Global Badge Definitions List */}
-          <div className={styles.rightCol}>
-            <Card className={styles.card} padding="xl">
-              <h2 className={styles.cardTitle}>Danh sách Huy hiệu</h2>
-              <div className={styles.allBadgesGrid}>
-                {definitions.length > 0 ? (
-                  definitions.map((badge) => {
-                    const { status } = getUserBadgeStatus(badge.id);
-                    return (
-                      <div 
-                        key={badge.id} 
-                        className={`${styles.badgeItem} ${status === 'earned' ? styles.earned : ''}`} 
-                        style={{ '--badge-theme': badge.color } as React.CSSProperties}
-                      >
-                        <div className={styles.badgeIconWrap}>
-                          <div className={styles.badgeIcon}>
-                            {renderIcon(badge.icon)}
-                          </div>
-                        </div>
-                        <div className={styles.badgeContent}>
-                          <div className={styles.badgeTopRow}>
-                            <h3 className={styles.badgeName}>{badge.title}</h3>
-                            {status === 'earned' && (
-                              <Badge variant="success" size="sm" dot>Sở hữu</Badge>
-                            )}
-                          </div>
-                          <p className={styles.badgeDesc}>{badge.desc}</p>
-                          <div className={styles.badgeCount}>
-                            Đã có <strong>{badge.count}</strong> người nhận
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className={styles.emptyState}>
-                    <Info size={48} className={styles.emptyIcon} />
-                    <p>Đang cập nhật danh sách huy hiệu...</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </div>
+            </button>
+          )}
+          <button
+            className={`${styles.tabBtn} ${activeTab === 'all' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            <Award size={16} /> Danh sách huy hiệu hệ thống
+          </button>
+          {!user && (
+            <div className={styles.loginHint}>
+              <Lock size={14} /> Đăng nhập để xem huy hiệu của bạn
+            </div>
+          )}
         </div>
+
+        {/* ── Tab: My Badges ── */}
+        {activeTab === 'mine' && user && (
+          <div>
+            <div className={styles.sortBar}>
+              <span className={styles.sortLabel}>Sắp xếp:</span>
+              <button
+                className={`${styles.sortBtn} ${sortOrder === 'asc' ? styles.sortActive : ''}`}
+                onClick={() => setSortOrder('asc')}
+              >
+                <ArrowUp size={14} /> Cũ nhất trước
+              </button>
+              <button
+                className={`${styles.sortBtn} ${sortOrder === 'desc' ? styles.sortActive : ''}`}
+                onClick={() => setSortOrder('desc')}
+              >
+                <ArrowDown size={14} /> Mới nhất trước
+              </button>
+            </div>
+
+            {sortedMyBadges.length > 0 ? (
+              <div className={styles.myBadgesGrid}>
+                {sortedMyBadges.map(b => {
+                  const def = definitions.find(d => d.id === b.badgeType);
+                  if (!def) return null;
+                  const earnedDate = b.earnedAt instanceof Date
+                    ? b.earnedAt.toLocaleDateString('vi-VN')
+                    : 'Gần đây';
+                  return (
+                    <Card key={b.id} className={styles.myBadgeCard} style={{ '--badge-theme': def.color } as React.CSSProperties}>
+                      <div className={styles.myBadgeIconWrap}>
+                        {renderIcon(def.icon, def.color)}
+                      </div>
+                      <div className={styles.myBadgeInfo}>
+                        <strong className={styles.myBadgeName}>{def.title}</strong>
+                        <span className={styles.myBadgeDesc}>{def.desc}</span>
+                        <span className={styles.myBadgeDate}>Nhận ngày: {earnedDate}</span>
+                      </div>
+                      <Badge variant="success" size="sm" glow>Đã nhận</Badge>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                <Award size={56} className={styles.emptyIcon} />
+                <p>Bạn chưa sở hữu huy hiệu nào.</p>
+                <span>Hoàn thành job để bắt đầu sưu tầm!</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Tab: All System Badges ── */}
+        {activeTab === 'all' && (
+          <div className={styles.allBadgesGrid}>
+            {definitions.length > 0 ? (
+              definitions.map((badge) => {
+                const earned = hasEarned(badge.id);
+                const progress = earned ? 100 : getUserProgress(badge);
+                return (
+                  <div
+                    key={badge.id}
+                    className={`${styles.badgeItem} ${earned ? styles.earned : ''}`}
+                    style={{ '--badge-theme': badge.color } as React.CSSProperties}
+                  >
+                    <div className={styles.badgeIconWrap}>
+                      <div className={styles.badgeIcon}>
+                        {renderIcon(badge.icon, earned ? badge.color : undefined)}
+                      </div>
+                    </div>
+                    <div className={styles.badgeContent}>
+                      <div className={styles.badgeTopRow}>
+                        <h3 className={styles.badgeName}>{badge.title}</h3>
+                        {earned && <Badge variant="success" size="sm" dot>Sở hữu</Badge>}
+                      </div>
+                      <p className={styles.badgeDesc}>{badge.desc}</p>
+
+                      {/* Progress bar */}
+                      {user && !earned && (
+                        <div className={styles.progressWrap}>
+                          <div className={styles.progressBar}>
+                            <div
+                              className={styles.progressFill}
+                              style={{ width: `${progress}%`, background: badge.color }}
+                            />
+                          </div>
+                          <span className={styles.progressText}>{progress}%</span>
+                        </div>
+                      )}
+                      {earned && (
+                        <div className={styles.progressWrap}>
+                          <div className={styles.progressBar}>
+                            <div className={styles.progressFill} style={{ width: '100%', background: badge.color }} />
+                          </div>
+                          <span className={styles.progressText}>✓</span>
+                        </div>
+                      )}
+
+                      <div className={styles.badgeCount}>
+                        Đã có <strong>{badge.count}</strong> người nhận
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className={styles.emptyState}>
+                <Info size={48} className={styles.emptyIcon} />
+                <p>Đang cập nhật danh sách huy hiệu...</p>
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

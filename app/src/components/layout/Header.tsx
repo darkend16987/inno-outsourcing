@@ -89,15 +89,17 @@ export function Header() {
           </div>
           <div className={styles.brandText}>
             <strong className={styles.brandName}>VAA JOB</strong>
-            <span className={styles.brandTag}>Construction Outsourcing</span>
+            <span className={styles.brandTag}>Cộng đồng chia sẻ công việc tư vấn thiết kế</span>
           </div>
         </Link>
 
         {/* Desktop Nav */}
         <nav className={styles.nav}>
+          <Link href="/ve-chung-toi" className={styles.navLink}>Về chúng tôi</Link>
           <Link href="/jobs" className={styles.navLink}>Việc làm</Link>
           <Link href="/vinh-danh" className={styles.navLink}>Bảng xếp hạng</Link>
           <Link href="/huy-hieu" className={styles.navLink}>Huy hiệu</Link>
+          <a href="https://vaadata.hkts.vn/" className={styles.navLink} target="_blank" rel="noopener noreferrer">VAA Data ↗</a>
         </nav>
 
         {/* Actions */}
@@ -218,9 +220,11 @@ export function Header() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
         >
+          <Link href="/ve-chung-toi" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Về chúng tôi</Link>
           <Link href="/jobs" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Việc làm</Link>
           <Link href="/vinh-danh" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Bảng xếp hạng</Link>
           <Link href="/huy-hieu" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>Huy hiệu</Link>
+          <a href="https://vaadata.hkts.vn/" className={styles.mobileLink} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)}>VAA Data ↗</a>
           <div className={styles.mobileCta}>
             {userProfile ? (
               <>

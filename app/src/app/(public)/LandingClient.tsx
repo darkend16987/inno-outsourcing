@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  Briefcase, Users, TrendingUp,
+  Briefcase, TrendingUp,
   ArrowRight, Search, Zap, Ruler,
   Shield, Clock, Star, ChevronRight, Flame,
-  Sparkles, Quote, Building2, Cable, FileSpreadsheet, Eye
+  Sparkles, Quote, Building2, Cable, FileSpreadsheet, Eye,
+  Activity
 } from 'lucide-react';
-import { Button, Badge, Card, MetricCard, Avatar, LevelBadge } from '@/components/ui';
+import { Button, Badge, Card, Avatar, LevelBadge } from '@/components/ui';
 import { formatFriendlyMoney } from '@/lib/formatters';
 import { getJobs, getLeaderboard } from '@/lib/firebase/firestore';
 import { getTestimonials, type TestimonialItem } from '@/lib/firebase/system-config';
@@ -49,13 +50,9 @@ export default function LandingClient() {
   const [topWorkers, setTopWorkers] = useState<LeaderboardEntry[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
 
-  // Computed stats from real data
-  const [stats, setStats] = useState([
-    { label: 'Dự án đang mở', value: '…', icon: <Briefcase size={20} /> },
-    { label: 'Freelancers', value: '…', icon: <Users size={20} /> },
-    { label: 'Tổng giá trị HĐ', value: '…', icon: <TrendingUp size={20} /> },
-    { label: 'Top Rating', value: '…', icon: <Star size={20} /> },
-  ]);
+  // Computed stats from real data — 2 dual-metric cards
+  const [activeStats, setActiveStats] = useState({ count: '…', value: '…' });
+  const [totalStats, setTotalStats] = useState({ count: '…', value: '…' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,18 +75,12 @@ export default function LandingClient() {
         setTestimonials(testRes.filter(t => t.isActive));
         setTopWorkers(leaderboardRes.slice(0, 4));
 
-        // Compute stats from real data
-        const openJobs = jobs.filter(j => j.status === 'draft' || j.status === 'pending_approval' || !j.assignedTo).length;
+        // Compute dual-metric stats
+        const activeJobs = jobs.filter(j => j.status === 'in_progress');
+        const activeValue = activeJobs.reduce((sum, j) => sum + getJobFee(j), 0);
         const totalValue = jobs.reduce((sum, j) => sum + getJobFee(j), 0);
-        const topRating = leaderboardRes.length > 0
-          ? Math.max(...leaderboardRes.map(w => w.rating || 0)).toFixed(1)
-          : '-';
-        setStats([
-          { label: 'Dự án đang mở', value: String(openJobs), icon: <Briefcase size={20} /> },
-          { label: 'Tổng dự án', value: String(jobs.length), icon: <Users size={20} /> },
-          { label: 'Tổng giá trị', value: formatFriendlyMoney(totalValue), icon: <TrendingUp size={20} /> },
-          { label: 'Top Rating', value: `${topRating}⭐`, icon: <Star size={20} /> },
-        ]);
+        setActiveStats({ count: String(activeJobs.length), value: formatFriendlyMoney(activeValue) });
+        setTotalStats({ count: String(jobs.length), value: formatFriendlyMoney(totalValue) });
       } catch (err) {
         console.error('Error fetching landing data:', err);
       }
@@ -174,16 +165,16 @@ export default function LandingClient() {
         <div className={styles.heroContent}>
           <motion.div initial="hidden" animate="visible" className={styles.heroText}>
             <motion.span className={styles.heroPill} variants={fadeUp} custom={0}>
-              <Zap size={12} /> Nền tảng #1 cho Outsourcing Xây dựng
+              Cộng đồng chuyên nghiệp #1 dành cho freelancer ngành tư vấn thiết kế xây dựng
             </motion.span>
             <motion.h1 className={styles.heroTitle} variants={fadeUp} custom={1}>
-              Kết nối <span className={styles.heroHighlight}>Tài năng</span> với{' '}
-              <span className={styles.heroHighlight}>Dự án</span> Thiết kế Xây dựng
+              Kết nối <span className={styles.heroHighlight}>năng lực</span> tư vấn thiết kế với{' '}
+              <span className={styles.heroHighlight}>Dự án</span> thực chiến
             </motion.h1>
-            <motion.p className={styles.heroDesc} variants={fadeUp} custom={2}>
-              Kiến trúc · Kết cấu · MEP · BIM · Dự toán · Giám sát — Tìm kiếm freelancer chuyên nghiệp
-              hoặc ứng tuyển các dự án hấp dẫn ngay hôm nay.
-            </motion.p>
+            <motion.div className={styles.heroSlogan} variants={fadeUp} custom={2}>
+              <span className={styles.heroSloganHighlight}>Làm Job hay, nhận lương ngay.</span>
+              {' '}Chúng tôi chia sẻ những công việc HOT nhất dành cho các bạn freelancer. Tham gia để trải nghiệm mô hình outsourcing chuyên nghiệp.
+            </motion.div>
             <motion.div className={styles.heroActions} variants={fadeUp} custom={3}>
               <Link href="/jobs">
                 <Button size="lg" icon={<Search size={18} />}>Tìm việc ngay</Button>
@@ -200,11 +191,40 @@ export default function LandingClient() {
       <section className={styles.statsSection}>
         <div className={styles.container}>
           <div className={styles.statsGrid}>
-            {stats.map((stat, i) => (
-              <motion.div key={stat.label} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
-                <MetricCard label={stat.label} value={stat.value} icon={stat.icon} />
-              </motion.div>
-            ))}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp}>
+              <div className={styles.dualStatCard}>
+                <div className={styles.dualStatIcon}><Activity size={24} /></div>
+                <h3 className={styles.dualStatTitle}>Dự án đang thực hiện</h3>
+                <div className={styles.dualStatRow}>
+                  <div className={styles.dualStatItem}>
+                    <span className={styles.dualStatValue}>{activeStats.count}</span>
+                    <span className={styles.dualStatLabel}>Dự án</span>
+                  </div>
+                  <div className={styles.dualStatDivider} />
+                  <div className={styles.dualStatItem}>
+                    <span className={styles.dualStatValue}>{activeStats.value}</span>
+                    <span className={styles.dualStatLabel}>Tổng giá trị HĐ</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp}>
+              <div className={styles.dualStatCard}>
+                <div className={styles.dualStatIcon}><TrendingUp size={24} /></div>
+                <h3 className={styles.dualStatTitle}>Tổng cộng (All time)</h3>
+                <div className={styles.dualStatRow}>
+                  <div className={styles.dualStatItem}>
+                    <span className={styles.dualStatValue}>{totalStats.count}</span>
+                    <span className={styles.dualStatLabel}>Tổng dự án</span>
+                  </div>
+                  <div className={styles.dualStatDivider} />
+                  <div className={styles.dualStatItem}>
+                    <span className={styles.dualStatValue}>{totalStats.value}</span>
+                    <span className={styles.dualStatLabel}>Tổng giá trị HĐ</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -286,6 +306,16 @@ export default function LandingClient() {
                         ))}
                       </div>
                       <h3 className={styles.jobTitle}>{job.title}</h3>
+                      {job.requirements?.software?.length > 0 && (
+                        <div className={styles.jobSoftware}>
+                          {job.requirements.software.slice(0, 3).map((sw: string) => (
+                            <span key={sw} className={styles.swTag}>{sw}</span>
+                          ))}
+                          {job.requirements.software.length > 3 && (
+                            <span className={styles.swTag}>+{job.requirements.software.length - 3}</span>
+                          )}
+                        </div>
+                      )}
                       <div className={styles.jobMeta}>
                         <span className={styles.jobFee}>{formatFriendlyMoney(getJobFee(job))}</span>
                         <span className={styles.jobDuration}>

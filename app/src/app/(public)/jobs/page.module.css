@@ -249,17 +249,21 @@
   gap: var(--space-3);
 }
 
-/* ── Grid View ── */
+/* ── Grid View (equal height) ── */
 .jobsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: var(--space-4);
+  align-items: stretch;
 }
+
+.jobsGrid > * { height: 100%; }
 
 /* ── Job Card ── */
 .jobLink {
   text-decoration: none;
   display: block;
+  height: 100%;
 }
 
 .jobCard {
@@ -267,17 +271,36 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-6);
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+  overflow: hidden;
 }
 
 .jobCard:hover {
   border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
-/* Grid mode: stack vertically */
+/* ── Corner Category Color Tag ── */
+.cornerTag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 28px 28px 0 0;
+  border-color: var(--corner-color, var(--color-primary)) transparent transparent transparent;
+  border-radius: var(--radius-md) 0 0 0;
+  opacity: 0.85;
+}
+
+/* Grid mode: stack vertically, equal height */
 .jobCardGrid {
   flex-direction: column;
   gap: var(--space-3);
+  height: 100%;
 }
 
 .jobCardGrid .jobRight {
@@ -288,6 +311,7 @@
   border-top: 1px solid var(--color-border-light);
   padding-top: var(--space-3);
   width: 100%;
+  margin-top: auto;
 }
 
 .jobLeft {
@@ -306,21 +330,36 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--color-charcoal);
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-2);
   line-height: 1.4;
 }
 
-.jobDesc {
-  font-size: 13px;
+/* ── Software Tags ── */
+.softwareTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-2);
+}
+
+.swTag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-purple);
+  background: var(--color-purple-bg);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* ── Applicants count ── */
+.jobApplicants {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   color: var(--color-text-muted);
-  line-height: 1.5;
-  display: -webkit-box;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-line-clamp: 2;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-box-orient: vertical;
-  line-clamp: 2;
-  overflow: hidden;
 }
 
 .jobRight {
@@ -332,10 +371,11 @@
 }
 
 .jobFee {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--color-primary);
   white-space: nowrap;
+  font-family: var(--font-heading);
 }
 
 .jobDuration {

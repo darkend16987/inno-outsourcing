@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Settings, Plus, Trash2, GripVertical, Save, Tag,
-  Layers, Monitor, Building2, Star, Image, MessageCircle, ToggleLeft, ToggleRight, SlidersHorizontal
+  Layers, Monitor, Building2, Star, Image, MessageCircle, ToggleLeft, ToggleRight, SlidersHorizontal, Upload, X
 } from 'lucide-react';
 import { Button, Badge, Card } from '@/components/ui';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase/config';
 import {
   getConfigItems, saveConfigItems, addConfigItem, deleteConfigItem,
   getBanners, saveBanner, deleteBanner,
@@ -38,6 +40,9 @@ export default function AdminSettingsPage() {
   const [newLabel, setNewLabel] = useState('');
   const [newColor, setNewColor] = useState('#0d7c66');
   const [newDesc, setNewDesc] = useState('');
+  const [newIcon, setNewIcon] = useState('');
+  const [iconUploading, setIconUploading] = useState(false);
+  const iconFileRef = useRef<HTMLInputElement>(null);
   // Banner form
   const [bnTitle, setBnTitle] = useState('');
   const [bnImageUrl, setBnImageUrl] = useState('');
@@ -77,6 +82,24 @@ export default function AdminSettingsPage() {
     setLoading(false);
   };
 
+  const handleIconFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIconUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const storageRef = ref(storage, `system-config/icons/${Date.now()}.${ext}`);
+      await uploadBytes(storageRef, file, { contentType: file.type });
+      const url = await getDownloadURL(storageRef);
+      setNewIcon(url);
+    } catch (err) {
+      console.error('Icon upload failed:', err);
+      alert('Lỗi tải ảnh lên. Vui lòng thử lại.');
+    }
+    setIconUploading(false);
+    if (iconFileRef.current) iconFileRef.current.value = '';
+  };
+
   const handleAddItem = async () => {
     if (!newLabel.trim()) return;
     setSaving(true);
@@ -85,10 +108,12 @@ export default function AdminSettingsPage() {
         label: newLabel.trim(),
         color: newColor,
         description: newDesc || undefined,
+        icon: newIcon || undefined,
         isActive: true,
       });
       setNewLabel('');
       setNewDesc('');
+      setNewIcon('');
       await loadData();
     } catch (err) {
       console.error('Error adding item:', err);
@@ -194,6 +219,37 @@ export default function AdminSettingsPage() {
                       />
                     </div>
                   )}
+                  {activeTab === 'specialties' && (
+                    <div className={styles.iconUpload}>
+                      {newIcon ? (
+                        <div className={styles.iconPreviewWrap}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={newIcon} alt="icon preview" className={styles.iconPreview} />
+                          <button className={styles.iconClear} onClick={() => setNewIcon('')} title="Xóa icon">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={styles.iconUploadBtn}
+                          onClick={() => iconFileRef.current?.click()}
+                          disabled={iconUploading}
+                          title="Tải lên icon"
+                          type="button"
+                        >
+                          {iconUploading ? <div className={styles.spinnerSm} /> : <Upload size={14} />}
+                          <span>{iconUploading ? 'Đang tải...' : 'Icon'}</span>
+                        </button>
+                      )}
+                      <input
+                        ref={iconFileRef}
+                        type="file"
+                        accept="image/png,image/svg+xml,image/jpeg,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={handleIconFileChange}
+                      />
+                    </div>
+                  )}
                   {activeTab === 'levels' && (
                     <input
                       type="text"
@@ -219,6 +275,10 @@ export default function AdminSettingsPage() {
                     <span className={styles.itemOrder}>{idx + 1}</span>
                     {item.color && (
                       <span className={styles.itemColor} style={{ background: item.color }} />
+                    )}
+                    {item.icon && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.icon} alt="" className={styles.itemIcon} />
                     )}
                     <div className={styles.itemInfo}>
                       <span className={styles.itemLabel}>{item.label}</span>

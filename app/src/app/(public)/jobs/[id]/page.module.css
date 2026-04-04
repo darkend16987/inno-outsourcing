@@ -24,6 +24,123 @@
 .sectionTitle { font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin-bottom: var(--space-4); color: var(--color-primary); display: flex; align-items: center; gap: var(--space-2); }
 .sectionTitle::before { content: ''; display: block; width: 4px; height: 20px; background: var(--color-accent); border-radius: 2px; }
 
+/* Show more button */
+.showMoreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-3);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.showMoreBtn:hover { background: var(--color-primary); color: #fff; }
+
+/* Requirements Section */
+.requirementsSection {
+  background: var(--color-bg);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.sectionTitleLg {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: var(--space-5);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reqGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.reqItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--color-border-light);
+}
+
+.reqLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.reqValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.softwareSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.softwareGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.swChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-purple);
+  background: var(--color-purple-bg);
+  border: 1.5px solid var(--color-purple);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.swChip:hover { background: var(--color-purple); color: #fff; }
+
+/* Master Stats */
+.masterStats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.masterStatItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.masterStatItem svg { color: var(--color-primary); flex-shrink: 0; }
+
 .content { font-size: 15px; line-height: 1.8; color: var(--color-text); }
 .content p { margin-bottom: var(--space-3); }
 .content p:last-child { margin-bottom: 0; }
@@ -31,7 +148,6 @@
 .reqList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-4); }
 .reqList li { display: flex; flex-direction: column; gap: var(--space-1); font-size: 15px; }
 .reqList strong { font-weight: 600; color: var(--color-charcoal); }
-.softwareGrid { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: 4px; }
 
 /* Milestones */
 .milestones { display: flex; flex-direction: column; gap: var(--space-3); }

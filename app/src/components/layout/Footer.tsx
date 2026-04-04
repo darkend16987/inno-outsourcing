@@ -17,22 +17,23 @@ export function Footer() {
               <img src="/logo-white.png" alt="VAA Job" className={styles.logoImg} />
               <div>
                 <strong className={styles.brandName}>VAA JOB</strong>
-                <p className={styles.brandTag}>Construction Outsourcing Platform</p>
+                <p className={styles.brandTag}>Cộng đồng chuyên nghiệp #1 dành cho freelancer ngành tư vấn thiết kế xây dựng</p>
               </div>
             </div>
             <p className={styles.brandDesc}>
-              Nền tảng kết nối freelancer với các dự án thiết kế xây dựng chuyên nghiệp.
-              Kiến trúc · Kết cấu · MEP · BIM
+              Kết nối năng lực tư vấn thiết kế với dự án thực chiến. Kiến trúc · Kết cấu · MEP · BIM · Dự toán · Giám sát
             </p>
           </div>
 
           {/* Links */}
           <div className={styles.linkCol}>
             <h4 className={styles.colTitle}>Nền tảng</h4>
+            <Link href="/ve-chung-toi" className={styles.link}>Về chúng tôi</Link>
             <Link href="/jobs" className={styles.link}>Việc làm</Link>
             <Link href="/vinh-danh" className={styles.link}>Bảng xếp hạng</Link>
-            <Link href="/badges" className={styles.link}>Huy hiệu</Link>
+            <Link href="/huy-hieu" className={styles.link}>Huy hiệu</Link>
             <Link href="/register" className={styles.link}>Đăng ký</Link>
+            <a href="https://vaadata.hkts.vn/" className={styles.link} target="_blank" rel="noopener noreferrer">VAA Data ↗</a>
           </div>
 
           <div className={styles.linkCol}>
@@ -48,15 +49,15 @@ export function Footer() {
             <h4 className={styles.colTitle}>Liên hệ</h4>
             <div className={styles.contactItem}>
               <Mail size={14} />
-              <span>contact@vaajob.vn</span>
+              <span>info@vaadata.vn</span>
             </div>
             <div className={styles.contactItem}>
               <Phone size={14} />
-              <span>(028) 1234 5678</span>
+              <span>024.38253648</span>
             </div>
             <div className={styles.contactItem}>
               <MapPin size={14} />
-              <span>TP. Hồ Chí Minh, Việt Nam</span>
+              <span>40 P. Tăng Bạt Hổ, Phạm Đình Hổ, Hà Nội</span>
             </div>
           </div>
         </div>
