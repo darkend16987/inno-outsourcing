@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Award, Calendar, Edit3, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, Badge, LevelBadge, Avatar, Button } from '@/components/ui';
+import { ProfileCompletionBanner } from '@/components/profile/ProfileCompletionBanner';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getUserBadges } from '@/lib/firebase/firestore';
 import type { UserBadge } from '@/types';
@@ -40,6 +41,22 @@ export default function ProfilePage() {
 
   const p = userProfile;
   const stats = p.stats || { completedJobs: 0, avgRating: 0, onTimeRate: 100 };
+
+  // Profile completion score
+  const completionChecks = [
+    { field: 'Số điện thoại', ok: !!p.phone },
+    { field: 'Giới thiệu bản thân', ok: !!p.bio },
+    { field: 'Địa chỉ', ok: !!p.address },
+    { field: 'Chuyên môn', ok: (p.specialties || []).length > 0 },
+    { field: 'Phần mềm', ok: (p.software || []).length > 0 },
+    { field: 'Trường đào tạo', ok: !!p.educationSchool },
+    { field: 'Số CCCD', ok: !!p.idNumber },
+    { field: 'Số tài khoản ngân hàng', ok: !!p.bankAccountNumber },
+    { field: 'Mã số thuế', ok: !!p.taxId },
+  ];
+  const completionPercent = Math.round((completionChecks.filter(c => c.ok).length / completionChecks.length) * 100);
+  const missingFields = completionChecks.filter(c => !c.ok).map(c => c.field);
+
   const joinDate = p.createdAt
     ? (typeof p.createdAt === 'object' && 'toDate' in p.createdAt
       ? (p.createdAt as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' })
@@ -49,6 +66,7 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.page}>
+      <ProfileCompletionBanner completionPercent={completionPercent} missingFields={missingFields} />
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Hồ sơ năng lực</h1>

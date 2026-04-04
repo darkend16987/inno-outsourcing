@@ -1,0 +1,79 @@
+.wrapper {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.tabs {
+  display: flex; gap: 6px;
+}
+.tab {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  font-size: 0.8rem; font-weight: 600;
+  border: 1.5px solid var(--color-border, #d1d5db);
+  background: transparent; color: var(--color-text-muted, #666);
+  cursor: pointer; transition: all 0.2s;
+}
+.tab:hover {
+  border-color: var(--color-primary, #0d7c66);
+  background: rgba(13, 124, 102, 0.04);
+}
+.tabActive {
+  background: var(--color-primary, #0d7c66) !important;
+  color: white !important;
+  border-color: var(--color-primary, #0d7c66) !important;
+}
+
+.canvasWrap {
+  position: relative;
+  border: 2px solid var(--color-border, #d1d5db);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.canvas {
+  display: block;
+  touch-action: none;
+}
+.canvasDraw { cursor: crosshair; }
+.canvasView { cursor: default; }
+
+.placeholder {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-style: italic;
+  color: var(--color-text-muted, #bbb);
+  pointer-events: none;
+}
+
+.actions {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.clearBtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  background: none; border: 1.5px solid var(--color-border, #d1d5db);
+  color: var(--color-text-muted, #666);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.clearBtn:hover { border-color: #e74c3c; color: #e74c3c; background: #fef2f2; }
+
+.uploadBtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  background: none; border: 1.5px solid var(--color-primary, #0d7c66);
+  color: var(--color-primary, #0d7c66);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.uploadBtn:hover { background: rgba(13, 124, 102, 0.06); }
+
+.savedNote {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.75rem; font-weight: 600;
+  color: #27ae60;
+}
+
+.hiddenInput { display: none; }

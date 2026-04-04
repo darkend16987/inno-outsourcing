@@ -726,7 +726,7 @@ const computeLeaderboardFromUsers = async (): Promise<LeaderboardEntry[]> => {
         const stats = data.stats || {};
         return {
           uid: d.id,
-          name: data.displayName || 'Chưa cập nhật',
+          name: data.nickname || data.displayName || 'Chưa cập nhật',
           avatar: data.photoURL || undefined,
           level: data.currentLevel || 'L1',
           specialty: (data.specialties && data.specialties[0]) || 'Chưa chọn',

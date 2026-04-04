@@ -162,28 +162,122 @@ export const onCreateContractPDF = onDocumentCreated(
     const snap = event.data;
     if (!snap) return;
 
-    const contract = snap.data();
+    const c = snap.data();
     const contractId = event.params.contractId;
     const bucket = storage.bucket();
     const filePath = `contracts/${contractId}.pdf`;
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
     const buffers: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => buffers.push(chunk));
 
-    doc.fontSize(20).text('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { align: 'center' });
-    doc.fontSize(16).text('HỢP ĐỒNG KINH TẾ (THIẾT KẾ / OUTSOURCING)', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Số hợp đồng: ${contract.contractNumber}`);
-    doc.text(`Tên dự án: ${contract.jobTitle}`);
-    doc.moveDown();
-    doc.text(`BÊN A (Chủ sở hữu): ${contract.partyA?.name || ''}`);
-    doc.text(`BÊN B (Freelancer): ${contract.partyB?.name || ''}`);
-    doc.moveDown();
-    doc.text('ĐIỀU KHOẢN THANH TOÁN:');
-    doc.text(contract.paymentTerms || '');
-    doc.moveDown();
-    doc.text('XÁC NHẬN KÝ KẾT ĐIỆN TỬ:');
-    doc.text(`Thời điểm khởi tạo: ${new Date().toLocaleString('vi-VN')}`);
+    const now = new Date();
+    const dateStr = `ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
+
+    // ── Header ──────────────────────────────────────────────────────
+    doc.fontSize(13).font('Helvetica-Bold')
+      .text('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { align: 'center' });
+    doc.fontSize(11).font('Helvetica')
+      .text('Độc lập - Tự do - Hạnh phúc', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.moveTo(150, doc.y).lineTo(450, doc.y).stroke();
+    doc.moveDown(1);
+
+    doc.fontSize(16).font('Helvetica-Bold')
+      .text('HỢP ĐỒNG GIAO KHOÁN', { align: 'center' });
+    doc.fontSize(11).font('Helvetica')
+      .text(`Số: ${c.contractNumber}`, { align: 'center' });
+    doc.text(`Về việc: ${c.jobTitle}`, { align: 'center' });
+    doc.moveDown(1);
+
+    // ── Section I ──────────────────────────────────────────────────
+    doc.fontSize(12).font('Helvetica-Bold').text('PHẦN I. CÁC CĂN CỨ KÝ KẾT HỢP ĐỒNG');
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text('- Luật Xây dựng số 50/2014 ngày 18/06/2014; Luật Dân sự ngày 14/06/2005;')
+      .text('- Luật thuế thu nhập cá nhân hiện hành;')
+      .text('- Và các văn bản pháp quy hiện hành có liên quan;')
+      .text('- Căn cứ năng lực của Bên B và nhu cầu của Bên A.');
+    doc.moveDown(0.8);
+
+    // ── Section II ─────────────────────────────────────────────────
+    doc.fontSize(12).font('Helvetica-Bold').text('PHẦN II. CÁC ĐIỀU KHOẢN VÀ ĐIỀU KIỆN CỦA HỢP ĐỒNG');
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text(`Hôm nay, ${dateStr} tại Công ty TNHH Tư vấn Kiến trúc Việt Nam VAA, chúng tôi gồm các bên:`);
+    doc.moveDown(0.5);
+
+    // Party A
+    doc.fontSize(11).font('Helvetica-Bold').text('1. Bên A: CÔNG TY TNHH TƯ VẤN KIẾN TRÚC VIỆT NAM VAA');
+    doc.fontSize(10).font('Helvetica')
+      .text('Đại diện: Ông Đỗ Tất Kiên')
+      .text('Chức vụ: Tổng giám đốc')
+      .text('Địa chỉ: Số 40, phố Tăng Bạt Hổ, Phường Hai Bà Trưng, Hà Nội')
+      .text('Mã số thuế: 0102341714');
+    doc.moveDown(0.8);
+
+    // Party B
+    doc.fontSize(11).font('Helvetica-Bold').text(`2. Bên B: Ông/bà ${c.partyB?.name || ''}`);
+    doc.fontSize(10).font('Helvetica')
+      .text(`Ngày sinh: ${c.partyB?.dateOfBirth || '.....................'}`)
+      .text(`Số CCCD: ${c.partyB?.idNumber || '.....................'}`)
+      .text(`Điện thoại: ${c.partyB?.phone || '.....................'}`)
+      .text(`Địa chỉ: ${c.partyB?.address || '.....................'}`)
+      .text(`Mã số thuế: ${c.partyB?.taxId || '.....................'}`)
+      .text(`Số tài khoản: ${c.partyB?.bankAccount || '.....................'} tại ${c.partyB?.bankName || '.....................'}`)
+      .text(`Chi nhánh: ${c.partyB?.bankBranch || '.....................'}`);
+    doc.moveDown(1);
+
+    // Article 1 — Scope
+    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 1. PHẠM VI CÔNG VIỆC');
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text(c.jobDescription || c.scope || '(Theo mô tả công việc của job được giao)', { lineGap: 2 });
+    doc.moveDown(0.8);
+
+    // Article 2 — Value
+    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 2. GIÁ TRỊ HỢP ĐỒNG, TẠM ỨNG VÀ THANH TOÁN');
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text(`Giá trị hợp đồng (trọn gói): ${Number(c.totalValue || 0).toLocaleString('vi-VN')} đồng`)
+      .text('Giá hợp đồng là thu nhập thực nhận sau khi khấu trừ thuế TNCN. Bên A có trách nhiệm kê khai và nộp thuế thay Bên B.');
+    doc.moveDown(0.8);
+
+    // Article 3 — Payment schedule
+    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 3. PHƯƠNG THỨC THANH TOÁN');
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text('Hình thức thanh toán: Chuyển khoản');
+    if (c.milestones && c.milestones.length > 0) {
+      doc.text('Các đợt thanh toán:').moveDown(0.2);
+      c.milestones.forEach((m: any, i: number) => {
+        doc.text(`  Đợt ${i + 1}: ${m.name} — ${m.percentage}% — ${Number(m.amount || 0).toLocaleString('vi-VN')} đồng`);
+      });
+    }
+    doc.moveDown(0.8);
+
+    // Article 5 — Timeline
+    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 5. TIẾN ĐỘ THỰC HIỆN HỢP ĐỒNG');
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text('Thời gian bắt đầu: Ngay sau khi hợp đồng được ký kết.')
+      .text('Thời gian hoàn thành: Theo tiến độ chung của dự án.');
+    doc.moveDown(0.8);
+
+    // Note about full terms
+    doc.fontSize(9).font('Helvetica').fillColor('#666666')
+      .text('(Các điều khoản 4, 6-17 bao gồm: điều chỉnh giá, quyền và nghĩa vụ các bên, chế tài vi phạm, bảo mật, bảo hiểm, bất khả kháng và giải quyết tranh chấp — theo mẫu hợp đồng tiêu chuẩn của VAA.)', { lineGap: 2 });
+    doc.fillColor('#000000');
+    doc.moveDown(1.5);
+
+    // Signatures
+    doc.fontSize(12).font('Helvetica-Bold')
+      .text('ĐẠI DIỆN BÊN A', { continued: true, width: 250 })
+      .text('ĐẠI DIỆN BÊN B', { align: 'right' });
+    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+      .text('(Chữ ký điện tử)', { continued: true, width: 250 })
+      .text('(Chữ ký điện tử)', { align: 'right' });
+    doc.moveDown(3);
+    doc.fontSize(11).font('Helvetica-Bold')
+      .text('Đỗ Tất Kiên', { continued: true, width: 250 })
+      .text(c.partyB?.name || '', { align: 'right' });
+    doc.fontSize(9).font('Helvetica')
+      .text(`Ký lúc: ${now.toLocaleString('vi-VN')}`, { continued: true, width: 250 })
+      .text(c.signedByWorkerAt ? `Ký lúc: ${new Date(c.signedByWorkerAt?.toDate?.() || c.signedByWorkerAt).toLocaleString('vi-VN')}` : '', { align: 'right' });
+
     doc.end();
 
     return new Promise<void>((resolve, reject) => {
@@ -293,13 +387,72 @@ export const onJobStatusChange = onDocumentUpdated(
       await batch.commit();
     }
 
-    // Job assigned
+    // Job assigned → auto-create contract + notify freelancer
     if (before.status !== 'assigned' && after.status === 'assigned' && after.assignedTo) {
+      // Map job category to abbreviation for contract number
+      const CATEGORY_CODES: Record<string, string> = {
+        'Kiến trúc': 'KT', 'Kết cấu': 'KC', 'MEP': 'MEP',
+        'BIM': 'BIM', 'Dự toán': 'DT', 'Giám sát': 'GS', 'Thẩm tra': 'TT',
+      };
+      const catCode = CATEGORY_CODES[after.category] || 'VAA';
+      const year = new Date().getFullYear();
+
+      // Generate sequential contract number for this year
+      const yearStart = new Date(`${year}-01-01`);
+      const countSnap = await db.collection('contracts')
+        .where('createdAt', '>=', yearStart).get();
+      const seqNum = countSnap.size + 1;
+      const contractNumber = `${seqNum}/${year}/VAA/${catCode}`;
+
+      // Contract deadline: 3 days from now
+      const contractDeadline = new Date();
+      contractDeadline.setDate(contractDeadline.getDate() + 3);
+
+      // Fetch freelancer profile for partyB pre-fill
+      const workerSnap = await db.collection('users').doc(after.assignedTo).get();
+      const worker = workerSnap.exists ? workerSnap.data()! : {};
+
+      const contractRef = await db.collection('contracts').add({
+        contractNumber,
+        jobId,
+        jobTitle: after.title,
+        jobCategory: after.category,
+        jobDescription: after.description || '',
+        milestones: after.milestones || [],
+        partyA: {
+          name: 'CÔNG TY TNHH TƯ VẤN KIẾN TRÚC VIỆT NAM VAA',
+          representative: 'Đỗ Tất Kiên',
+          position: 'Tổng giám đốc',
+        },
+        partyB: {
+          uid: after.assignedTo,
+          name: worker.displayName || '',
+          idNumber: worker.idNumber || '',
+          phone: worker.phone || '',
+          address: worker.address || '',
+          taxId: worker.taxId || '',
+          bankAccount: worker.bankAccountNumber || '',
+          bankName: worker.bankName || '',
+          bankBranch: worker.bankBranch || '',
+        },
+        scope: after.description || '',
+        totalValue: after.totalFee || 0,
+        paymentTerms: 'Chuyển khoản theo các đợt milestone đã thỏa thuận.',
+        terms: '',
+        contractDeadline,
+        status: 'pending_signature',
+        createdBy: after.jobMaster || after.createdBy || '',
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      // Notify freelancer
       await createNotification({
-        recipientId: after.assignedTo, type: 'application_accepted',
+        recipientId: after.assignedTo, type: 'contract_ready',
         title: 'Chúc mừng! Bạn đã được chọn',
-        body: `Bạn đã được chọn nhận job "${after.title}". Hãy kiểm tra hợp đồng.`,
-        link: `/freelancer/jobs/${jobId}`,
+        body: `Bạn đã được chọn nhận job "${after.title}". Vui lòng ký hợp đồng trong 3 ngày.`,
+        link: `/freelancer/contracts/${contractRef.id}/sign`,
+        metadata: { contractId: contractRef.id, contractDeadline: contractDeadline.toISOString() },
       });
     }
 
@@ -529,12 +682,61 @@ export const onContractStatusChange = onDocumentUpdated(
 );
 
 // ============================================================
-// 8. scheduledDeadlineCheck — Multi-tier (C1)
+// 8. onContractSubmitted — Notify jobmaster + accountants when freelancer signs
+// ============================================================
+export const onContractSubmitted = onDocumentUpdated(
+  'contracts/{contractId}',
+  async (event) => {
+    const change = event.data;
+    if (!change) return;
+    const before = change.before.data();
+    const after = change.after.data();
+    const contractId = event.params.contractId;
+
+    // Trigger: status moved from pending_signature → active (freelancer signed)
+    if (before.status !== 'active' && after.status === 'active' && after.signedByWorkerAt) {
+      const notifPayload = {
+        type: 'contract_submitted',
+        title: `Hợp đồng đã được ký: ${after.contractNumber}`,
+        body: `${after.partyB?.name || 'Freelancer'} đã ký hợp đồng "${after.jobTitle}". Vui lòng xem xét.`,
+        link: `/admin/contracts`,
+        metadata: { contractId, jobId: after.jobId },
+      };
+
+      // Notify contract creator (jobmaster)
+      if (after.createdBy) {
+        await createNotification({ ...notifPayload, recipientId: after.createdBy });
+      }
+
+      // Notify all accountants
+      const accountants = await getUsersByRole('accountant');
+      for (const accId of accountants) {
+        await createNotification({ ...notifPayload, recipientId: accId, link: '/accountant' });
+      }
+
+      // Also notify admins
+      const admins = await getUsersByRole('admin');
+      for (const adminId of admins) {
+        await createNotification({ ...notifPayload, recipientId: adminId });
+      }
+
+      // Trigger PDF re-generation with signature info
+      // The onCreateContractPDF only triggers on create; call update to regenerate
+      // We store a flag so an admin can manually regenerate or use generateContractPDF callable
+    }
+  }
+);
+
+// ============================================================
+// 9. scheduledDeadlineCheck — Multi-tier (C1) + Contract deadline
 // ============================================================
 export const scheduledDeadlineCheck = onSchedule(
   { schedule: 'every day 09:00', timeZone: 'Asia/Ho_Chi_Minh' },
   async () => {
     const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    // ── 1. Job deadlines ────────────────────────────────────────────
     const jobsSnap = await db.collection('jobs')
       .where('status', 'in', ['assigned', 'in_progress']).get();
 
@@ -552,8 +754,7 @@ export const scheduledDeadlineCheck = onSchedule(
 
       if (!tier || !tierType) continue;
 
-      // Dedup: check if we already sent this tier today
-      const today = now.toISOString().split('T')[0];
+      // Dedup: skip if already sent this tier today
       const existing = await db.collection('notifications')
         .where('type', '==', tierType)
         .where('metadata.jobId', '==', jobDoc.id)
@@ -570,6 +771,60 @@ export const scheduledDeadlineCheck = onSchedule(
           body: `Job "${job.title}" - Hạn: ${deadline.toLocaleDateString('vi-VN')}`,
           link: `/freelancer/jobs/${jobDoc.id}`,
           metadata: { jobId: jobDoc.id, date: today },
+        });
+      }
+    }
+
+    // ── 2. Contract signing deadlines ───────────────────────────────
+    const contractsSnap = await db.collection('contracts')
+      .where('status', '==', 'pending_signature').get();
+
+    for (const contractDoc of contractsSnap.docs) {
+      const contract = contractDoc.data();
+      if (!contract.contractDeadline) continue;
+      const contractDeadline = contract.contractDeadline?.toDate
+        ? contract.contractDeadline.toDate()
+        : new Date(contract.contractDeadline);
+      const daysLeft = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Only warn at 2 days left, 1 day left, and overdue
+      if (daysLeft > 2) continue;
+
+      const isOverdue = daysLeft <= 0;
+      const warnTitle = isOverdue
+        ? `⚠️ Quá hạn ký hợp đồng!`
+        : `⚠️ Hợp đồng cần ký trong ${daysLeft} ngày!`;
+      const warnBody = `Hợp đồng ${contract.contractNumber} (${contract.jobTitle}) ${isOverdue ? 'đã quá hạn ký.' : `cần được ký trước ${contractDeadline.toLocaleDateString('vi-VN')}.`}`;
+
+      // Dedup
+      const existingContractWarn = await db.collection('notifications')
+        .where('type', '==', 'contract_deadline_warning')
+        .where('metadata.contractId', '==', contractDoc.id)
+        .where('metadata.date', '==', today)
+        .limit(1).get();
+      if (!existingContractWarn.empty) continue;
+
+      // Warn the freelancer
+      if (contract.partyB?.uid) {
+        await createNotification({
+          recipientId: contract.partyB.uid,
+          type: 'contract_deadline_warning',
+          title: warnTitle,
+          body: warnBody,
+          link: `/freelancer/contracts/${contractDoc.id}/sign`,
+          metadata: { contractId: contractDoc.id, date: today },
+        });
+      }
+
+      // Warn the jobmaster (createdBy)
+      if (contract.createdBy) {
+        await createNotification({
+          recipientId: contract.createdBy,
+          type: 'contract_deadline_warning',
+          title: warnTitle,
+          body: `${contract.partyB?.name || 'Freelancer'} chưa ký: ${warnBody}`,
+          link: `/jobmaster/jobs/${contract.jobId}`,
+          metadata: { contractId: contractDoc.id, date: today },
         });
       }
     }
@@ -601,7 +856,7 @@ export const scheduledLeaderboard = onSchedule(
       if (monthlyEarnings === 0) continue;
       const entryRef = db.collection('leaderboard').doc();
       batch.set(entryRef, {
-        uid: userDoc.id, name: user.displayName, level: user.currentLevel,
+        uid: userDoc.id, name: user.nickname || user.displayName, level: user.currentLevel,
         specialty: user.specialties?.[0] || '', earnings: monthlyEarnings,
         totalEarnings: user.stats?.totalEarnings || 0, rating: user.stats?.avgRating || 0,
         completedJobs: user.stats?.completedJobs || 0, badges: [], rank,
