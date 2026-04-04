@@ -34,6 +34,7 @@ const NAV_CONFIG = {
     { label: 'Tổng quan', href: '/jobmaster', icon: LayoutDashboard },
     { label: 'Dự án của tôi', href: '/jobmaster/jobs', icon: FolderKanban },
     { label: 'Duyệt ứng viên', href: '/jobmaster/applications', icon: CheckSquare },
+    { label: 'Freelancer', href: '/jobmaster/freelancers', icon: Users },
     { label: 'Tin nhắn', href: '/jobmaster/chat', icon: MessageSquare },
   ],
   accountant: [

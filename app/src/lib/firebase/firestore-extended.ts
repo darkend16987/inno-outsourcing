@@ -852,6 +852,49 @@ export const getCollaborationHistory = async (
   return snap.size;
 };
 
+export interface CollaboratedFreelancer {
+  uid: string;
+  jobCount: number;
+  lastJobTitle: string;
+  lastCompletedAt: unknown;
+}
+
+/**
+ * Get all freelancers a jobmaster has collaborated with (completed/paid jobs)
+ */
+export const getCollaboratedFreelancers = async (
+  jobmasterId: string,
+): Promise<CollaboratedFreelancer[]> => {
+  if (!db) return [];
+  const q = query(
+    collection(db, 'jobs'),
+    where('jobMaster', '==', jobmasterId),
+    where('status', 'in', ['completed', 'paid']),
+  );
+  const snap = await getDocs(q);
+  const map = new Map<string, CollaboratedFreelancer>();
+  snap.docs.forEach(d => {
+    const data = d.data();
+    const uid = data.assignedTo;
+    if (!uid) return;
+    const existing = map.get(uid);
+    if (existing) {
+      existing.jobCount += 1;
+      // Keep latest
+      existing.lastJobTitle = data.title || existing.lastJobTitle;
+      existing.lastCompletedAt = data.completedAt || existing.lastCompletedAt;
+    } else {
+      map.set(uid, {
+        uid,
+        jobCount: 1,
+        lastJobTitle: data.title || 'Dự án',
+        lastCompletedAt: data.completedAt || data.updatedAt || null,
+      });
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => b.jobCount - a.jobCount);
+};
+
 export const rehireFreelancer = async (
   jobId: string,
   freelancerId: string,
