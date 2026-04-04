@@ -7,7 +7,7 @@ import {
   ArrowLeft, Loader2, Save, AlertTriangle, CheckCircle, FileText,
 } from 'lucide-react';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, getDoc, getDocs, updateDoc, serverTimestamp, collection, addDoc, query, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui';
 import { SignaturePad } from '@/components/profile/SignaturePad';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -174,34 +174,9 @@ export default function ContractSignPage() {
         updatedAt: serverTimestamp(),
       });
 
-      // 3. Notify jobmaster + accountants (via notifications collection)
-      const notifBase = {
-        type: 'contract_submitted',
-        title: `Hợp đồng đã được ký: ${contract.contractNumber}`,
-        body: `${form.name} đã ký hợp đồng "${contract.jobTitle}". Vui lòng xem xét.`,
-        link: `/admin/contracts`,
-        read: false,
-        metadata: { contractId: id, jobId: contract.jobId },
-      };
-
-      // Notify job creator / jobmaster
-      if (contract.createdBy) {
-        await addDoc(collection(db, 'notifications'), {
-          ...notifBase, recipientId: contract.createdBy, createdAt: serverTimestamp(),
-        });
-      }
-
-      // Notify all accountants (fetch from users collection)
-      const accountantsSnap = await getDocs(
-        query(collection(db, 'users'), where('role', '==', 'accountant'))
-      );
-      for (const aDoc of accountantsSnap.docs) {
-        if (aDoc.id !== userProfile.uid) {
-          await addDoc(collection(db, 'notifications'), {
-            ...notifBase, recipientId: aDoc.id, createdAt: serverTimestamp(),
-          });
-        }
-      }
+      // NOTE: Notifications are sent automatically by the Cloud Function
+      // `onContractSubmitted` which triggers when contract status → 'active'.
+      // No need to create notifications from the client side.
 
       setSuccess(true);
       setTimeout(() => router.push('/freelancer/contracts'), 2500);
