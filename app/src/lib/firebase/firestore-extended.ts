@@ -293,10 +293,18 @@ export const lockAllMilestones = async (jobId: string): Promise<void> => {
 
   const data = jobSnap.data();
   const milestones = (data.milestones || []) as PaymentMilestone[];
-  const locked = milestones.map(m => ({
-    ...m,
-    status: m.status === 'pending' ? 'locked' : m.status,
-  }));
+  let firstActivated = false;
+  const locked = milestones.map(m => {
+    // Set the first milestone to in_progress, rest to locked
+    if (!firstActivated && (m.status === 'pending' || !m.status)) {
+      firstActivated = true;
+      return { ...m, status: 'in_progress' as const };
+    }
+    return {
+      ...m,
+      status: m.status === 'pending' || !m.status ? 'locked' as const : m.status,
+    };
+  });
 
   await updateDoc(jobRef, {
     milestones: locked,
@@ -398,13 +406,31 @@ export const approveMilestoneAndPay = async (params: {
       : m
   );
 
-  // 2. Check if all milestones are now released/paid → update escrow + job status
-  const allReleased = updated.every(m => m.status === 'released' || m.status === 'paid' || m.status === 'approved');
+  // 2. Activate the NEXT milestone automatically
+  // Find the first milestone that is still 'pending' or has no active status
+  let nextActivated = false;
+  const withNextActivated = updated.map(m => {
+    if (!nextActivated && m.id !== params.milestoneId && 
+        m.status !== 'released' && m.status !== 'paid' && m.status !== 'approved' && m.status !== 'review' && m.status !== 'in_progress') {
+      nextActivated = true;
+      return { ...m, status: 'in_progress' as const };
+    }
+    return m;
+  });
+
+  // 3. Calculate progress based on released/paid/approved milestones
+  const releasedPercentage = withNextActivated
+    .filter(m => m.status === 'released' || m.status === 'paid' || m.status === 'approved')
+    .reduce((sum, m) => sum + (m.percentage || 0), 0);
+
+  // 4. Check if all milestones are now released/paid → update escrow + job status
+  const allReleased = withNextActivated.every(m => m.status === 'released' || m.status === 'paid' || m.status === 'approved');
   const escrowStatus = allReleased ? 'fully_released' : 'partially_released';
 
   const jobUpdate: Record<string, unknown> = {
-    milestones: updated,
+    milestones: withNextActivated,
     escrowStatus,
+    progress: Math.min(releasedPercentage, 100),
     updatedAt: serverTimestamp(),
   };
 
@@ -412,8 +438,9 @@ export const approveMilestoneAndPay = async (params: {
   if (allReleased) {
     jobUpdate.status = 'completed';
     jobUpdate.progress = 100;
-  } else if (data.status === 'assigned' || data.status === 'in_progress') {
-    jobUpdate.status = 'review';
+  } else {
+    // Keep job in_progress while there are remaining milestones
+    jobUpdate.status = 'in_progress';
   }
 
   await updateDoc(jobRef, jobUpdate);
