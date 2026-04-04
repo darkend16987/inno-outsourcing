@@ -22,6 +22,16 @@ const BANKS = [
   'MSB', 'VIB', 'SHB', 'SeABank', 'LienVietPostBank', 'Eximbank', 'Khác',
 ];
 
+/** Convert a base64 data URL to a Blob without using fetch() (CSP-safe) */
+function dataURLtoBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)![1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 function formatDate(d: unknown): string {
   if (!d) return '';
   if (typeof d === 'object' && d !== null && 'toDate' in d)
@@ -150,7 +160,7 @@ export default function ContractSignPage() {
     let signatureURL = '';
     if (signatureDataUrl) {
       try {
-        const blob = await (await fetch(signatureDataUrl)).blob();
+        const blob = dataURLtoBlob(signatureDataUrl);
         const sigRef = storageRef(storage, `signatures/${userProfile.uid}/${id}.png`);
         await uploadBytes(sigRef, blob, { contentType: 'image/png' });
         signatureURL = await getDownloadURL(sigRef);
