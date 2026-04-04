@@ -219,5 +219,13 @@ service cloud.firestore {
       allow update: if isAuthenticated() && resource.data.authorId == request.auth.uid;
       allow delete: if hasRole('admin') || (isAuthenticated() && resource.data.authorId == request.auth.uid);
     }
+
+    // ──── INVITATIONS ────
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if hasRole('admin');
+    }
   }
 }

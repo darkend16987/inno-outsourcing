@@ -3,18 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   Settings, Plus, Trash2, GripVertical, Save, Tag,
-  Layers, Monitor, Building2, Star, Image, MessageCircle, ToggleLeft, ToggleRight
+  Layers, Monitor, Building2, Star, Image, MessageCircle, ToggleLeft, ToggleRight, SlidersHorizontal
 } from 'lucide-react';
 import { Button, Badge, Card } from '@/components/ui';
 import {
   getConfigItems, saveConfigItems, addConfigItem, deleteConfigItem,
   getBanners, saveBanner, deleteBanner,
   getTestimonials, saveTestimonial, deleteTestimonial,
-  type SystemConfigItem, type BannerItem, type TestimonialItem, type ConfigCategory
+  getGlobalSettings, saveGlobalSettings,
+  type SystemConfigItem, type BannerItem, type TestimonialItem, type ConfigCategory,
+  type GlobalSettings
 } from '@/lib/firebase/system-config';
 import styles from './page.module.css';
 
-const TABS: { key: ConfigCategory | 'banners' | 'testimonials'; label: string; icon: React.ReactNode }[] = [
+const TABS: { key: ConfigCategory | 'banners' | 'testimonials' | 'global'; label: string; icon: React.ReactNode }[] = [
   { key: 'specialties', label: 'Chuyên ngành', icon: <Layers size={16} /> },
   { key: 'software', label: 'Phần mềm', icon: <Monitor size={16} /> },
   { key: 'levels', label: 'Cấp bậc', icon: <Star size={16} /> },
@@ -23,6 +25,7 @@ const TABS: { key: ConfigCategory | 'banners' | 'testimonials'; label: string; i
   { key: 'job_tags', label: 'Tag nổi bật', icon: <Tag size={16} /> },
   { key: 'banners', label: 'Banner', icon: <Image size={16} /> },
   { key: 'testimonials', label: 'Nhận xét', icon: <MessageCircle size={16} /> },
+  { key: 'global', label: 'Cài đặt chung', icon: <SlidersHorizontal size={16} /> },
 ];
 
 export default function AdminSettingsPage() {
@@ -45,6 +48,9 @@ export default function AdminSettingsPage() {
   const [tmCompany, setTmCompany] = useState('');
   const [tmContent, setTmContent] = useState('');
   const [tmRating, setTmRating] = useState('5');
+  // Global settings
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({ max_concurrent_jobs_warning: 3 });
+  const [globalSaving, setGlobalSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -58,6 +64,9 @@ export default function AdminSettingsPage() {
         setBanners(await getBanners());
       } else if (activeTab === 'testimonials') {
         setTestimonials(await getTestimonials());
+      } else if (activeTab === 'global') {
+        const gs = await getGlobalSettings();
+        setGlobalSettings(gs);
       } else {
         const data = await getConfigItems(activeTab as ConfigCategory);
         setItems(data);
@@ -122,7 +131,7 @@ export default function AdminSettingsPage() {
     setSaving(false);
   };
 
-  const isConfigTab = !['banners', 'testimonials'].includes(activeTab);
+  const isConfigTab = !['banners', 'testimonials', 'global'].includes(activeTab);
 
   return (
     <div className={styles.page}>
@@ -313,6 +322,57 @@ export default function AdminSettingsPage() {
                 </div>
               ))}
               {testimonials.length === 0 && <p className={styles.emptyMsg}>Chưa có nhận xét nào. Thêm nhận xét đầu tiên ở trên.</p>}
+            </div>
+          )}
+
+          {/* Global Settings Tab */}
+          {activeTab === 'global' && (
+            <div className={styles.configSection}>
+              <p className={styles.tabHint}>Cài đặt chung cho hệ thống. Các giá trị này ảnh hưởng tới toàn bộ nền tảng.</p>
+              <Card className={styles.addForm}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+                  <div>
+                    <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                      Ngưỡng cảnh báo job đồng thời
+                    </label>
+                    <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                      Khi freelancer đang thực hiện từ X job trở lên, hệ thống sẽ hiển thị cảnh báo cho cả freelancer và jobmaster.
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={globalSettings.max_concurrent_jobs_warning}
+                        onChange={e => setGlobalSettings(prev => ({ ...prev, max_concurrent_jobs_warning: parseInt(e.target.value) || 3 }))}
+                        className={styles.inputSmall}
+                        style={{ maxWidth: 100 }}
+                      />
+                      <span style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>job</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+              <div style={{ marginTop: 16 }}>
+                <Button
+                  variant="primary"
+                  icon={<Save size={16} />}
+                  disabled={globalSaving}
+                  onClick={async () => {
+                    setGlobalSaving(true);
+                    try {
+                      await saveGlobalSettings(globalSettings);
+                      alert('Đã lưu cài đặt chung!');
+                    } catch (err) {
+                      console.error(err);
+                      alert('Lỗi khi lưu.');
+                    }
+                    setGlobalSaving(false);
+                  }}
+                >
+                  {globalSaving ? 'Đang lưu...' : 'Lưu cài đặt chung'}
+                </Button>
+              </div>
             </div>
           )}
         </>

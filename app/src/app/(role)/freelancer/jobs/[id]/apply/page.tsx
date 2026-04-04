@@ -5,7 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ArrowLeft, ArrowRight, AlertTriangle, Loader2, Inbox } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
+import { ActiveJobWarning } from '@/components/ui/ActiveJobWarning';
 import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
+import { getActiveJobCount } from '@/lib/firebase/firestore-extended';
+import { getGlobalSettings } from '@/lib/firebase/system-config';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { formatFriendlyMoney, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import type { Job } from '@/types';
@@ -26,6 +29,8 @@ export default function ApplyPage() {
   const [submitError, setSubmitError] = useState('');
   const [feeWarning, setFeeWarning] = useState('');
   const [feeBlocked, setFeeBlocked] = useState(false);
+  const [activeJobCount, setActiveJobCount] = useState(0);
+  const [concurrencyThreshold, setConcurrencyThreshold] = useState(3);
 
   // Form state
   const [expectedFee, setExpectedFee] = useState('');
@@ -44,6 +49,11 @@ export default function ApplyPage() {
         if (result && userProfile) {
           const existing = await checkExistingApplication(result.id, userProfile.uid);
           if (existing) setAlreadyApplied(true);
+          // Fetch active job count for concurrency warning
+          const count = await getActiveJobCount(userProfile.uid);
+          setActiveJobCount(count);
+          const settings = await getGlobalSettings();
+          setConcurrencyThreshold(settings.max_concurrent_jobs_warning);
         }
       } catch (err) {
         console.error('Error loading job:', err);
@@ -211,6 +221,8 @@ export default function ApplyPage() {
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <h2 className={styles.stepTitle}>Đề xuất ngân sách & Thời gian</h2>
+
+                <ActiveJobWarning count={activeJobCount} threshold={concurrencyThreshold} variant="freelancer" />
 
                 {/* Budget info card */}
                 <div style={{ padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>

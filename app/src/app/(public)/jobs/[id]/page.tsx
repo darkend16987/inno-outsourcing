@@ -12,9 +12,12 @@ import {
   Copy, Check
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
+import { ActiveJobWarning } from '@/components/ui/ActiveJobWarning';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { CompletionChecklist, ChecklistItemData } from '@/components/checklist/CompletionChecklist';
 import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
+import { getActiveJobCount } from '@/lib/firebase/firestore-extended';
+import { getGlobalSettings } from '@/lib/firebase/system-config';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { formatFriendlyMoney, formatDate, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import styles from './page.module.css';
@@ -70,6 +73,20 @@ function ApplyModal({ isOpen, onClose, job, onSuccess }: ApplyModalProps) {
   const [agreedContract, setAgreedContract] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [activeJobCount, setActiveJobCount] = useState(0);
+  const [concurrencyThreshold, setConcurrencyThreshold] = useState(3);
+
+  React.useEffect(() => {
+    if (!userProfile?.uid || !isOpen) return;
+    (async () => {
+      const [count, settings] = await Promise.all([
+        getActiveJobCount(userProfile.uid),
+        getGlobalSettings(),
+      ]);
+      setActiveJobCount(count);
+      setConcurrencyThreshold(settings.max_concurrent_jobs_warning);
+    })();
+  }, [userProfile?.uid, isOpen]);
 
   const canSubmit = agreedScope && agreedProfile && agreedContract && coverLetter.trim().length > 10 && availableDate;
 
@@ -139,6 +156,8 @@ function ApplyModal({ isOpen, onClose, job, onSuccess }: ApplyModalProps) {
                 <span><Clock size={14} /> Thời hạn: {job.durationDisplay}</span>
               </div>
             </div>
+
+            <ActiveJobWarning count={activeJobCount} threshold={concurrencyThreshold} variant="freelancer" />
 
             {/* Applicant Info (auto-filled from profile) */}
             <div className={styles.formSection}>

@@ -302,3 +302,37 @@ function getDefaultTestimonials(): TestimonialItem[] {
     },
   ];
 }
+
+// =====================
+// GLOBAL SETTINGS (key-value pairs)
+// =====================
+
+export interface GlobalSettings {
+  max_concurrent_jobs_warning: number;
+  [key: string]: unknown;
+}
+
+const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
+  max_concurrent_jobs_warning: 3,
+};
+
+/**
+ * Get global settings
+ */
+export const getGlobalSettings = async (): Promise<GlobalSettings> => {
+  if (!db) return DEFAULT_GLOBAL_SETTINGS;
+  const snap = await getDoc(doc(db, CONFIG_COLLECTION, 'global_settings'));
+  if (!snap.exists()) return DEFAULT_GLOBAL_SETTINGS;
+  return { ...DEFAULT_GLOBAL_SETTINGS, ...snap.data() } as GlobalSettings;
+};
+
+/**
+ * Save global settings (merge)
+ */
+export const saveGlobalSettings = async (settings: Partial<GlobalSettings>): Promise<void> => {
+  if (!db) return;
+  await setDoc(doc(db, CONFIG_COLLECTION, 'global_settings'), {
+    ...settings,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+};

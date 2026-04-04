@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon, BarChart3, Mail, UserPlus, Star } from 'lucide-react';
 import { Button, Card, Badge, Avatar } from '@/components/ui';
 import { ChatPanel } from '@/components/chat';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
@@ -18,6 +18,7 @@ import {
   getMilestoneSubmissions,
   reviewMilestoneSubmission,
   createNotification,
+  sendJobInvitation,
 } from '@/lib/firebase/firestore-extended';
 import { getJobById, updateJob, getOrCreateConversation } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -157,7 +158,7 @@ export default function JobMasterJobDetailPage() {
   const [approving, setApproving] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
   const [now] = useState(() => Date.now());
-  const [activeTab, setActiveTab] = useState<'info' | 'progress' | 'chat'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'progress' | 'chat' | 'review'>('info');
   const [chatConvId, setChatConvId] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
 
@@ -177,6 +178,12 @@ export default function JobMasterJobDetailPage() {
   const [editProjectImages, setEditProjectImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteFreelancerId, setInviteFreelancerId] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -534,6 +541,11 @@ export default function JobMasterJobDetailPage() {
               </Button>
             </>
           )}
+          {job.status === 'open' && (
+            <Button variant="outline" onClick={() => setShowInviteModal(true)}>
+              <UserPlus size={16}/> Mời Freelancer
+            </Button>
+          )}
         </div>
       </div>
 
@@ -573,6 +585,15 @@ export default function JobMasterJobDetailPage() {
             onClick={() => { setActiveTab('chat'); initChat(); }}
           >
             <MessageSquare size={16}/> Chat
+          </button>
+        )}
+        {(job.status === 'completed' || job.status === 'paid') && (
+          <button
+            className={`${styles.tabBtn} ${activeTab === 'review' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('review')}
+          >
+            <Star size={16}/> Đánh giá
+            {!hasReviewed && <span className={styles.tabBadge}>!</span>}
           </button>
         )}
       </div>
@@ -747,13 +768,7 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* Escrow Status */}
-          {milestones.length > 0 && (
-            <EscrowStatus
-              totalFee={job.totalFee || 0}
-              milestones={milestones}
-            />
-          )}
+
 
           {/* Deadline Indicator */}
           {job.deadline && (() => {
@@ -810,31 +825,7 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* MutualReview */}
-          {(job.status === 'completed' || job.status === 'paid') && !hasReviewed && userProfile && (
-            <MutualReviewForm
-              jobTitle={job.title}
-              targetUserName={job.assignedWorkerName || 'Freelancer'}
-              reviewerRole="jobmaster"
-              onSubmit={async (data) => {
-                await submitReview({
-                  jobId: job.id,
-                  jobTitle: job.title,
-                  reviewerId: userProfile.uid,
-                  reviewerName: userProfile.displayName || 'Job Master',
-                  reviewerRole: 'jobmaster',
-                  revieweeId: job.assignedTo || '',
-                  revieweeName: job.assignedWorkerName || 'Freelancer',
-                  rating: data.rating,
-                  communication: data.communication,
-                  quality: data.quality,
-                  timeliness: data.timeliness,
-                  comment: data.comment,
-                });
-                setHasReviewed(true);
-              }}
-            />
-          )}
+
         </div>
       </div>
       )}
@@ -993,6 +984,68 @@ export default function JobMasterJobDetailPage() {
         </div>
       )}
 
+      {/* TAB: Đánh giá */}
+      {activeTab === 'review' && (job.status === 'completed' || job.status === 'paid') && (
+        <div className={styles.grid}>
+          <div className={styles.mainCol}>
+            {hasReviewed ? (
+              <Card className={styles.sectionCard}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '2rem 1rem', textAlign: 'center' }}>
+                  <CheckCircle size={48} style={{ color: 'var(--color-success)' }} />
+                  <h3 style={{ fontSize: 18, fontWeight: 700 }}>Bạn đã đánh giá freelancer</h3>
+                  <p style={{ fontSize: 14, color: 'var(--color-text-muted)', maxWidth: 400 }}>
+                    Cảm ơn bạn đã gửi đánh giá. Điểm số sẽ được cập nhật vào hồ sơ của freelancer.
+                  </p>
+                </div>
+              </Card>
+            ) : userProfile ? (
+              <MutualReviewForm
+                jobTitle={job.title}
+                targetUserName={job.assignedWorkerName || 'Freelancer'}
+                reviewerRole="jobmaster"
+                onSubmit={async (data) => {
+                  await submitReview({
+                    jobId: job.id,
+                    jobTitle: job.title,
+                    reviewerId: userProfile.uid,
+                    reviewerName: userProfile.displayName || 'Job Master',
+                    reviewerRole: 'jobmaster',
+                    revieweeId: job.assignedTo || '',
+                    revieweeName: job.assignedWorkerName || 'Freelancer',
+                    rating: data.rating,
+                    communication: data.communication,
+                    quality: data.quality,
+                    timeliness: data.timeliness,
+                    comment: data.comment,
+                  });
+                  setHasReviewed(true);
+                }}
+              />
+            ) : null}
+          </div>
+          <div className={styles.sideCol}>
+            <Card className={styles.sectionCard}>
+              <h3 className={styles.secTitle}>Thông tin dự án</h3>
+              <div className={styles.summaryList}>
+                <div className={styles.summaryItem}>
+                  <span>Freelancer</span>
+                  <strong>{job.assignedWorkerName || '-'}</strong>
+                </div>
+                <div className={styles.summaryItem}>
+                  <span>Trạng thái</span>
+                  {/* @ts-expect-error dynamic badge variant */}
+                  <Badge variant={statusInfo.variant} size="sm">{statusInfo.label}</Badge>
+                </div>
+                <div className={styles.summaryItem}>
+                  <span>Ngân sách</span>
+                  <strong>{formatFriendlyMoney(job.totalFee)}</strong>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
       <PaymentConfirmModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -1008,6 +1061,73 @@ export default function JobMasterJobDetailPage() {
         onConfirm={handleConfirmReject}
         loading={rejecting}
       />
+
+      {/* Invite Freelancer Modal */}
+      {showInviteModal && (
+        <div className={styles.modalOverlay}>
+          <Card className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}><Mail size={18}/> Mời Freelancer ứng tuyển</h3>
+              <button onClick={() => setShowInviteModal(false)}><X size={20}/></button>
+            </div>
+            <div className={styles.modalBody}>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>
+                Nhập UID của freelancer bạn muốn mời. Freelancer sẽ nhận được thông báo mời ứng tuyển vào dự án này.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 4 }}>Freelancer UID *</label>
+                  <input
+                    type="text"
+                    placeholder="VD: abc123..."
+                    value={inviteFreelancerId}
+                    onChange={e => setInviteFreelancerId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-secondary)', fontSize: 14 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 4 }}>Tin nhắn kèm theo</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Lời nhắn gửi kèm lời mời (tùy chọn)..."
+                    value={inviteMessage}
+                    onChange={e => setInviteMessage(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-secondary)', fontSize: 14, resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <Button variant="outline" onClick={() => setShowInviteModal(false)}>Hủy</Button>
+              <Button
+                disabled={!inviteFreelancerId.trim() || inviteSending}
+                onClick={async () => {
+                  if (!userProfile || !job) return;
+                  setInviteSending(true);
+                  try {
+                    await sendJobInvitation(
+                      job.id,
+                      inviteFreelancerId.trim(),
+                      userProfile.uid,
+                      inviteMessage || undefined,
+                    );
+                    alert('Đã gửi lời mời thành công!');
+                    setShowInviteModal(false);
+                    setInviteFreelancerId('');
+                    setInviteMessage('');
+                  } catch (err) {
+                    console.error(err);
+                    alert('Lỗi khi gửi lời mời. Vui lòng thử lại.');
+                  }
+                  setInviteSending(false);
+                }}
+              >
+                <Send size={14}/> {inviteSending ? 'Đang gửi...' : 'Gửi lời mời'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
