@@ -243,9 +243,8 @@
 
 /* Chat Tab Container */
 .chatTabContainer {
-  background: var(--color-surface); border-radius: var(--radius-md);
-  border: 1.5px solid var(--color-border); min-height: 500px;
-  display: flex; flex-direction: column; overflow: hidden;
+  min-height: 500px;
+  display: flex; flex-direction: column;
 }
 
 /* Spin animation */
