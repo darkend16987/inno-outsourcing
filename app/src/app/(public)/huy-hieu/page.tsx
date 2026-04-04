@@ -86,7 +86,7 @@ export default function BadgesPage() {
   // Simulated user progress (completedJobs / threshold)
   const getUserProgress = (badge: BadgeDefinition): number => {
     if (!user || !badge.threshold) return 0;
-    const completed = (user as Record<string, unknown> & { stats?: { completedJobs?: number } }).stats?.completedJobs || 0;
+    const completed = (user as unknown as { stats?: { completedJobs?: number } }).stats?.completedJobs || 0;
     return Math.min(100, Math.round((completed / badge.threshold) * 100));
   };
 
