@@ -154,7 +154,15 @@ export default function FreelancerJobDetail() {
   const handleOpenChat = async () => {
     if (!userProfile?.uid || !job?.jobMaster) return;
     try {
-      const convId = await getOrCreateConversation([userProfile.uid, job.jobMaster], job.id);
+      const participantNames: Record<string, string> = {
+        [userProfile.uid]: userProfile.displayName || 'Freelancer',
+        [job.jobMaster]: job.jobMasterName || 'Job Master',
+      };
+      const convId = await getOrCreateConversation(
+        [userProfile.uid, job.jobMaster],
+        job.id,
+        { participantNames, jobTitle: job.title }
+      );
       if (convId) {
         window.location.href = `/freelancer/chat?conv=${convId}`;
       }

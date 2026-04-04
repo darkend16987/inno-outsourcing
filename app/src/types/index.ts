@@ -346,6 +346,8 @@ export interface Conversation {
   id: string;
   participants: string[];
   jobId: string;
+  jobTitle?: string;
+  participantNames?: Record<string, string>;
   lastMessage: string;
   lastMessageAt: Date;
   unreadCount: Record<string, number>;

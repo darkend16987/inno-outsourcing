@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox, Lock, Unlock, RotateCcw, Edit3, Save, X, ImageIcon, AlertTriangle, Zap } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox, Lock, Unlock, RotateCcw, Edit3, Save, X, ImageIcon, AlertTriangle, Zap, BarChart3 } from 'lucide-react';
 import { Button, Card, Badge, StatusBadge, LevelBadge } from '@/components/ui';
 import { getJobById, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -123,6 +123,7 @@ export default function AdminJobReviewPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [applicationCount, setApplicationCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<'info' | 'progress'>('info');
 
   // Submissions
   const [allSubmissions, setAllSubmissions] = useState<MilestoneSubmission[]>([]);
@@ -486,6 +487,25 @@ export default function AdminJobReviewPage() {
         </Card>
       )}
 
+      {/* Tab Navigation */}
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tabBtn} ${activeTab === 'info' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('info')}
+        >
+          <FileText size={16}/> Thông tin
+        </button>
+        <button
+          className={`${styles.tabBtn} ${activeTab === 'progress' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('progress')}
+        >
+          <BarChart3 size={16}/> Tiến độ
+          {hasPendingSubmissions && <span className={styles.tabBadge}>!</span>}
+        </button>
+      </div>
+
+      {/* TAB: Thông tin */}
+      {activeTab === 'info' && (
       <div className={styles.contentGrid}>
         <div className={styles.mainCol}>
           <Card variant="bordered">
@@ -574,10 +594,46 @@ export default function AdminJobReviewPage() {
               </div>
             )}
           </Card>
+        </div>
 
-          {/* ====================== */}
-          {/* MILESTONE REVIEW SECTION — FULL UI */}
-          {/* ====================== */}
+        <div className={styles.sideCol}>
+          <Card variant="bordered">
+            <h3 className={styles.sectionTitle}>Thông tin dự án</h3>
+            <div className={styles.infoList}>
+              <div className={styles.infoRow}><span>Người tạo:</span><strong>{job.createdBy || '-'}</strong></div>
+              <div className={styles.infoRow}><span>Ngày tạo:</span><strong>{formatDate(job.createdAt)}</strong></div>
+              <div className={styles.infoRow}><span>Hạn nộp:</span><strong>{formatDate(job.deadline)}</strong></div>
+              <div className={styles.infoRow}><span>Hình thức:</span><strong>{job.workMode === 'remote' ? 'Từ xa' : job.workMode === 'on-site' ? 'Tại chỗ' : 'Kết hợp'}</strong></div>
+              {job.assignedWorkerName && <div className={styles.infoRow}><span>Freelancer:</span><strong>{job.assignedWorkerName}</strong></div>}
+              {job.projectScale && <div className={styles.infoRow}><span>Quy mô:</span><strong>{job.projectScale}</strong></div>}
+            </div>
+          </Card>
+
+          <Card variant="bordered" className={styles.notesCard}>
+            <h3 className={styles.sectionTitle}><MessageSquare size={18} /> Ghi chú nội bộ</h3>
+            <p className={styles.notesHint}>Chỉ admin thấy — không hiển thị cho freelancer.</p>
+            <div className={styles.notesList}>
+              {notes.map((note, i) => (
+                <div key={i} className={styles.noteItem}>
+                  <div className={styles.noteHeader}><strong>{note.author}</strong> <span>{note.date}</span></div>
+                  <p>{note.content}</p>
+                </div>
+              ))}
+              {notes.length === 0 && <div className={styles.emptySmall}>Chưa có ghi chú nội bộ.</div>}
+            </div>
+            <div className={styles.noteInput}>
+              <textarea className={styles.textarea} value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Thêm ghi chú nội bộ..." rows={2} />
+              <Button variant="outline" size="sm" icon={<Send size={14} />} onClick={handleAddNote}>Gửi</Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+      )}
+
+      {/* TAB: Tiến độ */}
+      {activeTab === 'progress' && (
+      <div className={styles.contentGrid}>
+        <div className={styles.mainCol}>
           <Card variant="bordered">
             <h3 className={styles.sectionTitle}><DollarSign size={18} /> Giai đoạn & Nghiệm thu</h3>
 
@@ -727,26 +783,9 @@ export default function AdminJobReviewPage() {
               {job.projectScale && <div className={styles.infoRow}><span>Quy mô:</span><strong>{job.projectScale}</strong></div>}
             </div>
           </Card>
-
-          <Card variant="bordered" className={styles.notesCard}>
-            <h3 className={styles.sectionTitle}><MessageSquare size={18} /> Ghi chú nội bộ</h3>
-            <p className={styles.notesHint}>Chỉ admin thấy — không hiển thị cho freelancer.</p>
-            <div className={styles.notesList}>
-              {notes.map((note, i) => (
-                <div key={i} className={styles.noteItem}>
-                  <div className={styles.noteHeader}><strong>{note.author}</strong> <span>{note.date}</span></div>
-                  <p>{note.content}</p>
-                </div>
-              ))}
-              {notes.length === 0 && <div className={styles.emptySmall}>Chưa có ghi chú nội bộ.</div>}
-            </div>
-            <div className={styles.noteInput}>
-              <textarea className={styles.textarea} value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Thêm ghi chú nội bộ..." rows={2} />
-              <Button variant="outline" size="sm" icon={<Send size={14} />} onClick={handleAddNote}>Gửi</Button>
-            </div>
-          </Card>
         </div>
       </div>
+      )}
 
       <PaymentConfirmModal
         isOpen={paymentModal.open}

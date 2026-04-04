@@ -582,7 +582,8 @@ export const markAllNotificationsRead = async (userId: string) => {
 // =====================
 export const getOrCreateConversation = async (
   participants: string[],
-  jobId: string
+  jobId: string,
+  metadata?: { participantNames?: Record<string, string>; jobTitle?: string }
 ): Promise<string> => {
   if (!db) return '';
   // Check if conversation already exists for this job + participants
@@ -592,12 +593,27 @@ export const getOrCreateConversation = async (
     where('participants', '==', participants.sort())
   );
   const existing = await getDocs(q);
-  if (!existing.empty) return existing.docs[0].id;
+  if (!existing.empty) {
+    const convDoc = existing.docs[0];
+    // Backfill metadata if missing on legacy conversations
+    if (metadata) {
+      const data = convDoc.data();
+      const needsUpdate: Record<string, unknown> = {};
+      if (!data.jobTitle && metadata.jobTitle) needsUpdate.jobTitle = metadata.jobTitle;
+      if (!data.participantNames && metadata.participantNames) needsUpdate.participantNames = metadata.participantNames;
+      if (Object.keys(needsUpdate).length > 0) {
+        await updateDoc(convDoc.ref, needsUpdate);
+      }
+    }
+    return convDoc.id;
+  }
 
-  // Create new conversation
+  // Create new conversation with friendly metadata
   const ref = await addDoc(collection(db, 'conversations'), {
     participants: participants.sort(),
     jobId,
+    jobTitle: metadata?.jobTitle || '',
+    participantNames: metadata?.participantNames || {},
     lastMessage: '',
     lastMessageAt: serverTimestamp(),
     unreadCount: Object.fromEntries(participants.map(p => [p, 0])),

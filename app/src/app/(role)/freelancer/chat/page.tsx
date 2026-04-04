@@ -65,7 +65,11 @@ function FreelancerChatContent() {
   const getParticipantName = (conv: Conversation): string => {
     if (!userProfile) return '';
     const otherId = conv.participants.find(p => p !== userProfile.uid);
-    return otherId || 'Job Master';
+    // Use metadata participantNames if available
+    if (otherId && conv.participantNames && conv.participantNames[otherId]) {
+      return conv.participantNames[otherId];
+    }
+    return 'Job Master';
   };
 
   const myUnread = (conv: Conversation): number => {
@@ -121,9 +125,11 @@ function FreelancerChatContent() {
                   <Avatar name={participantName} size="sm" />
                   <div className={styles.convInfo}>
                     <div className={styles.convName}>{participantName}</div>
-                    {conv.jobId && (
+                    {conv.jobTitle ? (
+                      <div className={styles.convJob}><Briefcase size={12} /> {conv.jobTitle}</div>
+                    ) : conv.jobId ? (
                       <div className={styles.convJob}><Briefcase size={12} /> Job #{conv.jobId.slice(0, 8)}</div>
-                    )}
+                    ) : null}
                     <div className={styles.convLast}>{conv.lastMessage || 'Bắt đầu trò chuyện...'}</div>
                   </div>
                   <div className={styles.convMeta}>

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon, BarChart3 } from 'lucide-react';
 import { Button, Card, Badge, Avatar } from '@/components/ui';
+import { ChatPanel } from '@/components/chat';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
@@ -18,7 +19,7 @@ import {
   reviewMilestoneSubmission,
   createNotification,
 } from '@/lib/firebase/firestore-extended';
-import { getJobById, updateJob } from '@/lib/firebase/firestore';
+import { getJobById, updateJob, getOrCreateConversation } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
@@ -156,6 +157,9 @@ export default function JobMasterJobDetailPage() {
   const [approving, setApproving] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
   const [now] = useState(() => Date.now());
+  const [activeTab, setActiveTab] = useState<'info' | 'progress' | 'chat'>('info');
+  const [chatConvId, setChatConvId] = useState<string | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
 
   // Submissions from subcollection
   const [allSubmissions, setAllSubmissions] = useState<MilestoneSubmission[]>([]);
@@ -196,6 +200,27 @@ export default function JobMasterJobDetailPage() {
     };
     fetchJob();
   }, [params.id, userProfile]);
+
+  // Initialize chat conversation when Chat tab is opened
+  const initChat = useCallback(async () => {
+    if (chatConvId || chatLoading || !job || !userProfile || !job.assignedTo) return;
+    setChatLoading(true);
+    try {
+      const participantNames: Record<string, string> = {
+        [userProfile.uid]: userProfile.displayName || 'Job Master',
+        [job.assignedTo]: job.assignedWorkerName || 'Freelancer',
+      };
+      const convId = await getOrCreateConversation(
+        [userProfile.uid, job.assignedTo],
+        job.id,
+        { participantNames, jobTitle: job.title }
+      );
+      setChatConvId(convId);
+    } catch (err) {
+      console.error('Failed to init chat:', err);
+    }
+    setChatLoading(false);
+  }, [chatConvId, chatLoading, job, userProfile]);
 
   // Get latest submission for a milestone
   const getLatestSubForMilestone = (milestoneId: string): MilestoneSubmission | null => {
@@ -527,6 +552,33 @@ export default function JobMasterJobDetailPage() {
         />
       )}
 
+      {/* Tab Navigation */}
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tabBtn} ${activeTab === 'info' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('info')}
+        >
+          <FileText size={16}/> Thông tin
+        </button>
+        <button
+          className={`${styles.tabBtn} ${activeTab === 'progress' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('progress')}
+        >
+          <BarChart3 size={16}/> Tiến độ
+          {hasPendingSubmissions && <span className={styles.tabBadge}>!</span>}
+        </button>
+        {isActiveJob && job.assignedTo && (
+          <button
+            className={`${styles.tabBtn} ${activeTab === 'chat' ? styles.tabActive : ''}`}
+            onClick={() => { setActiveTab('chat'); initChat(); }}
+          >
+            <MessageSquare size={16}/> Chat
+          </button>
+        )}
+      </div>
+
+      {/* TAB: Thông tin */}
+      {activeTab === 'info' && (
       <div className={styles.grid}>
         <div className={styles.mainCol}>
           {/* Pending/Draft Status Info Card */}
@@ -673,123 +725,8 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* Milestones — for active/completed jobs */}
-          {(isActiveJob || job.status === 'completed' || job.status === 'paid') && (
-            <Card className={styles.sectionCard}>
-              <div className={styles.secHeader}>
-                <h3 className={styles.secTitle}>Giai đoạn & Nghiệm thu (Milestones)</h3>
-                <span className={styles.progressText}>Tiến độ: {totalProgress}%</span>
-              </div>
-              
-              <div className={styles.milestoneList}>
-                {milestones.map((ms, index) => {
-                  const isDone = ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved';
-                  const isReview = ms.status === 'review';
-                  const isInProgress = ms.status === 'in_progress';
-                  const isActive = isInProgress || isReview;
 
-                  // Get submission data
-                  const pendingSub = getPendingSubForMilestone(ms.id);
-                  const latestSub = getLatestSubForMilestone(ms.id);
 
-                  return (
-                    <div key={ms.id || index} className={`${styles.milestoneItem} ${isActive ? styles.activeMilestone : ''} ${!isActive && !isDone ? styles.op50 : ''}`}>
-                      <div className={styles.mStatus}>
-                        {isDone ? (
-                          <CheckCircle size={20} color="var(--color-success)"/>
-                        ) : isActive ? (
-                          <span className={styles.dot}></span>
-                        ) : (
-                          <span className={styles.dotEmpty}></span>
-                        )}
-                      </div>
-                      <div className={styles.mContent}>
-                        <div className={styles.mHead}>
-                          <h4>{index + 1}. {ms.name} ({ms.percentage}%)</h4>
-                          <span className={styles.mAmount}>{formatCurrency(ms.amount)}</span>
-                        </div>
-                        {ms.condition && <p className={styles.mDesc}>{ms.condition}</p>}
-
-                        {/* Pending submission from freelancer — needs review */}
-                        {isInProgress && pendingSub && (
-                          <div className={styles.submissionBox} style={{ borderColor: 'var(--color-warning)', background: 'rgba(244, 157, 37, 0.05)' }}>
-                            <h5><FileText size={14}/> 📋 Freelancer đã nộp báo cáo — chờ bạn xem xét</h5>
-                            {pendingSub.note && (
-                              <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
-                                <strong>Ghi chú:</strong> {pendingSub.note}
-                              </p>
-                            )}
-                            {pendingSub.links.filter(Boolean).length > 0 && (
-                              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
-                                {pendingSub.links.filter(Boolean).map((link, li) => (
-                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
-                                    📎 {link}
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                              Gửi lúc: {pendingSub.submittedAt instanceof Date ? pendingSub.submittedAt.toLocaleString('vi-VN') : new Date(pendingSub.submittedAt).toLocaleString('vi-VN')}
-                            </p>
-                            <div className={styles.mActions} style={{ marginTop: '12px' }}>
-                              <Button size="sm" onClick={() => handleAcceptSubmission(ms, pendingSub)}>
-                                <CheckCircle size={14}/> Chấp nhận báo cáo
-                              </Button>
-                              <Button variant="outline" size="sm" className={styles.rejectBtn} onClick={() => handleOpenRejectModal(ms, pendingSub)}>
-                                <AlertTriangle size={14}/> Yêu cầu sửa đổi
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Milestone in review status (submission was accepted, ready for payment) */}
-                        {isReview && (
-                          <div className={styles.submissionBox}>
-                            <h5><FileText size={14}/> Báo cáo đã được chấp nhận — sẵn sàng nghiệm thu</h5>
-                            {latestSub && latestSub.note && (
-                              <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
-                                <strong>Ghi chú:</strong> {latestSub.note}
-                              </p>
-                            )}
-                            {latestSub && latestSub.links.filter(Boolean).length > 0 && (
-                              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
-                                {latestSub.links.filter(Boolean).map((link, li) => (
-                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
-                                    📎 {link}
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <div className={styles.mActions}>
-                          {isDone ? (
-                            <Badge variant="success">Đã nghiệm thu & Thanh toán</Badge>
-                          ) : isReview ? (
-                            <>
-                              <Button size="sm" onClick={() => handleApproveClick(ms)}>
-                                <CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán
-                              </Button>
-                            </>
-                          ) : isInProgress && !pendingSub ? (
-                            <Badge variant="default">Freelancer đang thực hiện</Badge>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {milestones.length === 0 && (
-                  <div style={{ padding: '1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                    Chưa có giai đoạn nào được thiết lập.
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
         </div>
 
         <div className={styles.sideCol}>
@@ -804,7 +741,7 @@ export default function JobMasterJobDetailPage() {
                     <p className={styles.tmName}>{job.assignedWorkerName || 'Freelancer'}</p>
                     <p className={styles.tmRole}>{job.category}</p>
                   </div>
-                  <button className={styles.chatBtn}><MessageSquare size={16}/></button>
+                  <button className={styles.chatBtn} onClick={() => { setActiveTab('chat'); initChat(); }}><MessageSquare size={16}/></button>
                 </div>
               </div>
             </Card>
@@ -900,6 +837,161 @@ export default function JobMasterJobDetailPage() {
           )}
         </div>
       </div>
+      )}
+
+      {/* TAB: Tiến độ */}
+      {activeTab === 'progress' && (
+        <div className={styles.grid}>
+          <div className={styles.mainCol}>
+            <Card className={styles.sectionCard}>
+              <div className={styles.secHeader}>
+                <h3 className={styles.secTitle}>Giai đoạn & Nghiệm thu (Milestones)</h3>
+                <span className={styles.progressText}>Tiến độ: {totalProgress}%</span>
+              </div>
+              <div style={{ marginBottom: 'var(--space-5)' }}>
+                <div style={{ height: '8px', borderRadius: '4px', background: 'var(--color-bg)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${totalProgress}%`, borderRadius: '4px', background: 'linear-gradient(90deg, var(--color-primary), var(--color-success))', transition: 'width 0.4s ease' }} />
+                </div>
+              </div>
+              <div className={styles.milestoneList}>
+                {milestones.map((ms, index) => {
+                  const isDone = ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved';
+                  const isReview = ms.status === 'review';
+                  const isInProgress = ms.status === 'in_progress';
+                  const isActive = isInProgress || isReview;
+                  const pendingSub = getPendingSubForMilestone(ms.id);
+                  const latestSub = getLatestSubForMilestone(ms.id);
+
+                  return (
+                    <div key={ms.id || index} className={`${styles.milestoneItem} ${isActive ? styles.activeMilestone : ''} ${!isActive && !isDone ? styles.op50 : ''}`}>
+                      <div className={styles.mStatus}>
+                        {isDone ? (
+                          <CheckCircle size={20} color="var(--color-success)"/>
+                        ) : isActive ? (
+                          <span className={styles.dot}></span>
+                        ) : (
+                          <span className={styles.dotEmpty}></span>
+                        )}
+                      </div>
+                      <div className={styles.mContent}>
+                        <div className={styles.mHead}>
+                          <h4>{index + 1}. {ms.name} ({ms.percentage}%)</h4>
+                          <span className={styles.mAmount}>{formatCurrency(ms.amount)}</span>
+                        </div>
+                        {ms.condition && <p className={styles.mDesc}>{ms.condition}</p>}
+
+                        {/* Pending submission from freelancer */}
+                        {isInProgress && pendingSub && (
+                          <div className={styles.submissionBox} style={{ borderColor: 'var(--color-warning)', background: 'rgba(244, 157, 37, 0.05)' }}>
+                            <h5><FileText size={14}/> 📋 Freelancer đã nộp báo cáo — chờ bạn xem xét</h5>
+                            {pendingSub.note && (
+                              <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
+                                <strong>Ghi chú:</strong> {pendingSub.note}
+                              </p>
+                            )}
+                            {pendingSub.links.filter(Boolean).length > 0 && (
+                              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
+                                {pendingSub.links.filter(Boolean).map((link, li) => (
+                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                    📎 {link}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                              Gửi lúc: {pendingSub.submittedAt instanceof Date ? pendingSub.submittedAt.toLocaleString('vi-VN') : new Date(pendingSub.submittedAt).toLocaleString('vi-VN')}
+                            </p>
+                            <div className={styles.mActions} style={{ marginTop: '12px' }}>
+                              <Button size="sm" onClick={() => handleAcceptSubmission(ms, pendingSub)}>
+                                <CheckCircle size={14}/> Chấp nhận báo cáo
+                              </Button>
+                              <Button variant="outline" size="sm" className={styles.rejectBtn} onClick={() => handleOpenRejectModal(ms, pendingSub)}>
+                                <AlertTriangle size={14}/> Yêu cầu sửa đổi
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Milestone in review — ready for payment */}
+                        {isReview && (
+                          <div className={styles.submissionBox}>
+                            <h5><FileText size={14}/> Báo cáo đã được chấp nhận — sẵn sàng nghiệm thu</h5>
+                            {latestSub && latestSub.note && (
+                              <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
+                                <strong>Ghi chú:</strong> {latestSub.note}
+                              </p>
+                            )}
+                            {latestSub && latestSub.links.filter(Boolean).length > 0 && (
+                              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
+                                {latestSub.links.filter(Boolean).map((link, li) => (
+                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                    📎 {link}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className={styles.mActions}>
+                          {isDone ? (
+                            <Badge variant="success">Đã nghiệm thu & Thanh toán</Badge>
+                          ) : isReview ? (
+                            <Button size="sm" onClick={() => handleApproveClick(ms)}>
+                              <CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán
+                            </Button>
+                          ) : isInProgress && !pendingSub ? (
+                            <Badge variant="default">Freelancer đang thực hiện</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {milestones.length === 0 && (
+                  <div style={{ padding: '1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    Chưa có giai đoạn nào được thiết lập.
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+          <div className={styles.sideCol}>
+            {/* Escrow Status */}
+            {milestones.length > 0 && (
+              <EscrowStatus totalFee={job.totalFee || 0} milestones={milestones} />
+            )}
+            {activities.length > 0 && (
+              <ActivityFeed
+                activities={activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())}
+                maxVisible={6}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Chat */}
+      {activeTab === 'chat' && isActiveJob && job.assignedTo && (
+        <div className={styles.chatTabContainer}>
+          {chatLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '3rem', color: 'var(--color-text-muted)' }}>
+              <Loader2 size={20} className={styles.spin} /> Đang kết nối...
+            </div>
+          ) : chatConvId ? (
+            <ChatPanel
+              conversationId={chatConvId}
+              participantName={job.assignedWorkerName || 'Freelancer'}
+            />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '3rem', color: 'var(--color-text-muted)' }}>
+              <MessageSquare size={20} /> Không thể kết nối chat. Vui lòng thử lại.
+            </div>
+          )}
+        </div>
+      )}
 
       <PaymentConfirmModal 
         isOpen={isModalOpen}

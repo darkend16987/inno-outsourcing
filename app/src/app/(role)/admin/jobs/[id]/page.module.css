@@ -14,6 +14,27 @@
 
 .actionButtons { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 
+/* Tab Navigation */
+.tabBar {
+  display: flex; gap: 0; border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-2);
+}
+.tabBtn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 20px; font-size: 14px; font-weight: 600;
+  background: none; border: none; border-bottom: 3px solid transparent;
+  color: var(--color-text-muted); cursor: pointer;
+  transition: all 0.2s; position: relative; margin-bottom: -2px;
+}
+.tabBtn:hover { color: var(--color-primary); background: rgba(59, 130, 246, 0.04); }
+.tabActive { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.tabBadge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; font-size: 11px; font-weight: 700;
+  background: var(--color-error, #ef4444); color: white; border-radius: 10px;
+  padding: 0 4px; margin-left: 2px;
+}
+
 /* Edit title input */
 .editTitleInput {
   font-family: var(--font-heading);
