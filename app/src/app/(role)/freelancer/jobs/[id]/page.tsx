@@ -4,17 +4,23 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, MessageSquare, CheckCircle2, X, Loader2, Inbox, Link2 } from 'lucide-react';
+import { ArrowLeft, Clock, MessageSquare, CheckCircle2, X, Loader2, Inbox, Link2, AlertTriangle, Send, RotateCcw } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
 import { getJobById } from '@/lib/firebase/firestore';
-import { submitReview, hasUserReviewedJob, updateMilestoneStatus, updateJobProgress, createNotification } from '@/lib/firebase/firestore-extended';
+import {
+  submitReview,
+  hasUserReviewedJob,
+  createNotification,
+  createMilestoneSubmission,
+  getMilestoneSubmissions,
+} from '@/lib/firebase/firestore-extended';
 import { getOrCreateConversation } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
-import type { Job } from '@/types';
+import type { Job, MilestoneSubmission } from '@/types';
 import styles from './page.module.css';
 
 const formatDate = (d: unknown): string => {
@@ -40,23 +46,38 @@ export default function FreelancerJobDetail() {
   const [submittingMilestone, setSubmittingMilestone] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
-  const [updatingProgress, setUpdatingProgress] = useState(false);
-  const [showProgressInput, setShowProgressInput] = useState(false);
-  const [progressValue, setProgressValue] = useState(0);
   const [submitNote, setSubmitNote] = useState('');
   const [submitLinks, setSubmitLinks] = useState<string[]>(['']);
   const [submitting, setSubmitting] = useState(false);
+
+  // Submissions state — keyed by milestoneId
+  const [submissions, setSubmissions] = useState<Record<string, MilestoneSubmission>>({});
 
   useEffect(() => {
     const fetchJob = async () => {
       if (!params.id) return;
       const result = await getJobById(params.id as string);
       setJob(result);
-      if (result) setProgressValue(result.progress ?? 0);
       setLoading(false);
       if (result && (result.status === 'completed' || result.status === 'paid') && result.assignedTo) {
         const reviewed = await hasUserReviewedJob(result.id, result.assignedTo);
         setHasReviewed(reviewed);
+      }
+      // Fetch latest submissions for each milestone
+      if (result && result.milestones && result.milestones.length > 0) {
+        try {
+          const allSubs = await getMilestoneSubmissions(result.id);
+          // Build map: milestoneId → latest submission
+          const subMap: Record<string, MilestoneSubmission> = {};
+          for (const sub of allSubs) {
+            if (!subMap[sub.milestoneId]) {
+              subMap[sub.milestoneId] = sub;
+            }
+          }
+          setSubmissions(subMap);
+        } catch {
+          // Non-critical
+        }
       }
     };
     fetchJob().catch(() => setLoading(false));
@@ -70,46 +91,57 @@ export default function FreelancerJobDetail() {
   };
 
   const handleConfirmSubmit = async () => {
-    if (!submittingMilestone || !job || submitting) return;
+    if (!submittingMilestone || !job || !userProfile || submitting) return;
     setSubmitting(true);
     try {
-      // Filter out empty links
       const validLinks = submitLinks.filter(l => l.trim() !== '');
-      // Update milestone status + attach note/links
-      await updateMilestoneStatus(job.id, submittingMilestone, 'review');
-      // Save submission data (note + links) in the milestone
-      const { doc: firestoreDoc, updateDoc: firestoreUpdateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase/config');
-      if (db) {
-        const jobRef = firestoreDoc(db, 'jobs', job.id);
-        const { getDoc: firestoreGetDoc } = await import('firebase/firestore');
-        const snap = await firestoreGetDoc(jobRef);
-        if (snap.exists()) {
-          const currentMilestones = (snap.data().milestones || []) as Array<Record<string, unknown>>;
-          const updatedMs = currentMilestones.map(ms =>
-            ms.id === submittingMilestone ? { ...ms, status: 'review', submissionNote: submitNote, submissionLinks: validLinks, submittedAt: new Date().toISOString() } : ms
-          );
-          await firestoreUpdateDoc(jobRef, { milestones: updatedMs });
-        }
+      const msData = (job.milestones || []).find(m => m.id === submittingMilestone);
+
+      // Create submission in subcollection (NOT updating job doc)
+      const subId = await createMilestoneSubmission({
+        milestoneId: submittingMilestone,
+        milestoneName: msData?.name || 'Giai đoạn',
+        jobId: job.id,
+        freelancerId: userProfile.uid,
+        freelancerName: userProfile.displayName || 'Freelancer',
+        note: submitNote,
+        links: validLinks,
+      });
+
+      // Update local submissions state
+      if (subId) {
+        setSubmissions(prev => ({
+          ...prev,
+          [submittingMilestone]: {
+            id: subId,
+            milestoneId: submittingMilestone,
+            milestoneName: msData?.name || 'Giai đoạn',
+            jobId: job.id,
+            freelancerId: userProfile.uid,
+            freelancerName: userProfile.displayName || 'Freelancer',
+            note: submitNote,
+            links: validLinks,
+            status: 'pending_review',
+            submittedAt: new Date(),
+          },
+        }));
       }
-      const newMilestones = (job.milestones || []).map((ms) =>
-        ms.id === submittingMilestone ? { ...ms, status: 'review' as unknown as typeof ms.status } : ms
-      );
-      setJob({ ...job, milestones: newMilestones });
+
       setIsSubmitModalOpen(false);
-      // Notify jobmaster that freelancer submitted a milestone
+
+      // Notify jobmaster
       if (job.jobMaster) {
-        const msData = (job.milestones || []).find(m => m.id === submittingMilestone);
         createNotification({
           recipientId: job.jobMaster,
           type: 'milestone_reached',
           title: `Freelancer nộp kết quả: ${msData?.name || 'Giai đoạn'}`,
-          body: `${job.assignedWorkerName || 'Freelancer'} đã nộp kết quả cho dự án "${job.title}". Vui lòng nghiệm thu.`,
+          body: `${userProfile.displayName || 'Freelancer'} đã nộp kết quả cho dự án "${job.title}". Vui lòng xem xét và nghiệm thu.`,
           link: `/jobmaster/jobs/${job.id}`,
           read: false,
         }).catch(() => {});
       }
-      alert('Báo cáo hoàn thành đã được gửi đến Job Master!');
+
+      alert('Báo cáo đã được gửi đến Job Master để xem xét!');
     } catch (err) {
       console.error('Error submitting milestone:', err);
       alert('Có lỗi xảy ra: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
@@ -117,35 +149,6 @@ export default function FreelancerJobDetail() {
     setSubmitting(false);
   };
 
-  // Handle progress update
-  const handleUpdateProgress = async () => {
-    if (!job || updatingProgress) return;
-    setUpdatingProgress(true);
-    try {
-      // Update progress value directly (bypasses state machine)
-      await updateJobProgress(job.id, progressValue);
-      // If job is still 'assigned', also transition to in_progress via direct updateDoc
-      if (job.status === 'assigned') {
-        const { doc: firestoreDoc, updateDoc: firestoreUpdateDoc, serverTimestamp } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase/config');
-        if (db) {
-          await firestoreUpdateDoc(firestoreDoc(db, 'jobs', job.id), {
-            status: 'in_progress',
-            updatedAt: serverTimestamp(),
-          });
-        }
-        setJob({ ...job, progress: progressValue, status: 'in_progress' });
-      } else {
-        setJob({ ...job, progress: progressValue });
-      }
-      setShowProgressInput(false);
-      alert('Đã cập nhật tiến độ!');
-    } catch (err) {
-      console.error('Error updating progress:', err);
-      alert('Có lỗi: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
-    }
-    setUpdatingProgress(false);
-  };
 
   // Navigate to chat with jobmaster
   const handleOpenChat = async () => {
@@ -157,33 +160,6 @@ export default function FreelancerJobDetail() {
       }
     } catch {
       alert('Không thể mở hội thoại. Vui lòng thử lại.');
-    }
-  };
-
-  // Handle starting a milestone (change from pending/locked → in_progress)
-  const handleStartMilestone = async (milestoneId: string) => {
-    if (!job) return;
-    try {
-      await updateMilestoneStatus(job.id, milestoneId, 'in_progress');
-      const newMilestones = (job.milestones || []).map((ms) =>
-        ms.id === milestoneId ? { ...ms, status: 'in_progress' as unknown as typeof ms.status } : ms
-      );
-      // Also set job to in_progress if still assigned
-      if (job.status === 'assigned') {
-        const { doc: firestoreDoc, updateDoc: firestoreUpdateDoc, serverTimestamp } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase/config');
-        if (db) {
-          await firestoreUpdateDoc(firestoreDoc(db, 'jobs', job.id), {
-            status: 'in_progress',
-            updatedAt: serverTimestamp(),
-          });
-        }
-        setJob({ ...job, milestones: newMilestones, status: 'in_progress' });
-      } else {
-        setJob({ ...job, milestones: newMilestones });
-      }
-    } catch (err) {
-      console.error('Error starting milestone:', err);
     }
   };
 
@@ -237,61 +213,91 @@ export default function FreelancerJobDetail() {
           <Card className={styles.progressCard}>
             <div className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}>Tiến độ tổng thể ({job.progress ?? 0}%)</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowProgressInput(!showProgressInput)}>
-                Cập nhật tiến độ
-              </Button>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Tự động cập nhật theo milestone</span>
             </div>
             <div className={styles.progressBar}>
               <div className={styles.progressFill} style={{ width: `${job.progress ?? 0}%` }} />
             </div>
-            {showProgressInput && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={progressValue}
-                  onChange={(e) => setProgressValue(Number(e.target.value))}
-                  style={{ flex: 1 }}
-                />
-                <span style={{ fontWeight: 600, minWidth: 40 }}>{progressValue}%</span>
-                <Button size="sm" onClick={handleUpdateProgress} disabled={updatingProgress}>
-                  {updatingProgress ? 'Đang lưu...' : 'Lưu'}
-                </Button>
-              </div>
-            )}
           </Card>
 
           <Card className={styles.tasksCard}>
             <h3 className={styles.sectionTitle}>Giai đoạn & Thanh toán</h3>
             <div className={styles.milestones}>
-              {milestones.map((ms, index) => (
-                <div key={ms.id || index} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''} ${ms.status === 'review' ? styles.mReview : ''}`}>
-                  <div className={styles.mLeft}>
-                    <div className={styles.mNum}>{index + 1}</div>
-                    <div className={styles.mInfo}>
-                      <div className={styles.mName}>{ms.name}</div>
-                      <div className={styles.mSub}>{ms.percentage}% • {formatCurrency(ms.amount)}</div>
+              {milestones.map((ms, index) => {
+                const latestSub = submissions[ms.id];
+                const hasPendingSub = latestSub?.status === 'pending_review';
+                const hasRejectedSub = latestSub?.status === 'rejected';
+                const hasApprovedSub = latestSub?.status === 'approved';
+
+                return (
+                  <div key={ms.id || index} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''} ${ms.status === 'review' ? styles.mReview : ''}`}>
+                    <div className={styles.mLeft}>
+                      <div className={styles.mNum}>{index + 1}</div>
+                      <div className={styles.mInfo}>
+                        <div className={styles.mName}>{ms.name}</div>
+                        <div className={styles.mSub}>{ms.percentage}% • {formatCurrency(ms.amount)}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className={styles.mRight}>
-                    {ms.status === 'in_progress' ? (
-                      <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
-                        <Link2 size={14}/> Nộp kết quả
-                      </Button>
-                    ) : ms.status === 'review' ? (
-                      <Badge variant="info">Đang chờ duyệt</Badge>
-                    ) : ms.status === 'completed' || ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved' ? (
-                      <Badge variant="success"><CheckCircle2 size={12}/> Hoàn thành</Badge>
-                    ) : (
-                      /* pending / locked / not started — allow freelancer to start */
-                      <Button size="sm" variant="outline" onClick={() => handleStartMilestone(ms.id)}>
-                        Bắt đầu giai đoạn
-                      </Button>
+                    <div className={styles.mRight}>
+                      {ms.status === 'in_progress' ? (
+                        <>
+                          {/* Show submission status if exists */}
+                          {hasPendingSub ? (
+                            <Badge variant="info"><Clock size={12}/> Đã nộp — đang chờ duyệt</Badge>
+                          ) : hasRejectedSub ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+                              <Badge variant="error"><AlertTriangle size={12}/> Chưa đạt</Badge>
+                              <div style={{ fontSize: '12px', color: 'var(--color-error, #ef4444)', maxWidth: '280px', textAlign: 'right' }}>
+                                <strong>Lý do:</strong> {latestSub.rejectionReason || 'Không rõ'}
+                                {latestSub.rejectedByName && (
+                                  <span style={{ color: 'var(--color-text-muted)' }}> — {latestSub.rejectedByName}</span>
+                                )}
+                              </div>
+                              <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
+                                <RotateCcw size={14}/> Nộp lại
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
+                              <Link2 size={14}/> Nộp kết quả
+                            </Button>
+                          )}
+                        </>
+                      ) : ms.status === 'review' ? (
+                        <Badge variant="info">Đang chờ nghiệm thu</Badge>
+                      ) : ms.status === 'completed' || ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved' ? (
+                        <Badge variant="success"><CheckCircle2 size={12}/> Hoàn thành</Badge>
+                      ) : (
+                        /* pending / locked / not started */
+                        <Badge variant="default">Chưa bắt đầu</Badge>
+                      )}
+                    </div>
+
+                    {/* Show latest submission details inline */}
+                    {latestSub && (ms.status === 'in_progress' || ms.status === 'review') && (
+                      <div style={{ width: '100%', marginTop: '10px', padding: '10px 12px', background: 'var(--color-surface, #f8f9fa)', borderRadius: '8px', fontSize: '13px' }}>
+                        {latestSub.note && (
+                          <p style={{ margin: '0 0 6px', color: 'var(--color-text-secondary)' }}>
+                            <strong>Ghi chú:</strong> {latestSub.note}
+                          </p>
+                        )}
+                        {latestSub.links.filter(Boolean).length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {latestSub.links.filter(Boolean).map((link, li) => (
+                              <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                📎 {link}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                          Gửi lúc: {latestSub.submittedAt instanceof Date ? latestSub.submittedAt.toLocaleString('vi-VN') : new Date(latestSub.submittedAt).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {milestones.length === 0 && (
                 <div className={styles.emptySmall}>Chưa có giai đoạn nào được thiết lập.</div>
               )}
@@ -425,6 +431,10 @@ export default function FreelancerJobDetail() {
                 <button onClick={() => setIsSubmitModalOpen(false)} className={styles.closeBtn}><X size={20}/></button>
               </div>
               <div className={styles.modalBody}>
+                <div style={{ padding: '10px 12px', background: 'var(--color-info-bg, #eff6ff)', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: 'var(--color-info, #3b82f6)', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <Send size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>Báo cáo sẽ được gửi đến Job Master để xem xét. Sau khi duyệt, giai đoạn sẽ được nghiệm thu và thanh toán.</span>
+                </div>
                 <div className={styles.formGroup}>
                   <label>Ghi chú gửi Job Master</label>
                   <textarea

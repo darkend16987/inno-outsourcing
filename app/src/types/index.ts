@@ -139,6 +139,28 @@ export interface PaymentMilestone {
   paidBy?: string;
 }
 
+// ---- Milestone Submissions (subcollection under jobs) ----
+export type SubmissionStatus = 'pending_review' | 'approved' | 'rejected';
+
+export interface MilestoneSubmission {
+  id?: string;
+  milestoneId: string;
+  milestoneName: string;
+  jobId: string;
+  freelancerId: string;
+  freelancerName: string;
+  note: string;
+  links: string[];
+  status: SubmissionStatus;
+  rejectionReason?: string;
+  rejectedBy?: string;
+  rejectedByName?: string;
+  rejectedAt?: string;
+  submittedAt: Date | string;
+  reviewedAt?: Date | string;
+  reviewedBy?: string;
+}
+
 export interface JobRequirements {
   experience: string;
   certifications: string;

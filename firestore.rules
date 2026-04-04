@@ -73,7 +73,29 @@ service cloud.firestore {
       // Only admins and job masters can create/update jobs
       allow create: if isAdminOrJobMaster();
       allow update: if isAdminOrJobMaster();
+
+      // Freelancer does NOT directly update job docs.
+      // Progress is auto-calculated from milestone completion.
+      // All freelancer interactions go through submissions subcollection.
+
       allow delete: if isAdmin();
+
+      // ---- Milestone Submissions (subcollection) ----
+      match /submissions/{subId} {
+        // Any authenticated user can read submissions (jobmaster/admin/freelancer)
+        allow read: if isSignedIn();
+
+        // Only the assigned freelancer can create submissions
+        allow create: if isSignedIn()
+                      && get(/databases/$(database)/documents/jobs/$(jobId)).data.assignedTo == request.auth.uid
+                      && request.resource.data.status == 'pending_review';
+
+        // Admin/Jobmaster can update submissions (approve/reject)
+        allow update: if isAdminOrJobMaster();
+
+        // Nobody can delete submissions (audit trail)
+        allow delete: if false;
+      }
     }
 
     // =====================
@@ -162,7 +184,9 @@ service cloud.firestore {
                   && resource.data.recipientId == request.auth.uid;
       allow update: if isSignedIn()
                     && resource.data.recipientId == request.auth.uid;
-      allow create: if isAdmin() || isJobMaster();
+      // Any authenticated user can create notifications
+      // (freelancers notify jobmasters on milestone submission, etc.)
+      allow create: if isSignedIn();
       allow delete: if false;
     }
 

@@ -8,13 +8,22 @@ import { Button, Card, Badge, Avatar } from '@/components/ui';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
-import { submitReview, hasUserReviewedJob, approveMilestoneAndPay, rejectMilestone, approveAllMilestones } from '@/lib/firebase/firestore-extended';
+import {
+  submitReview,
+  hasUserReviewedJob,
+  approveMilestoneAndPay,
+  rejectMilestone,
+  approveAllMilestones,
+  getMilestoneSubmissions,
+  reviewMilestoneSubmission,
+  createNotification,
+} from '@/lib/firebase/firestore-extended';
 import { getJobById, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
 import { formatFriendlyMoney, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
-import type { Job, PaymentMilestone } from '@/types';
+import type { Job, PaymentMilestone, MilestoneSubmission } from '@/types';
 import styles from './page.module.css';
 
 const formatDate = (d: unknown): string => {
@@ -77,6 +86,64 @@ function PaymentConfirmModal({
   );
 }
 
+// Modal for rejection reason
+function RejectReasonModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  milestoneName,
+  loading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+  milestoneName: string;
+  loading: boolean;
+}) {
+  const [reason, setReason] = useState('');
+  if (!isOpen) return null;
+  return (
+    <div className={styles.modalOverlay}>
+      <Card className={styles.modalContent}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Yêu cầu sửa đổi giai đoạn</h3>
+          <button onClick={onClose}><X size={20}/></button>
+        </div>
+        <div className={styles.modalBody}>
+          <p>Giai đoạn: <strong>{milestoneName}</strong></p>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+            Vui lòng nhập lý do để freelancer biết cần sửa đổi gì. Thông tin này sẽ được gửi kèm thông báo đến freelancer.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 600 }}>Lý do chưa đạt</label>
+            <textarea
+              placeholder="VD: File AutoCAD thiếu layer MEP, cần bổ sung mặt bằng tầng 3..."
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              rows={4}
+              style={{
+                padding: '10px 12px', fontSize: '14px', lineHeight: 1.6, fontFamily: 'inherit',
+                border: '1.5px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+                background: 'var(--color-bg)', color: 'var(--color-charcoal)', resize: 'vertical',
+              }}
+            />
+          </div>
+        </div>
+        <div className={styles.modalFooter}>
+          <Button variant="outline" onClick={onClose}>Hủy bỏ</Button>
+          <Button
+            onClick={() => onConfirm(reason)}
+            disabled={!reason.trim() || loading}
+            style={{ color: 'white', background: 'var(--color-error, #ef4444)' }}
+          >
+            <AlertTriangle size={14}/> {loading ? 'Đang gửi...' : 'Gửi yêu cầu sửa đổi'}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function JobMasterJobDetailPage() {
   const params = useParams();
   const { userProfile } = useAuth();
@@ -89,6 +156,12 @@ export default function JobMasterJobDetailPage() {
   const [approving, setApproving] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
   const [now] = useState(() => Date.now());
+
+  // Submissions from subcollection
+  const [allSubmissions, setAllSubmissions] = useState<MilestoneSubmission[]>([]);
+  // Rejection modal
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; ms: PaymentMilestone | null; sub: MilestoneSubmission | null }>({ open: false, ms: null, sub: null });
+  const [rejecting, setRejecting] = useState(false);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -107,10 +180,14 @@ export default function JobMasterJobDetailPage() {
       try {
         const result = await getJobById(params.id as string);
         setJob(result);
-        // Check if already reviewed
         if (result && userProfile && (result.status === 'completed' || result.status === 'paid')) {
           const reviewed = await hasUserReviewedJob(result.id, userProfile.uid);
           setHasReviewed(reviewed);
+        }
+        // Fetch submissions
+        if (result) {
+          const subs = await getMilestoneSubmissions(result.id);
+          setAllSubmissions(subs);
         }
       } catch (err) {
         console.error('Error fetching job:', err);
@@ -120,7 +197,16 @@ export default function JobMasterJobDetailPage() {
     fetchJob();
   }, [params.id, userProfile]);
 
-  // Initialize edit form when entering edit mode
+  // Get latest submission for a milestone
+  const getLatestSubForMilestone = (milestoneId: string): MilestoneSubmission | null => {
+    return allSubmissions.find(s => s.milestoneId === milestoneId) || null;
+  };
+
+  // Get pending submissions for a milestone
+  const getPendingSubForMilestone = (milestoneId: string): MilestoneSubmission | null => {
+    return allSubmissions.find(s => s.milestoneId === milestoneId && s.status === 'pending_review') || null;
+  };
+
   const startEditing = () => {
     if (!job) return;
     setEditTitle(job.title);
@@ -153,7 +239,6 @@ export default function JobMasterJobDetailPage() {
         name: userProfile.displayName || 'Job Master',
         role: 'jobmaster',
       });
-      // Refresh job data
       const updated = await getJobById(job.id);
       setJob(updated);
       setIsEditing(false);
@@ -165,6 +250,32 @@ export default function JobMasterJobDetailPage() {
     setEditSaving(false);
   };
 
+  // Step 1: Accept submission → milestone goes to 'review' status
+  const handleAcceptSubmission = async (ms: PaymentMilestone, sub: MilestoneSubmission) => {
+    if (!job || !userProfile || !sub.id) return;
+    try {
+      await reviewMilestoneSubmission({
+        jobId: job.id,
+        submissionId: sub.id,
+        milestoneId: ms.id,
+        decision: 'approved',
+        reviewerId: userProfile.uid,
+        reviewerName: userProfile.displayName || 'Job Master',
+      });
+      // Refresh
+      const [updatedJob, updatedSubs] = await Promise.all([
+        getJobById(job.id),
+        getMilestoneSubmissions(job.id),
+      ]);
+      setJob(updatedJob);
+      setAllSubmissions(updatedSubs);
+    } catch (err) {
+      console.error('Accept submission failed:', err);
+      alert('❌ Lỗi khi duyệt submission.');
+    }
+  };
+
+  // Step 2: Approve milestone → create payment (existing flow)
   const handleApproveClick = (ms: PaymentMilestone) => {
     setSelectedMilestone({ id: ms.id, name: ms.name, amount: formatCurrency(ms.amount), numericAmount: ms.amount });
     setIsModalOpen(true);
@@ -185,7 +296,6 @@ export default function JobMasterJobDetailPage() {
         jobMasterId: userProfile.uid,
         jobMasterName: userProfile.displayName || 'Job Master',
       });
-      // Refresh job data
       const updated = await getJobById(job.id);
       setJob(updated);
       setIsModalOpen(false);
@@ -201,25 +311,45 @@ export default function JobMasterJobDetailPage() {
     setApproving(false);
   };
 
-  const handleRejectMilestone = async (ms: PaymentMilestone) => {
-    if (!job || !userProfile) return;
-    if (!confirm(`Xác nhận yêu cầu freelancer sửa đổi giai đoạn "${ms.name}"?`)) return;
+  // Reject submission with reason
+  const handleOpenRejectModal = (ms: PaymentMilestone, sub: MilestoneSubmission) => {
+    setRejectModal({ open: true, ms, sub });
+  };
+
+  const handleConfirmReject = async (reason: string) => {
+    if (!job || !userProfile || !rejectModal.ms || !rejectModal.sub?.id) return;
+    setRejecting(true);
     try {
-      await rejectMilestone({
+      await reviewMilestoneSubmission({
         jobId: job.id,
-        milestoneId: ms.id,
-        jobTitle: job.title,
-        milestoneName: ms.name,
-        workerId: job.assignedTo || '',
-        jobMasterName: userProfile.displayName || 'Job Master',
+        submissionId: rejectModal.sub.id,
+        milestoneId: rejectModal.ms.id,
+        decision: 'rejected',
+        rejectionReason: reason,
+        reviewerId: userProfile.uid,
+        reviewerName: userProfile.displayName || 'Job Master',
       });
-      const updated = await getJobById(job.id);
-      setJob(updated);
-      alert('✅ Đã yêu cầu freelancer sửa đổi.');
+      // Notify freelancer with rejection reason
+      if (job.assignedTo) {
+        createNotification({
+          recipientId: job.assignedTo,
+          type: 'milestone_reached',
+          title: `Yêu cầu sửa đổi: ${rejectModal.ms.name}`,
+          body: `JM ${userProfile.displayName || 'Job Master'} yêu cầu sửa đổi giai đoạn này. Lý do: ${reason}`,
+          link: `/freelancer/jobs/${job.id}`,
+          read: false,
+        }).catch(() => {});
+      }
+      // Refresh
+      const updatedSubs = await getMilestoneSubmissions(job.id);
+      setAllSubmissions(updatedSubs);
+      setRejectModal({ open: false, ms: null, sub: null });
+      alert('✅ Đã gửi yêu cầu sửa đổi cho freelancer.');
     } catch (err) {
       console.error('Reject failed:', err);
       alert('❌ Lỗi khi yêu cầu sửa đổi.');
     }
+    setRejecting(false);
   };
 
   const handleBulkApprove = async () => {
@@ -271,7 +401,10 @@ export default function JobMasterJobDetailPage() {
   const isActiveJob = job.status === 'in_progress' || job.status === 'review';
   const statusInfo = STATUS_LABELS[job.status] || { label: job.status, variant: 'default' };
 
-  // Build activity feed from milestones state
+  // Check if there are any pending submissions
+  const hasPendingSubmissions = allSubmissions.some(s => s.status === 'pending_review');
+
+  // Build activity feed from milestones state + submissions
   const activities: ActivityItem[] = [];
   milestones.forEach((ms, idx) => {
     if (ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved') {
@@ -289,11 +422,23 @@ export default function JobMasterJobDetailPage() {
         id: `ms-sub-${idx}`,
         type: 'milestone_submitted' as const,
         title: `Nộp kết quả: ${ms.name}`,
-        description: 'Đang chờ review',
+        description: 'Đang chờ nghiệm thu & thanh toán',
         actor: job.assignedWorkerName || 'Freelancer',
         timestamp: new Date(),
       });
     }
+  });
+
+  // Add pending submissions to activities
+  allSubmissions.filter(s => s.status === 'pending_review').forEach(sub => {
+    activities.push({
+      id: `sub-${sub.id}`,
+      type: 'milestone_submitted' as const,
+      title: `Nộp báo cáo: ${sub.milestoneName}`,
+      description: 'Đang chờ bạn xem xét',
+      actor: sub.freelancerName,
+      timestamp: sub.submittedAt instanceof Date ? sub.submittedAt : new Date(sub.submittedAt),
+    });
   });
 
   if (job.escrowStatus === 'locked' || job.escrowStatus === 'partially_released') {
@@ -329,6 +474,9 @@ export default function JobMasterJobDetailPage() {
             <Badge variant={statusInfo.variant}>
               {statusInfo.label}
             </Badge>
+            {hasPendingSubmissions && (
+              <Badge variant="warning">Có báo cáo chờ duyệt</Badge>
+            )}
           </div>
           <div className={styles.hMeta}>
             <span><Clock size={14}/> Tạo: {formatDate(job.createdAt)}</span>
@@ -336,7 +484,6 @@ export default function JobMasterJobDetailPage() {
           </div>
         </div>
         <div className={styles.hRight}>
-          {/* Show different actions based on job status */}
           {canEdit && !isEditing && (
             <Button variant="outline" onClick={startEditing}>
               <Pencil size={16}/> Chỉnh sửa
@@ -365,7 +512,7 @@ export default function JobMasterJobDetailPage() {
         </div>
       </div>
 
-      {/* Dispute Form — shown when "Báo cáo vấn đề" is clicked */}
+      {/* Dispute Form */}
       {showDispute && userProfile && isActiveJob && (
         <DisputeForm
           jobId={job.id}
@@ -405,7 +552,7 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* Edit mode: description + fee + duration */}
+          {/* Edit mode */}
           {isEditing && (
             <Card className={styles.sectionCard}>
               <h3 className={styles.secTitle}>Chỉnh sửa thông tin</h3>
@@ -439,8 +586,6 @@ export default function JobMasterJobDetailPage() {
                     />
                   </div>
                 </div>
-
-                {/* Project Scale */}
                 <div className={styles.editField}>
                   <label>Quy mô dự án</label>
                   <textarea
@@ -451,10 +596,8 @@ export default function JobMasterJobDetailPage() {
                     placeholder="VD: 8 tầng, 3000m² sàn, khoảng 50 căn hộ..."
                   />
                 </div>
-
-                {/* Project Images */}
                 <div className={styles.editField}>
-                  <label>Hình ảnh công trình <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>(URL trực tiếp)</span></label>
+                  <label>Hình ảnh công trình <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>URL trực tiếp</span></label>
                   {editProjectImages.length > 0 && (
                     <div className={styles.imageGallery}>
                       {editProjectImages.map((url, i) => (
@@ -483,7 +626,7 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* Job Description (read only when not editing) */}
+          {/* Job Description (read only) */}
           {!isEditing && (
             <Card className={styles.sectionCard}>
               <h3 className={styles.secTitle}>Mô tả công việc</h3>
@@ -509,14 +652,13 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* Project Scale & Images (read only) */}
+          {/* Project Scale & Images */}
           {!isEditing && job.projectScale && (
             <Card className={styles.sectionCard}>
               <h3 className={styles.secTitle}>📐 Quy mô dự án</h3>
               <p className={styles.descText}>{job.projectScale}</p>
             </Card>
           )}
-
           {!isEditing && job.projectImages && job.projectImages.length > 0 && (
             <Card className={styles.sectionCard}>
               <h3 className={styles.secTitle}>🏗️ Hình ảnh công trình</h3>
@@ -531,7 +673,7 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* Milestones — only show for active/completed jobs */}
+          {/* Milestones — for active/completed jobs */}
           {(isActiveJob || job.status === 'completed' || job.status === 'paid') && (
             <Card className={styles.sectionCard}>
               <div className={styles.secHeader}>
@@ -543,7 +685,12 @@ export default function JobMasterJobDetailPage() {
                 {milestones.map((ms, index) => {
                   const isDone = ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved';
                   const isReview = ms.status === 'review';
-                  const isActive = ms.status === 'in_progress' || isReview;
+                  const isInProgress = ms.status === 'in_progress';
+                  const isActive = isInProgress || isReview;
+
+                  // Get submission data
+                  const pendingSub = getPendingSubForMilestone(ms.id);
+                  const latestSub = getLatestSubForMilestone(ms.id);
 
                   return (
                     <div key={ms.id || index} className={`${styles.milestoneItem} ${isActive ? styles.activeMilestone : ''} ${!isActive && !isDone ? styles.op50 : ''}`}>
@@ -563,28 +710,57 @@ export default function JobMasterJobDetailPage() {
                         </div>
                         {ms.condition && <p className={styles.mDesc}>{ms.condition}</p>}
 
-                        {isReview && (
-                          <div className={styles.submissionBox}>
-                            <h5><FileText size={14}/> Freelancer đã nộp kết quả — đang chờ duyệt</h5>
-                            {Boolean((ms as unknown as Record<string, unknown>).submissionNote) && (
+                        {/* Pending submission from freelancer — needs review */}
+                        {isInProgress && pendingSub && (
+                          <div className={styles.submissionBox} style={{ borderColor: 'var(--color-warning)', background: 'rgba(244, 157, 37, 0.05)' }}>
+                            <h5><FileText size={14}/> 📋 Freelancer đã nộp báo cáo — chờ bạn xem xét</h5>
+                            {pendingSub.note && (
                               <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
-                                <strong>Ghi chú:</strong> {String((ms as unknown as Record<string, unknown>).submissionNote)}
+                                <strong>Ghi chú:</strong> {pendingSub.note}
                               </p>
                             )}
-                            {Array.isArray((ms as unknown as Record<string, unknown>).submissionLinks) && ((ms as unknown as Record<string, unknown>).submissionLinks as string[]).filter(Boolean).length > 0 && (
+                            {pendingSub.links.filter(Boolean).length > 0 && (
                               <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
-                                {((ms as unknown as Record<string, unknown>).submissionLinks as string[]).filter(Boolean).map((link, li) => (
+                                {pendingSub.links.filter(Boolean).map((link, li) => (
                                   <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
                                     📎 {link}
                                   </a>
                                 ))}
                               </div>
                             )}
-                            {Boolean((ms as unknown as Record<string, unknown>).submittedAt) && (
-                              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                                Gửi lúc: {new Date(String((ms as unknown as Record<string, unknown>).submittedAt)).toLocaleString('vi-VN')}
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                              Gửi lúc: {pendingSub.submittedAt instanceof Date ? pendingSub.submittedAt.toLocaleString('vi-VN') : new Date(pendingSub.submittedAt).toLocaleString('vi-VN')}
+                            </p>
+                            <div className={styles.mActions} style={{ marginTop: '12px' }}>
+                              <Button size="sm" onClick={() => handleAcceptSubmission(ms, pendingSub)}>
+                                <CheckCircle size={14}/> Chấp nhận báo cáo
+                              </Button>
+                              <Button variant="outline" size="sm" className={styles.rejectBtn} onClick={() => handleOpenRejectModal(ms, pendingSub)}>
+                                <AlertTriangle size={14}/> Yêu cầu sửa đổi
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Milestone in review status (submission was accepted, ready for payment) */}
+                        {isReview && (
+                          <div className={styles.submissionBox}>
+                            <h5><FileText size={14}/> Báo cáo đã được chấp nhận — sẵn sàng nghiệm thu</h5>
+                            {latestSub && latestSub.note && (
+                              <p className={styles.mDesc} style={{ marginTop: '0.5rem' }}>
+                                <strong>Ghi chú:</strong> {latestSub.note}
                               </p>
+                            )}
+                            {latestSub && latestSub.links.filter(Boolean).length > 0 && (
+                              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
+                                {latestSub.links.filter(Boolean).map((link, li) => (
+                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                    📎 {link}
+                                  </a>
+                                ))}
+                              </div>
                             )}
                           </div>
                         )}
@@ -597,10 +773,9 @@ export default function JobMasterJobDetailPage() {
                               <Button size="sm" onClick={() => handleApproveClick(ms)}>
                                 <CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán
                               </Button>
-                              <Button variant="outline" size="sm" className={styles.rejectBtn} onClick={() => handleRejectMilestone(ms)}>
-                                <AlertTriangle size={14}/> Yêu cầu sửa đổi
-                              </Button>
                             </>
+                          ) : isInProgress && !pendingSub ? (
+                            <Badge variant="default">Freelancer đang thực hiện</Badge>
                           ) : null}
                         </div>
                       </div>
@@ -618,7 +793,7 @@ export default function JobMasterJobDetailPage() {
         </div>
 
         <div className={styles.sideCol}>
-          {/* Freelancer Info — only for assigned jobs */}
+          {/* Freelancer Info */}
           {job.assignedTo && (
             <Card className={styles.sectionCard}>
               <h3 className={styles.secTitle}>Freelancer thực hiện</h3>
@@ -698,7 +873,7 @@ export default function JobMasterJobDetailPage() {
             </Card>
           )}
 
-          {/* MutualReview — shown only when job is completed and not yet reviewed */}
+          {/* MutualReview */}
           {(job.status === 'completed' || job.status === 'paid') && !hasReviewed && userProfile && (
             <MutualReviewForm
               jobTitle={job.title}
@@ -732,6 +907,14 @@ export default function JobMasterJobDetailPage() {
         milestoneName={selectedMilestone.name}
         amount={selectedMilestone.amount}
         onConfirm={handleConfirmOrder}
+      />
+
+      <RejectReasonModal
+        isOpen={rejectModal.open}
+        onClose={() => setRejectModal({ open: false, ms: null, sub: null })}
+        milestoneName={rejectModal.ms?.name || ''}
+        onConfirm={handleConfirmReject}
+        loading={rejecting}
       />
     </div>
   );

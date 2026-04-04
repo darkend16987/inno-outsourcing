@@ -38,6 +38,7 @@ import { db } from './config';
 import type {
   Job, JobApplication, PaymentMilestone,
   Notification, NotificationType, UserProfile,
+  MilestoneSubmission, SubmissionStatus,
 } from '@/types';
 
 // =====================
@@ -139,6 +140,146 @@ export const updateMilestoneStatus = async (
   );
 
   await updateDoc(jobRef, { milestones: updated });
+};
+
+// =====================
+// MILESTONE SUBMISSIONS (subcollection)
+// =====================
+
+/**
+ * Freelancer creates a submission for a milestone.
+ * This goes to jobs/{jobId}/submissions subcollection.
+ * Milestone status is NOT changed — only jobmaster can do that.
+ */
+export const createMilestoneSubmission = async (
+  submission: Omit<MilestoneSubmission, 'id' | 'submittedAt' | 'status'>,
+): Promise<string | null> => {
+  if (!db) return null;
+  const subsRef = collection(db, 'jobs', submission.jobId, 'submissions');
+  const ref = await addDoc(subsRef, {
+    ...submission,
+    status: 'pending_review' as SubmissionStatus,
+    submittedAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+/**
+ * Get all submissions for a job, ordered by newest first.
+ */
+export const getMilestoneSubmissions = async (
+  jobId: string,
+  filterStatus?: SubmissionStatus,
+): Promise<MilestoneSubmission[]> => {
+  if (!db) return [];
+  const subsRef = collection(db, 'jobs', jobId, 'submissions');
+  const constraints: QueryConstraint[] = [orderBy('submittedAt', 'desc')];
+  if (filterStatus) {
+    constraints.unshift(where('status', '==', filterStatus));
+  }
+  const q = query(subsRef, ...constraints);
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({
+    id: d.id,
+    ...d.data(),
+    submittedAt: d.data().submittedAt?.toDate?.() || new Date(),
+  } as MilestoneSubmission));
+};
+
+/**
+ * Get the latest submission for a specific milestone.
+ */
+export const getLatestSubmissionForMilestone = async (
+  jobId: string,
+  milestoneId: string,
+): Promise<MilestoneSubmission | null> => {
+  if (!db) return null;
+  const subsRef = collection(db, 'jobs', jobId, 'submissions');
+  const q = query(
+    subsRef,
+    where('milestoneId', '==', milestoneId),
+    orderBy('submittedAt', 'desc'),
+    limit(1),
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return {
+    id: d.id,
+    ...d.data(),
+    submittedAt: d.data().submittedAt?.toDate?.() || new Date(),
+  } as MilestoneSubmission;
+};
+
+/**
+ * Jobmaster/Admin reviews a submission:
+ * - approved: milestone status → 'review', progress auto-calculated,
+ *   job status → 'review' if ALL milestones are now in review/approved/done
+ * - rejected: submission status = 'rejected', milestone stays in_progress
+ */
+export const reviewMilestoneSubmission = async (params: {
+  jobId: string;
+  submissionId: string;
+  milestoneId: string;
+  decision: 'approved' | 'rejected';
+  rejectionReason?: string;
+  reviewerId: string;
+  reviewerName: string;
+}): Promise<void> => {
+  if (!db) return;
+  const subRef = doc(db, 'jobs', params.jobId, 'submissions', params.submissionId);
+
+  if (params.decision === 'approved') {
+    // Mark submission as approved
+    await updateDoc(subRef, {
+      status: 'approved' as SubmissionStatus,
+      reviewedAt: serverTimestamp(),
+      reviewedBy: params.reviewerId,
+    });
+    // Update milestone status to 'review' (ready for payment approval)
+    await updateMilestoneStatus(params.jobId, params.milestoneId, 'review');
+
+    // Auto-calculate progress & check if job should go to 'review'
+    const jobRef = doc(db, 'jobs', params.jobId);
+    const jobSnap = await getDoc(jobRef);
+    if (jobSnap.exists()) {
+      const milestones = (jobSnap.data().milestones || []) as PaymentMilestone[];
+      // Calculate progress: sum of percentages for milestones that are review/approved/released/paid
+      const doneStatuses = ['review', 'approved', 'released', 'paid'];
+      const progress = milestones.reduce((sum, m) => {
+        // The current milestone was just set to 'review' above
+        const effectiveStatus = m.id === params.milestoneId ? 'review' : m.status;
+        return sum + (doneStatuses.includes(effectiveStatus) ? m.percentage : 0);
+      }, 0);
+
+      const updateData: Record<string, unknown> = {
+        progress: Math.min(progress, 100),
+        updatedAt: serverTimestamp(),
+      };
+
+      // If ALL milestones are now in review/approved/done → set job status to 'review'
+      const allSubmitted = milestones.every(m => {
+        const effectiveStatus = m.id === params.milestoneId ? 'review' : m.status;
+        return doneStatuses.includes(effectiveStatus);
+      });
+      if (allSubmitted && jobSnap.data().status === 'in_progress') {
+        updateData.status = 'review';
+      }
+
+      await updateDoc(jobRef, updateData);
+    }
+  } else {
+    // Mark submission as rejected with reason
+    await updateDoc(subRef, {
+      status: 'rejected' as SubmissionStatus,
+      rejectionReason: params.rejectionReason || '',
+      rejectedBy: params.reviewerId,
+      rejectedByName: params.reviewerName,
+      rejectedAt: new Date().toISOString(),
+      reviewedAt: serverTimestamp(),
+      reviewedBy: params.reviewerId,
+    });
+  }
 };
 
 /**
