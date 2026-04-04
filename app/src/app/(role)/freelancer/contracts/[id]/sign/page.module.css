@@ -1,0 +1,199 @@
+.page {
+  display: flex; flex-direction: column; gap: var(--space-4, 16px);
+  max-width: 860px;
+  padding-bottom: var(--space-8);
+}
+
+.topBar {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: var(--space-3);
+}
+
+.backLink {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.88rem; font-weight: 500;
+  color: var(--color-primary, #0d7c66); text-decoration: none;
+  transition: opacity 0.2s;
+}
+.backLink:hover { opacity: 0.7; }
+
+.center {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; min-height: 300px;
+  color: var(--color-text-muted); font-size: 15px;
+}
+
+/* Deadline banner */
+.deadlineBox {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 18px; border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+  border: 1px solid;
+}
+.deadlineOk    { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.deadlineUrgent{ background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.deadlineOverdue{ background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+/* Alerts */
+.errorBox {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-radius: 10px; font-size: 0.88rem;
+  background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
+}
+.successBox {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; min-height: 340px; text-align: center;
+  padding: 48px;
+}
+.successIcon { color: #27ae60; }
+.successBox h2 { font-size: 1.4rem; font-weight: 700; color: var(--color-charcoal, #1a1a2e); margin: 0; }
+.successBox p { color: var(--color-text-muted); font-size: 0.9rem; max-width: 480px; }
+
+/* Contract document styling */
+.contractWrap {
+  background: white;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.contractDoc {
+  padding: 40px 48px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: #1a1a2e;
+}
+
+.docHeader {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.docRepublic {
+  font-weight: 700; font-size: 1rem; text-transform: uppercase;
+  letter-spacing: 0.02em; margin: 0;
+}
+.docMotto {
+  font-style: italic; font-size: 0.9rem; margin: 4px 0 12px;
+}
+.docDivider {
+  width: 60%; height: 2px; background: #1a1a2e;
+  margin: 0 auto 20px;
+}
+.docTitle {
+  font-size: 1.3rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.04em; margin: 0 0 8px;
+}
+.docNumber { font-size: 0.9rem; margin: 4px 0; }
+.docAbout { font-size: 0.9rem; margin: 4px 0; }
+
+.docSection {
+  margin-bottom: 24px;
+}
+.docSection h3 {
+  font-weight: 700; font-size: 0.94rem; text-transform: uppercase;
+  margin: 0 0 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;
+  font-family: inherit;
+}
+.docSection p { margin: 4px 0; }
+
+.formNote {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px;
+  background: #f0f9ff; color: #0284c7;
+  font-size: 0.8rem; font-style: normal; font-weight: 600;
+  border: 1px solid #bae6fd; margin-bottom: 16px;
+  font-family: var(--font-body, sans-serif);
+}
+
+/* Editable form within contract */
+.formGrid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  font-family: var(--font-body, sans-serif);
+}
+.formField {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.formField.fullWidth { grid-column: 1 / -1; }
+.formField label {
+  font-size: 0.75rem; font-weight: 600;
+  color: var(--color-text-muted, #666);
+  font-family: var(--font-body, sans-serif);
+}
+.formField input, .formField select {
+  padding: 9px 12px; border: 1.5px solid var(--color-border, #d1d5db);
+  border-radius: 8px; font-size: 0.88rem;
+  font-family: var(--font-body, sans-serif);
+  background: var(--color-bg, #fff); color: #1a1a2e;
+  outline: none; transition: border-color 0.2s; width: 100%;
+}
+.formField input:focus, .formField select:focus {
+  border-color: var(--color-primary, #0d7c66);
+  box-shadow: 0 0 0 3px rgba(13, 124, 102, 0.08);
+}
+
+.scopeBox {
+  padding: 12px 16px; border-radius: 8px;
+  background: var(--color-bg, #f8f9fa);
+  border: 1px solid var(--color-border, #e2e8f0);
+  font-size: 0.88rem; white-space: pre-wrap;
+}
+
+.milestoneTable {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.85rem; font-family: var(--font-body, sans-serif);
+  margin-top: 8px;
+}
+.milestoneTable th, .milestoneTable td {
+  padding: 8px 12px; border: 1px solid #d1d5db;
+  text-align: left;
+}
+.milestoneTable th {
+  background: #f8f9fa; font-weight: 700;
+}
+.milestoneTable tr:nth-child(even) td { background: #fafafa; }
+
+/* Signature section */
+.signSection {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 40px; margin-top: 40px; padding-top: 24px;
+  border-top: 2px solid #1a1a2e;
+}
+.signParty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; text-align: center;
+}
+.signParty h4 {
+  font-weight: 800; font-size: 0.9rem; text-transform: uppercase;
+  margin: 0; letter-spacing: 0.04em; font-family: inherit;
+}
+.signName { font-style: italic; font-size: 0.88rem; margin: 0; }
+.signTitle { font-size: 0.8rem; color: #666; margin: 0; }
+.signBox {
+  width: 200px; height: 80px; border: 1.5px dashed #ccc;
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  margin-top: 8px;
+}
+.signPlaceholder { font-size: 0.75rem; color: #aaa; font-style: italic; }
+.signPadWrap { width: 100%; margin-top: 8px; }
+
+/* Bottom bar */
+.bottomBar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding-top: 16px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  flex-wrap: wrap;
+}
+.legalNote {
+  flex: 1; font-size: 0.78rem; color: var(--color-text-muted, #888);
+  font-style: italic; margin: 0; max-width: 560px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+@media (max-width: 700px) {
+  .contractDoc { padding: 24px 20px; }
+  .formGrid { grid-template-columns: 1fr; }
+  .signSection { grid-template-columns: 1fr; gap: 24px; }
+  .bottomBar { flex-direction: column; align-items: flex-start; }
+}

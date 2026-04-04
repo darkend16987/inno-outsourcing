@@ -10,6 +10,8 @@ export interface UserProfile {
   email: string;
   phone: string;
   displayName: string;
+  nickname?: string;      // Preferred display name shown publicly (homepage, leaderboard)
+  organization?: string;  // Optional: company / firm the freelancer belongs to
   photoURL: string;
   role: UserRole;
   status: 'active' | 'suspended' | 'pending_verification';
@@ -314,6 +316,9 @@ export interface Contract {
   contractNumber: string;
   jobId: string;
   jobTitle: string;
+  jobCategory?: string;         // e.g. 'Kiến trúc', used for category code in number
+  jobDescription?: string;      // Scope of work (Điều 1), from job description
+  milestones?: PaymentMilestone[]; // Payment schedule (Điều 3.3)
   partyA: {
     name: string;
     representative: string;
@@ -321,22 +326,35 @@ export interface Contract {
   };
   partyB: {
     uid: string;
-    name: string;
+    name: string;               // Full legal name
+    dateOfBirth?: string;
     idNumber: string;
+    phone?: string;
     address: string;
+    taxId?: string;
     bankAccount: string;
     bankName: string;
+    bankBranch?: string;
   };
   scope: string;
   totalValue: number;
   paymentTerms: string;
   terms: string;
+  // Signing deadline: 3 days from job assignment
+  contractDeadline?: Date;
+  // Signature assets
+  signatureURL?: string;        // URL to freelancer's drawn/uploaded signature PNG
   pdfURL?: string;
   signedPdfURL?: string;
   status: ContractStatus;
   createdBy: string;
   signedByWorkerAt?: Date;
   signedByAdminAt?: Date;
+  // Review workflow after freelancer submits
+  submittedAt?: Date;
+  reviewedByJobMaster?: boolean;
+  reviewedByAccountant?: boolean;
+  reviewNotes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -402,7 +420,10 @@ export type NotificationType =
   // Invitations (Phase 3)
   | 'job_invitation'
   // Escrow (Phase 1)
-  | 'escrow_locked' | 'escrow_released';
+  | 'escrow_locked' | 'escrow_released'
+  // Contract flow
+  | 'contract_deadline_warning'  // Freelancer hasn't signed within 3 days
+  | 'contract_submitted';        // Freelancer submitted contract → notify jobmaster + accountant
 
 export interface Notification {
   id: string;
@@ -419,7 +440,7 @@ export interface Notification {
 // ---- Leaderboard ----
 export interface LeaderboardEntry {
   uid: string;
-  name: string;
+  name: string;       // Preferred display name (nickname if set, else displayName)
   avatar?: string;
   level: JobLevel;
   specialty: string;

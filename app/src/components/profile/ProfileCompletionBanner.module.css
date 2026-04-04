@@ -1,0 +1,95 @@
+.banner {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 20px; border-radius: 14px;
+  border: 1px solid; position: relative;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.bannerInfo {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+.bannerUrgent {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.iconWrap {
+  flex-shrink: 0; padding-top: 2px;
+}
+.iconUrgent { color: #d97706; }
+.iconInfo   { color: #0284c7; }
+
+.content {
+  flex: 1; display: flex; flex-direction: column; gap: 6px;
+}
+
+.title {
+  font-size: 0.9rem; font-weight: 700;
+  color: var(--color-charcoal, #1a1a2e);
+}
+
+.body {
+  font-size: 0.82rem; color: var(--color-text-muted, #555);
+  line-height: 1.5; margin: 0;
+}
+
+.missingList {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-top: 4px;
+}
+.missingLabel {
+  font-size: 0.75rem; font-weight: 600;
+  color: var(--color-text-muted, #666);
+}
+.missingTag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px;
+  background: rgba(13, 124, 102, 0.08);
+  color: var(--color-primary, #0d7c66);
+  font-size: 0.72rem; font-weight: 600;
+}
+
+.progress {
+  display: flex; align-items: center; gap: 10px; margin-top: 6px;
+}
+.progressBar {
+  flex: 1; max-width: 160px; height: 5px;
+  background: var(--color-border, #e2e8f0);
+  border-radius: 3px; overflow: hidden;
+}
+.progressFill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-primary, #0d7c66), #27ae60);
+  transition: width 0.4s ease;
+}
+.progressText {
+  font-size: 0.72rem; font-weight: 600;
+  color: var(--color-primary, #0d7c66);
+  white-space: nowrap;
+}
+
+.ctaBtn {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px;
+  background: var(--color-primary, #0d7c66); color: white;
+  font-size: 0.82rem; font-weight: 600;
+  text-decoration: none; white-space: nowrap;
+  transition: opacity 0.2s; align-self: center;
+}
+.ctaBtn:hover { opacity: 0.85; }
+
+.closeBtn {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text-muted, #999); padding: 4px;
+  border-radius: 6px; transition: background 0.2s;
+  display: flex; align-items: center;
+}
+.closeBtn:hover { background: rgba(0,0,0,0.06); }
+
+@media (max-width: 640px) {
+  .banner { flex-wrap: wrap; }
+  .ctaBtn { width: 100%; justify-content: center; }
+}
