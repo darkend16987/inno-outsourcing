@@ -3,16 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox, Lock, Unlock, RotateCcw, Edit3, Save, X, ImageIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox, Lock, Unlock, RotateCcw, Edit3, Save, X, ImageIcon, AlertTriangle, Zap } from 'lucide-react';
 import { Button, Card, Badge, StatusBadge, LevelBadge } from '@/components/ui';
 import { getJobById, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { cache } from '@/lib/cache/swr-cache';
 import { formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import { getConfigItems, type SystemConfigItem, type ConfigCategory } from '@/lib/firebase/system-config';
+import {
+  getMilestoneSubmissions,
+  reviewMilestoneSubmission,
+  approveMilestoneAndPay,
+  createNotification,
+} from '@/lib/firebase/firestore-extended';
 import { collection, query, where, getDocs, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import type { Job } from '@/types';
+import type { Job, PaymentMilestone, MilestoneSubmission } from '@/types';
 import styles from './page.module.css';
 
 const formatDate = (d: unknown): string => {
@@ -32,6 +38,79 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: 'Đang thực hiện', review: 'Nghiệm thu', completed: 'Hoàn thành', paid: 'Đã TT', cancelled: 'Đã hủy',
 };
 
+// Payment Confirm Modal
+function PaymentConfirmModal({ isOpen, onClose, onConfirm, milestoneName, amount, loading }: {
+  isOpen: boolean; onClose: () => void; onConfirm: () => void; milestoneName: string; amount: string; loading: boolean;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className={styles.modalOverlay}>
+      <Card className={styles.modalContent}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Xác nhận Nghiệm thu & Thanh toán</h3>
+          <button onClick={onClose}><X size={20}/></button>
+        </div>
+        <div className={styles.modalBody}>
+          <p>Bạn đang thực hiện nghiệm thu giai đoạn: <strong>{milestoneName}</strong></p>
+          <p>Số tiền yêu cầu thanh toán: <strong className={styles.amountText}>{amount}</strong></p>
+          <div className={styles.infoAlert}>
+            <Zap size={16}/>
+            <span>Hệ thống sẽ tự động tạo Lệnh chi và gửi thông tin đến bộ phận Kế toán.</span>
+          </div>
+        </div>
+        <div className={styles.modalFooter}>
+          <Button variant="outline" onClick={onClose}>Hủy bỏ</Button>
+          <Button onClick={onConfirm} disabled={loading}>{loading ? 'Đang xử lý...' : 'Xác nhận & Gửi yêu cầu'}</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// Reject Reason Modal
+function RejectReasonModal({ isOpen, onClose, onConfirm, milestoneName, loading }: {
+  isOpen: boolean; onClose: () => void; onConfirm: (reason: string) => void; milestoneName: string; loading: boolean;
+}) {
+  const [reason, setReason] = useState('');
+  if (!isOpen) return null;
+  return (
+    <div className={styles.modalOverlay}>
+      <Card className={styles.modalContent}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Yêu cầu sửa đổi giai đoạn</h3>
+          <button onClick={onClose}><X size={20}/></button>
+        </div>
+        <div className={styles.modalBody}>
+          <p>Giai đoạn: <strong>{milestoneName}</strong></p>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+            Vui lòng nhập lý do để freelancer biết cần sửa đổi gì. Thông tin sẽ được gửi kèm thông báo.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 600 }}>Lý do chưa đạt</label>
+            <textarea
+              placeholder="VD: File AutoCAD thiếu layer MEP, cần bổ sung mặt bằng tầng 3..."
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              rows={4}
+              className={styles.textarea}
+            />
+          </div>
+        </div>
+        <div className={styles.modalFooter}>
+          <Button variant="outline" onClick={onClose}>Hủy bỏ</Button>
+          <Button
+            onClick={() => onConfirm(reason)}
+            disabled={!reason.trim() || loading}
+            style={{ color: 'white', background: 'var(--color-error, #ef4444)' }}
+          >
+            <AlertTriangle size={14}/> {loading ? 'Đang gửi...' : 'Gửi yêu cầu sửa đổi'}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminJobReviewPage() {
   const params = useParams();
   const router = useRouter();
@@ -44,6 +123,17 @@ export default function AdminJobReviewPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [applicationCount, setApplicationCount] = useState(0);
+
+  // Submissions
+  const [allSubmissions, setAllSubmissions] = useState<MilestoneSubmission[]>([]);
+
+  // Payment modal
+  const [paymentModal, setPaymentModal] = useState<{ open: boolean; ms: PaymentMilestone | null }>({ open: false, ms: null });
+  const [approving, setApproving] = useState(false);
+
+  // Reject modal
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; ms: PaymentMilestone | null; sub: MilestoneSubmission | null }>({ open: false, ms: null, sub: null });
+  const [rejecting, setRejecting] = useState(false);
 
   // Edit mode
   const [editing, setEditing] = useState(false);
@@ -83,11 +173,24 @@ export default function AdminJobReviewPage() {
           const appSnap = await getDocs(query(collection(db, 'applications'), where('jobId', '==', result.id)));
           setApplicationCount(appSnap.size);
         } catch { setApplicationCount(0); }
+        // Fetch submissions
+        try {
+          const subs = await getMilestoneSubmissions(result.id);
+          setAllSubmissions(subs);
+        } catch { /* ignore */ }
       }
       setLoading(false);
     };
     fetchJob().catch(() => setLoading(false));
   }, [params.id]);
+
+  // Submission helpers
+  const getPendingSubForMilestone = (milestoneId: string): MilestoneSubmission | null => {
+    return allSubmissions.find(s => s.milestoneId === milestoneId && s.status === 'pending_review') || null;
+  };
+  const getLatestSubForMilestone = (milestoneId: string): MilestoneSubmission | null => {
+    return allSubmissions.find(s => s.milestoneId === milestoneId) || null;
+  };
 
   const startEditing = () => {
     if (!job) return;
@@ -137,13 +240,8 @@ export default function AdminJobReviewPage() {
     if (!confirm('Bạn xác nhận duyệt job này? Job sẽ chuyển sang trạng thái "Đang mở" và hiển thị cho freelancer.')) return;
     setActionLoading(true);
     try {
-      await updateJob(job.id, {
-        status: 'open',
-        approvedBy: userProfile.uid,
-      }, {
-        uid: userProfile.uid,
-        name: userProfile.displayName,
-        role: userProfile.role,
+      await updateJob(job.id, { status: 'open', approvedBy: userProfile.uid }, {
+        uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role,
       });
       cache.invalidate('admin:jobs:list');
       const updated = await getJobById(job.id);
@@ -158,18 +256,11 @@ export default function AdminJobReviewPage() {
 
   const handleReject = async () => {
     if (!job || !userProfile) return;
-    if (!rejectReason.trim()) {
-      alert('Vui lòng nhập lý do từ chối.');
-      return;
-    }
+    if (!rejectReason.trim()) { alert('Vui lòng nhập lý do từ chối.'); return; }
     setActionLoading(true);
     try {
-      await updateJob(job.id, {
-        status: 'cancelled',
-      }, {
-        uid: userProfile.uid,
-        name: userProfile.displayName,
-        role: userProfile.role,
+      await updateJob(job.id, { status: 'cancelled' }, {
+        uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role,
       });
       cache.invalidate('admin:jobs:list');
       alert('Job đã bị từ chối.');
@@ -183,52 +274,104 @@ export default function AdminJobReviewPage() {
 
   const handleLockJob = async () => {
     if (!job || !userProfile) return;
-    if (applicationCount > 0) {
-      alert('⚠️ Không thể khóa job đã có người ứng tuyển.');
-      return;
-    }
-    if (!confirm('Bạn muốn KHÓA job này? Job sẽ chuyển về nháp và không hiển thị cho freelancer.')) return;
+    if (applicationCount > 0) { alert('⚠️ Không thể khóa job đã có người ứng tuyển.'); return; }
+    if (!confirm('Bạn muốn KHÓA job này? Job sẽ chuyển về nháp.')) return;
     setActionLoading(true);
     try {
-      await updateJob(job.id, { status: 'draft' }, {
-        uid: userProfile.uid,
-        name: userProfile.displayName,
-        role: userProfile.role,
-      });
+      await updateJob(job.id, { status: 'draft' }, { uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role });
       cache.invalidate('admin:jobs:list');
       const updated = await getJobById(job.id);
       setJob(updated);
       alert('✅ Job đã được khóa (chuyển về Nháp).');
-    } catch (err) {
-      console.error(err);
-      alert('❌ Lỗi. Vui lòng thử lại.');
-    }
+    } catch (err) { console.error(err); alert('❌ Lỗi.'); }
     setActionLoading(false);
   };
 
   const handleRevokeApproval = async () => {
     if (!job || !userProfile) return;
-    if (applicationCount > 0) {
-      alert('⚠️ Không thể thu hồi duyệt — job đã có người ứng tuyển.');
-      return;
-    }
-    if (!confirm('Thu hồi trạng thái duyệt? Job sẽ chuyển về "Chờ duyệt" để Job Master có thể chỉnh sửa.')) return;
+    if (applicationCount > 0) { alert('⚠️ Không thể thu hồi duyệt — đã có người ứng tuyển.'); return; }
+    if (!confirm('Thu hồi trạng thái duyệt? Job sẽ chuyển về "Chờ duyệt".')) return;
     setActionLoading(true);
     try {
       await updateJob(job.id, { status: 'pending_approval', approvedBy: deleteField() } as unknown as Partial<Job>, {
-        uid: userProfile.uid,
-        name: userProfile.displayName,
-        role: userProfile.role,
+        uid: userProfile.uid, name: userProfile.displayName, role: userProfile.role,
       });
       cache.invalidate('admin:jobs:list');
       const updated = await getJobById(job.id);
       setJob(updated);
-      alert('✅ Đã thu hồi duyệt. Job Master có thể chỉnh sửa.');
-    } catch (err) {
-      console.error(err);
-      alert('❌ Lỗi. Vui lòng thử lại.');
-    }
+      alert('✅ Đã thu hồi duyệt.');
+    } catch (err) { console.error(err); alert('❌ Lỗi.'); }
     setActionLoading(false);
+  };
+
+  // Accept submission → milestone goes to 'review'
+  const handleAcceptSubmission = async (ms: PaymentMilestone, sub: MilestoneSubmission) => {
+    if (!job || !userProfile || !sub.id) return;
+    try {
+      await reviewMilestoneSubmission({
+        jobId: job.id, submissionId: sub.id, milestoneId: ms.id,
+        decision: 'approved', reviewerId: userProfile.uid, reviewerName: userProfile.displayName || 'Admin',
+      });
+      const [updatedJob, updatedSubs] = await Promise.all([getJobById(job.id), getMilestoneSubmissions(job.id)]);
+      setJob(updatedJob);
+      setAllSubmissions(updatedSubs);
+      alert('✅ Đã chấp nhận báo cáo. Sẵn sàng nghiệm thu & thanh toán.');
+    } catch (err) {
+      console.error('Accept submission failed:', err);
+      alert('❌ Lỗi khi duyệt submission.');
+    }
+  };
+
+  // Approve milestone & create payment
+  const handleConfirmPayment = async () => {
+    if (!job || !userProfile || !paymentModal.ms || approving) return;
+    setApproving(true);
+    try {
+      const ms = paymentModal.ms;
+      const result = await approveMilestoneAndPay({
+        jobId: job.id, milestoneId: ms.id, jobTitle: job.title, milestoneName: ms.name,
+        milestoneAmount: ms.amount, workerId: job.assignedTo || '', workerName: job.assignedWorkerName || 'Freelancer',
+        jobMasterId: userProfile.uid, jobMasterName: userProfile.displayName || 'Admin',
+      });
+      const updated = await getJobById(job.id);
+      setJob(updated);
+      setPaymentModal({ open: false, ms: null });
+      if (result.allDone) alert('✅ Toàn bộ dự án đã nghiệm thu! Lệnh chi đã gửi cho Kế toán.');
+      else alert('✅ Đã phê duyệt và gửi lệnh chi cho Kế toán.');
+    } catch (err) {
+      console.error('Approve payment failed:', err);
+      alert('❌ Lỗi: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại.'));
+    }
+    setApproving(false);
+  };
+
+  // Reject submission with reason
+  const handleConfirmReject = async (reason: string) => {
+    if (!job || !userProfile || !rejectModal.ms || !rejectModal.sub?.id) return;
+    setRejecting(true);
+    try {
+      await reviewMilestoneSubmission({
+        jobId: job.id, submissionId: rejectModal.sub.id, milestoneId: rejectModal.ms.id,
+        decision: 'rejected', rejectionReason: reason,
+        reviewerId: userProfile.uid, reviewerName: userProfile.displayName || 'Admin',
+      });
+      if (job.assignedTo) {
+        createNotification({
+          recipientId: job.assignedTo, type: 'milestone_reached',
+          title: `Yêu cầu sửa đổi: ${rejectModal.ms.name}`,
+          body: `Admin yêu cầu sửa đổi giai đoạn. Lý do: ${reason}`,
+          link: `/freelancer/jobs/${job.id}`, read: false,
+        }).catch(() => {});
+      }
+      const updatedSubs = await getMilestoneSubmissions(job.id);
+      setAllSubmissions(updatedSubs);
+      setRejectModal({ open: false, ms: null, sub: null });
+      alert('✅ Đã gửi yêu cầu sửa đổi cho freelancer.');
+    } catch (err) {
+      console.error('Reject failed:', err);
+      alert('❌ Lỗi.');
+    }
+    setRejecting(false);
   };
 
   const handleAddNote = () => {
@@ -238,15 +381,9 @@ export default function AdminJobReviewPage() {
   };
 
   const addProjectImage = () => {
-    if (newImageUrl.trim()) {
-      setEditProjectImages(prev => [...prev, newImageUrl.trim()]);
-      setNewImageUrl('');
-    }
+    if (newImageUrl.trim()) { setEditProjectImages(prev => [...prev, newImageUrl.trim()]); setNewImageUrl(''); }
   };
-
-  const removeProjectImage = (idx: number) => {
-    setEditProjectImages(prev => prev.filter((_, i) => i !== idx));
-  };
+  const removeProjectImage = (idx: number) => { setEditProjectImages(prev => prev.filter((_, i) => i !== idx)); };
 
   if (loading) {
     return (
@@ -265,10 +402,7 @@ export default function AdminJobReviewPage() {
     );
   }
 
-  const milestones = (job.milestones || []) as Array<{
-    name: string; percentage: number; amount: number; condition: string;
-  }>;
-
+  const milestones = (job.milestones || []) as PaymentMilestone[];
   const requirements = (job.requirements || {}) as {
     experience?: string; certifications?: string; software?: string[]; standards?: string[];
   };
@@ -276,6 +410,10 @@ export default function AdminJobReviewPage() {
   const canEdit = ['draft', 'pending_approval'].includes(job.status) && applicationCount === 0;
   const canLock = job.status === 'open' && applicationCount === 0;
   const canRevoke = job.status === 'open' && applicationCount === 0;
+  const isActiveJob = ['in_progress', 'review', 'assigned'].includes(job.status);
+  const showMilestoneReview = ['in_progress', 'review', 'assigned', 'completed', 'paid'].includes(job.status);
+  const hasPendingSubmissions = allSubmissions.some(s => s.status === 'pending_review');
+  const totalProgress = job.progress ?? 0;
 
   return (
     <div className={styles.page}>
@@ -293,6 +431,7 @@ export default function AdminJobReviewPage() {
             )}
             <StatusBadge status={job.status} label={STATUS_LABELS[job.status] || job.status} />
             {applicationCount > 0 && <Badge variant="info">{applicationCount} ứng viên</Badge>}
+            {hasPendingSubmissions && <Badge variant="warning">Có báo cáo chờ duyệt</Badge>}
           </div>
           <div className={styles.metaRow}>
             <span><Badge variant="default">{job.category}</Badge></span>
@@ -304,7 +443,6 @@ export default function AdminJobReviewPage() {
         </div>
 
         <div className={styles.actionButtons}>
-          {/* Approve/Reject for pending jobs */}
           {job.status === 'pending_approval' && !editing && (
             <>
               <Button variant="success" size="md" icon={<CheckCircle size={16} />} onClick={handleApprove} disabled={actionLoading}>
@@ -315,37 +453,21 @@ export default function AdminJobReviewPage() {
               </Button>
             </>
           )}
-
-          {/* Lock/Unpublish for open jobs */}
           {canLock && !editing && (
-            <Button variant="outline" size="md" icon={<Lock size={16} />} onClick={handleLockJob} disabled={actionLoading}>
-              Khóa Job
-            </Button>
+            <Button variant="outline" size="md" icon={<Lock size={16} />} onClick={handleLockJob} disabled={actionLoading}>Khóa Job</Button>
           )}
-
-          {/* Revoke for open jobs */}
           {canRevoke && !editing && (
-            <Button variant="outline" size="md" icon={<RotateCcw size={16} />} onClick={handleRevokeApproval} disabled={actionLoading}>
-              Thu hồi duyệt
-            </Button>
+            <Button variant="outline" size="md" icon={<RotateCcw size={16} />} onClick={handleRevokeApproval} disabled={actionLoading}>Thu hồi duyệt</Button>
           )}
-
-          {/* Edit button */}
           {canEdit && !editing && (
-            <Button variant="primary" size="md" icon={<Edit3 size={16} />} onClick={startEditing}>
-              Chỉnh sửa
-            </Button>
+            <Button variant="primary" size="md" icon={<Edit3 size={16} />} onClick={startEditing}>Chỉnh sửa</Button>
           )}
-
-          {/* Save/Cancel for edit mode */}
           {editing && (
             <>
               <Button variant="primary" size="md" icon={<Save size={16} />} onClick={handleSaveEdit} disabled={actionLoading}>
                 {actionLoading ? 'Đang lưu...' : 'Lưu'}
               </Button>
-              <Button variant="ghost" size="md" icon={<X size={16} />} onClick={() => setEditing(false)}>
-                Hủy
-              </Button>
+              <Button variant="ghost" size="md" icon={<X size={16} />} onClick={() => setEditing(false)}>Hủy</Button>
             </>
           )}
         </div>
@@ -354,13 +476,7 @@ export default function AdminJobReviewPage() {
       {showRejectForm && (
         <Card variant="bordered" className={styles.rejectForm}>
           <h3>Lý do từ chối</h3>
-          <textarea
-            className={styles.textarea}
-            value={rejectReason}
-            onChange={e => setRejectReason(e.target.value)}
-            placeholder="Nhập lý do từ chối để gửi lại cho người tạo..."
-            rows={3}
-          />
+          <textarea className={styles.textarea} value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Nhập lý do từ chối để gửi lại cho người tạo..." rows={3} />
           <div className={styles.rejectActions}>
             <Button variant="danger" size="sm" icon={<Send size={14} />} onClick={handleReject} disabled={actionLoading}>
               {actionLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
@@ -386,7 +502,7 @@ export default function AdminJobReviewPage() {
             <Card variant="bordered">
               <h3 className={styles.sectionTitle}>📐 Quy mô dự án</h3>
               {editing ? (
-                <textarea className={styles.textarea} value={editProjectScale} onChange={e => setEditProjectScale(e.target.value)} rows={3} placeholder="VD: 8 tầng, 3000m² sàn, khoảng 50 căn hộ..." />
+                <textarea className={styles.textarea} value={editProjectScale} onChange={e => setEditProjectScale(e.target.value)} rows={3} placeholder="VD: 8 tầng, 3000m² sàn..." />
               ) : (
                 <p className={styles.description}>{job.projectScale}</p>
               )}
@@ -459,21 +575,143 @@ export default function AdminJobReviewPage() {
             )}
           </Card>
 
+          {/* ====================== */}
+          {/* MILESTONE REVIEW SECTION — FULL UI */}
+          {/* ====================== */}
           <Card variant="bordered">
-            <h3 className={styles.sectionTitle}><DollarSign size={18} /> Đợt thanh toán</h3>
-            <div className={styles.milestoneList}>
-              {milestones.map((ms, i) => (
-                <div key={i} className={styles.milestoneItem}>
-                  <div className={styles.msName}>{ms.name}</div>
-                  <div className={styles.msDetail}>
-                    <span>{ms.percentage}%</span>
-                    <span className={styles.msAmount}>{formatCurrency(ms.amount)}</span>
-                    <span className={styles.msCondition}>{ms.condition}</span>
-                  </div>
+            <h3 className={styles.sectionTitle}><DollarSign size={18} /> Giai đoạn & Nghiệm thu</h3>
+
+            {/* Progress bar for active jobs */}
+            {showMilestoneReview && (
+              <div className={styles.progressSection}>
+                <div className={styles.progressLabel}>
+                  <span>Tiến độ tổng</span>
+                  <span>{totalProgress}%</span>
                 </div>
-              ))}
-              {milestones.length === 0 && <div className={styles.emptySmall}>Chưa thiết lập đợt thanh toán.</div>}
-            </div>
+                <div className={styles.progressBar}>
+                  <div className={styles.progressFill} style={{ width: `${totalProgress}%` }} />
+                </div>
+              </div>
+            )}
+
+            {showMilestoneReview ? (
+              <div className={styles.milestoneTimeline}>
+                {milestones.map((ms, index) => {
+                  const isDone = ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved';
+                  const isReview = ms.status === 'review';
+                  const isInProgress = ms.status === 'in_progress';
+                  const isActive = isInProgress || isReview;
+
+                  const pendingSub = getPendingSubForMilestone(ms.id);
+                  const latestSub = getLatestSubForMilestone(ms.id);
+
+                  return (
+                    <div key={ms.id || index} className={`${styles.milestoneRow} ${!isActive && !isDone ? styles.op50 : ''}`}>
+                      <div className={styles.msDot}>
+                        {isDone ? (
+                          <CheckCircle size={20} color="var(--color-success)"/>
+                        ) : isActive ? (
+                          <span className={styles.msDotActive}></span>
+                        ) : (
+                          <span className={styles.msDotEmpty}></span>
+                        )}
+                      </div>
+                      <div className={`${styles.msContent} ${isActive ? styles.msContentActive : ''}`}>
+                        <div className={styles.msHead}>
+                          <h4>{index + 1}. {ms.name} ({ms.percentage}%)</h4>
+                          <span>{formatCurrency(ms.amount)}</span>
+                        </div>
+                        {ms.condition && <p className={styles.msDesc}>{ms.condition}</p>}
+
+                        {/* Pending submission from freelancer */}
+                        {isInProgress && pendingSub && (
+                          <div className={`${styles.submissionBox} ${styles.submissionBoxPending}`}>
+                            <h5><FileText size={14}/> 📋 Freelancer đã nộp báo cáo — chờ xem xét</h5>
+                            {pendingSub.note && (
+                              <p className={styles.msDesc} style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                                <strong>Ghi chú:</strong> {pendingSub.note}
+                              </p>
+                            )}
+                            {pendingSub.links.filter(Boolean).length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '0.5rem' }}>
+                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
+                                {pendingSub.links.filter(Boolean).map((link, li) => (
+                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                    📎 {link}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                              Nộp bởi: {pendingSub.freelancerName} — {pendingSub.submittedAt instanceof Date ? pendingSub.submittedAt.toLocaleString('vi-VN') : new Date(pendingSub.submittedAt).toLocaleString('vi-VN')}
+                            </p>
+                            <div className={styles.msActions}>
+                              <Button size="sm" onClick={() => handleAcceptSubmission(ms, pendingSub)}>
+                                <CheckCircle size={14}/> Chấp nhận báo cáo
+                              </Button>
+                              <Button variant="outline" size="sm" className={styles.rejectBtn} onClick={() => setRejectModal({ open: true, ms, sub: pendingSub })}>
+                                <AlertTriangle size={14}/> Yêu cầu sửa đổi
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Milestone in review — ready for payment */}
+                        {isReview && (
+                          <div className={`${styles.submissionBox} ${styles.submissionBoxReview}`}>
+                            <h5><FileText size={14}/> ✅ Báo cáo đã chấp nhận — sẵn sàng nghiệm thu</h5>
+                            {latestSub && latestSub.note && (
+                              <p className={styles.msDesc} style={{ marginTop: '0.5rem' }}>
+                                <strong>Ghi chú:</strong> {latestSub.note}
+                              </p>
+                            )}
+                            {latestSub && latestSub.links.filter(Boolean).length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '0.25rem' }}>
+                                <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
+                                {latestSub.links.filter(Boolean).map((link, li) => (
+                                  <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                                    📎 {link}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className={styles.msActions}>
+                          {isDone ? (
+                            <Badge variant="success">Đã nghiệm thu & Thanh toán</Badge>
+                          ) : isReview ? (
+                            <Button size="sm" onClick={() => setPaymentModal({ open: true, ms })}>
+                              <CheckCircle size={14}/> Phê duyệt & Yêu cầu thanh toán
+                            </Button>
+                          ) : isInProgress && !pendingSub ? (
+                            <Badge variant="default">Freelancer đang thực hiện</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {milestones.length === 0 && <div className={styles.emptySmall}>Chưa thiết lập đợt thanh toán.</div>}
+              </div>
+            ) : (
+              /* Static milestone list for draft/pending jobs */
+              <div className={styles.milestoneList}>
+                {milestones.map((ms, i) => (
+                  <div key={i} className={styles.milestoneItem}>
+                    <div className={styles.msName}>{ms.name}</div>
+                    <div className={styles.msDetail}>
+                      <span>{ms.percentage}%</span>
+                      <span className={styles.msAmount}>{formatCurrency(ms.amount)}</span>
+                      <span className={styles.msCondition}>{ms.condition}</span>
+                    </div>
+                  </div>
+                ))}
+                {milestones.length === 0 && <div className={styles.emptySmall}>Chưa thiết lập đợt thanh toán.</div>}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -485,6 +723,7 @@ export default function AdminJobReviewPage() {
               <div className={styles.infoRow}><span>Ngày tạo:</span><strong>{formatDate(job.createdAt)}</strong></div>
               <div className={styles.infoRow}><span>Hạn nộp:</span><strong>{formatDate(job.deadline)}</strong></div>
               <div className={styles.infoRow}><span>Hình thức:</span><strong>{job.workMode === 'remote' ? 'Từ xa' : job.workMode === 'on-site' ? 'Tại chỗ' : 'Kết hợp'}</strong></div>
+              {job.assignedWorkerName && <div className={styles.infoRow}><span>Freelancer:</span><strong>{job.assignedWorkerName}</strong></div>}
               {job.projectScale && <div className={styles.infoRow}><span>Quy mô:</span><strong>{job.projectScale}</strong></div>}
             </div>
           </Card>
@@ -502,18 +741,29 @@ export default function AdminJobReviewPage() {
               {notes.length === 0 && <div className={styles.emptySmall}>Chưa có ghi chú nội bộ.</div>}
             </div>
             <div className={styles.noteInput}>
-              <textarea
-                className={styles.textarea}
-                value={newNote}
-                onChange={e => setNewNote(e.target.value)}
-                placeholder="Thêm ghi chú nội bộ..."
-                rows={2}
-              />
+              <textarea className={styles.textarea} value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Thêm ghi chú nội bộ..." rows={2} />
               <Button variant="outline" size="sm" icon={<Send size={14} />} onClick={handleAddNote}>Gửi</Button>
             </div>
           </Card>
         </div>
       </div>
+
+      <PaymentConfirmModal
+        isOpen={paymentModal.open}
+        onClose={() => setPaymentModal({ open: false, ms: null })}
+        milestoneName={paymentModal.ms?.name || ''}
+        amount={formatCurrency(paymentModal.ms?.amount || 0)}
+        onConfirm={handleConfirmPayment}
+        loading={approving}
+      />
+
+      <RejectReasonModal
+        isOpen={rejectModal.open}
+        onClose={() => setRejectModal({ open: false, ms: null, sub: null })}
+        milestoneName={rejectModal.ms?.name || ''}
+        onConfirm={handleConfirmReject}
+        loading={rejecting}
+      />
     </div>
   );
 }

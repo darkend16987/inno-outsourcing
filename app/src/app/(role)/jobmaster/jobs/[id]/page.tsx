@@ -398,7 +398,7 @@ export default function JobMasterJobDetailPage() {
   const milestones = (job.milestones || []) as PaymentMilestone[];
   const totalProgress = job.progress ?? 0;
   const canEdit = job.status === 'draft' || job.status === 'pending_approval';
-  const isActiveJob = job.status === 'in_progress' || job.status === 'review';
+  const isActiveJob = job.status === 'in_progress' || job.status === 'review' || job.status === 'assigned';
   const statusInfo = STATUS_LABELS[job.status] || { label: job.status, variant: 'default' };
 
   // Check if there are any pending submissions
