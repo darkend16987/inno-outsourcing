@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Briefcase, CheckCircle, Clock, Star, TrendingUp, Loader2, Inbox } from 'lucide-react';
+import { Briefcase, CheckCircle, Clock, Star, TrendingUp, Loader2, Inbox, Heart, ArrowRight } from 'lucide-react';
 import { Card, MetricCard, Badge, Button } from '@/components/ui';
 import { RecommendedJobs } from '@/components/jobs/RecommendedJobs';
 import { EarningsChart } from '@/components/analytics/EarningsChart';
@@ -10,6 +10,8 @@ import { OnboardingChecklist } from '@/components/checklist/OnboardingChecklist'
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getApplicationsForFreelancer, getJobById, getJobs } from '@/lib/firebase/firestore';
 import { subscribeToNotifications } from '@/lib/firebase/firestore';
+import { getSavedJobs } from '@/lib/firebase/firestore-extended';
+import { getJobUrl } from '@/lib/seo/slug';
 import type { Job, Notification as AppNotification } from '@/types';
 import styles from './page.module.css';
 
@@ -26,6 +28,7 @@ export default function FreelancerDashboard() {
   const [activeJobs, setActiveJobs] = useState<ActiveJobInfo[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<Job[]>([]);
+  const [savedJobs, setSavedJobs] = useState<Job[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
 
   // Fetch active jobs for freelancer
@@ -63,6 +66,22 @@ export default function FreelancerDashboard() {
       setRecommendedJobs(result.items.slice(0, 5));
     };
     fetchRecommended().catch(() => {});
+  }, [userProfile?.uid]);
+
+  // Fetch saved jobs
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    const fetchSaved = async () => {
+      const ids = await getSavedJobs(userProfile.uid);
+      if (ids.length === 0) return;
+      const jobs: Job[] = [];
+      for (const id of ids.slice(0, 5)) {
+        const job = await getJobById(id);
+        if (job) jobs.push(job);
+      }
+      setSavedJobs(jobs);
+    };
+    fetchSaved().catch(() => {});
   }, [userProfile?.uid]);
 
   // Subscribe to notifications
@@ -207,6 +226,34 @@ export default function FreelancerDashboard() {
           )}
         </Card>
       </div>
+
+      {/* Saved Jobs */}
+      {savedJobs.length > 0 && (
+        <Card className={styles.sectionCard}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}><Heart size={18} style={{ color: '#ef4444' }} /> Job đã lưu</h3>
+            <Link href="/jobs">
+              <Button variant="ghost" size="sm">Tìm thêm</Button>
+            </Link>
+          </div>
+          <div className={styles.jobList}>
+            {savedJobs.map(job => (
+              <Link key={job.id} href={getJobUrl(job)} className={styles.savedJobLink}>
+                <div className={styles.jobItem}>
+                  <div className={styles.jobInfo}>
+                    <h4>{job.title}</h4>
+                    <div className={styles.jobMeta}>
+                      <Badge size="sm" variant="outline">{job.category}</Badge>
+                      <Badge size="sm">{job.status === 'open' ? 'Đang mở' : job.status}</Badge>
+                    </div>
+                  </div>
+                  <ArrowRight size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Earnings Chart */}
       <EarningsChart

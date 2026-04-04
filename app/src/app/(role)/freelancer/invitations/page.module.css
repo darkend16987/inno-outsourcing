@@ -1,0 +1,105 @@
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  color: var(--color-charcoal, #1a1a2e);
+}
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #666);
+}
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 60px 20px;
+  color: var(--color-text-muted, #666);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--color-text-muted, #666);
+}
+
+.invList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.invCard {
+  padding: 20px 24px !important;
+}
+
+.invTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.invInfo {
+  flex: 1;
+}
+
+.invJobTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-charcoal, #1a1a2e);
+  margin: 0 0 6px;
+}
+
+.invMessage {
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #555);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.invMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--color-text-light, #999);
+}
+
+.invActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+
+.invBtns {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .invTop { flex-direction: column; }
+  .invActions { flex-direction: column; gap: 10px; }
+  .invBtns { width: 100%; justify-content: flex-end; }
+}

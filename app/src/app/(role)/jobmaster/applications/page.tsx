@@ -4,10 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Check, X, FileText, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Avatar, Button, LevelBadge } from '@/components/ui';
+import { TrustBadge } from '@/components/ui/TrustBadge';
+import { AvailabilityBadge } from '@/components/ui/AvailabilityBadge';
+import { ActiveJobWarning } from '@/components/ui/ActiveJobWarning';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { getAllApplications, updateApplication } from '@/lib/firebase/firestore';
+import { getAllApplications, updateApplication, getUserProfile } from '@/lib/firebase/firestore';
+import { getActiveJobCount } from '@/lib/firebase/firestore-extended';
+import { calculateTrustScore } from '@/lib/matching/trust-score';
 import { cache, TTL } from '@/lib/cache/swr-cache';
-import type { JobApplication } from '@/types';
+import type { JobApplication, AvailabilityStatus, TrustBadgeLevel } from '@/types';
 import styles from './page.module.css';
 
 interface AppItem {
@@ -22,6 +27,11 @@ interface AppItem {
   status: string;
   coverLetter: string;
   createdAt: unknown;
+  // Enriched data
+  trustBadge?: TrustBadgeLevel;
+  trustScore?: number;
+  availability?: AvailabilityStatus;
+  activeJobCount?: number;
 }
 
 const formatDate = (d: unknown): string => {
@@ -61,6 +71,32 @@ export default function ApplicationsPage() {
       }));
       setApps(mapped);
       setLoading(false);
+
+      // Enrich with trust, availability, active job count in background
+      const uniqueIds = [...new Set(mapped.map(a => a.candidateId).filter(Boolean))];
+      const enrichMap = new Map<string, { trustBadge?: TrustBadgeLevel; trustScore?: number; availability?: AvailabilityStatus; activeJobCount?: number }>();
+      await Promise.all(uniqueIds.map(async (uid) => {
+        try {
+          const [profile, activeCount] = await Promise.all([
+            getUserProfile(uid),
+            getActiveJobCount(uid),
+          ]);
+          if (profile) {
+            const stats = profile.stats || { completedJobs: 0, totalEarnings: 0, avgRating: 0, ratingCount: 0, onTimeRate: 0, currentMonthEarnings: 0 };
+            const trust = calculateTrustScore(stats);
+            enrichMap.set(uid, {
+              trustBadge: trust.badge,
+              trustScore: trust.totalScore,
+              availability: profile.availability,
+              activeJobCount: activeCount,
+            });
+          }
+        } catch { /* skip */ }
+      }));
+      setApps(prev => prev.map(a => {
+        const enrich = enrichMap.get(a.candidateId);
+        return enrich ? { ...a, ...enrich } : a;
+      }));
     };
     fetchApps().catch(() => setLoading(false));
   }, [userProfile?.uid]);
@@ -158,11 +194,16 @@ export default function ApplicationsPage() {
                   <h3 className={styles.cName}>{app.candidateName}</h3>
                   <div className={styles.cTags}>
                     <LevelBadge level={app.candidateLevel as 'L1' | 'L2' | 'L3' | 'L4' | 'L5'} />
+                    {app.trustBadge && <TrustBadge badge={app.trustBadge} score={app.trustScore} size="sm" showTooltip={false} />}
+                    {app.availability && <AvailabilityBadge status={app.availability} size="sm" />}
                   </div>
                   {app.candidateId && (
-                    <Link href={`/admin/users/${app.candidateId}`} className={styles.viewProfileBtn}>
+                    <Link href={`/jobmaster/freelancers/${app.candidateId}`} className={styles.viewProfileBtn}>
                       Xem hồ sơ kỹ năng <ArrowUpRight size={14}/>
                     </Link>
+                  )}
+                  {app.activeJobCount !== undefined && app.activeJobCount >= 3 && (
+                    <ActiveJobWarning count={app.activeJobCount} threshold={3} variant="applicant" />
                   )}
                 </div>
               </div>

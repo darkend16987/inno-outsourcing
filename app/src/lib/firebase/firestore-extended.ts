@@ -971,3 +971,50 @@ export const hasUserReviewedJob = async (
   const snap = await getDocs(q);
   return !snap.empty;
 };
+
+/**
+ * Count active jobs for a freelancer (assigned, in_progress, review)
+ */
+export const getActiveJobCount = async (freelancerId: string): Promise<number> => {
+  if (!db) return 0;
+  const q = query(
+    collection(db, 'jobs'),
+    where('assignedTo', '==', freelancerId),
+    where('status', 'in', ['assigned', 'in_progress', 'review']),
+  );
+  const snap = await getDocs(q);
+  return snap.size;
+};
+
+// =====================
+// JOB INVITATIONS — Types & getInvitationsForJob
+// =====================
+
+export interface JobInvitation {
+  id: string;
+  jobId: string;
+  jobTitle?: string;
+  freelancerId: string;
+  freelancerName?: string;
+  jobmasterId?: string;
+  invitedBy?: string;
+  invitedByName?: string;
+  message?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: unknown;
+  respondedAt?: unknown;
+}
+
+/**
+ * Get invitations sent by a jobmaster for a specific job
+ */
+export const getInvitationsForJob = async (jobId: string): Promise<JobInvitation[]> => {
+  if (!db) return [];
+  const q = query(
+    collection(db, 'invitations'),
+    where('jobId', '==', jobId),
+    orderBy('createdAt', 'desc'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as JobInvitation));
+};

@@ -6,10 +6,13 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal, Clock, ArrowRight, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge } from '@/components/ui';
+import { SaveButton } from '@/components/ui/SaveButton';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { JOB_CATEGORIES, JOB_LEVELS } from '@/types';
 import { getConfigItems, type SystemConfigItem } from '@/lib/firebase/system-config';
 import { formatFriendlyMoney } from '@/lib/formatters';
 import { getJobUrl } from '@/lib/seo/slug';
+import { toggleSavedJob, getSavedJobs } from '@/lib/firebase/firestore-extended';
 import styles from './page.module.css';
 
 import { getJobs } from '@/lib/firebase/firestore';
@@ -49,6 +52,7 @@ function getJobDuration(job: Record<string, unknown>): string {
 
 function JobsPageContent() {
   const searchParams = useSearchParams();
+  const { userProfile } = useAuth();
   const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [catFilter, setCatFilter] = useState<string>(() => searchParams.get('category') || 'all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
@@ -59,6 +63,7 @@ function JobsPageContent() {
   const [durationMax, setDurationMax] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [jobs, setJobs] = useState<any[]>([]);
@@ -66,6 +71,13 @@ function JobsPageContent() {
   // Dynamic config-driven filters (with hardcoded fallbacks)
   const [categories, setCategories] = useState<string[]>(JOB_CATEGORIES);
   const [levels, setLevels] = useState<string[]>(JOB_LEVELS);
+
+  // Load saved jobs for logged-in freelancer
+  useEffect(() => {
+    if (userProfile?.uid && userProfile.role === 'freelancer') {
+      getSavedJobs(userProfile.uid).then(setSavedJobIds).catch(() => {});
+    }
+  }, [userProfile?.uid, userProfile?.role]);
 
   useEffect(() => {
     async function fetchJobs() {
@@ -296,6 +308,17 @@ function JobsPageContent() {
                         <p className={styles.jobDesc}>{getJobDescription(job)}</p>
                       </div>
                       <div className={styles.jobRight}>
+                        {userProfile?.role === 'freelancer' && (
+                          <SaveButton
+                            isSaved={savedJobIds.includes(job.id)}
+                            onToggle={async (save) => {
+                              if (!userProfile?.uid) return;
+                              await toggleSavedJob(userProfile.uid, job.id, save);
+                              setSavedJobIds(prev => save ? [...prev, job.id] : prev.filter(id => id !== job.id));
+                            }}
+                            size="sm"
+                          />
+                        )}
                         <span className={styles.jobFee}>{formatFriendlyMoney(getJobFee(job))}</span>
                         <span className={styles.jobDuration}><Clock size={13} /> {getJobDuration(job)}</span>
                         <span className={styles.jobCta}>Xem chi tiết <ArrowRight size={14} /></span>

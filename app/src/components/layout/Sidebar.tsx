@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet, Activity, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet, Activity, MessageSquare, Mail } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './Sidebar.module.css';
@@ -16,6 +16,7 @@ const NAV_CONFIG = {
   freelancer: [
     { label: 'Tổng quan', href: '/freelancer', icon: LayoutDashboard },
     { label: 'Việc của tôi', href: '/freelancer/jobs', icon: Briefcase },
+    { label: 'Lời mời', href: '/freelancer/invitations', icon: Mail },
     { label: 'Hợp đồng', href: '/freelancer/contracts', icon: FileSignature },
     { label: 'Hồ sơ năng lực', href: '/freelancer/profile', icon: User },
   ],

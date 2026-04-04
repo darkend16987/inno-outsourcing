@@ -9,3 +9,5 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { TrustBadge } from './TrustBadge';
 export { AvailabilityBadge } from './AvailabilityBadge';
 export { MatchBadge, MatchScoreBar } from './MatchBadge';
+export { SaveButton } from './SaveButton';
+export { ActiveJobWarning } from './ActiveJobWarning';
