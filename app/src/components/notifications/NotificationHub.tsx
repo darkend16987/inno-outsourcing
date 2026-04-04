@@ -55,6 +55,8 @@ const TYPE_TO_GROUP: Record<NotificationType, NotificationGroup> = {
   escrow_locked: 'payment',
   escrow_released: 'payment',
   badge_earned: 'system',
+  contract_deadline_warning: 'system',
+  contract_submitted: 'system',
 };
 
 const GROUP_CONFIG: Record<NotificationGroup, {
