@@ -285,8 +285,15 @@ export const onCreateContractPDF = onDocumentCreated(
         try {
           const finalBuffer = Buffer.concat(buffers);
           const file = bucket.file(filePath);
-          await file.save(finalBuffer, { metadata: { contentType: 'application/pdf' } });
-          const pdfURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+          const dlToken = crypto.randomUUID();
+          await file.save(finalBuffer, {
+            metadata: {
+              contentType: 'application/pdf',
+              metadata: { firebaseStorageDownloadTokens: dlToken },
+            },
+          });
+          const encodedPath = encodeURIComponent(filePath);
+          const pdfURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${dlToken}`;
           await snap.ref.update({ pdfURL });
           resolve();
         } catch (err) { reject(err); }
@@ -929,8 +936,15 @@ export const generateInvoicePDF = onCall(async (request) => {
       try {
         const finalBuffer = Buffer.concat(buffers);
         const file = bucket.file(filePath);
-        await file.save(finalBuffer, { metadata: { contentType: 'application/pdf' } });
-        const pdfURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        const dlToken = crypto.randomUUID();
+        await file.save(finalBuffer, {
+          metadata: {
+            contentType: 'application/pdf',
+            metadata: { firebaseStorageDownloadTokens: dlToken },
+          },
+        });
+        const encodedPath = encodeURIComponent(filePath);
+        const pdfURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${dlToken}`;
         await invoiceSnap.ref.update({ pdfURL });
         resolve({ pdfURL });
       } catch (err) { reject(err); }
