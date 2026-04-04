@@ -145,17 +145,26 @@ export default function ContractSignPage() {
 
     setSaving(true);
     setError('');
-    try {
-      // 1. Upload signature PNG
-      let signatureURL = '';
-      if (signatureDataUrl) {
+
+    // Step 1: Upload signature PNG
+    let signatureURL = '';
+    if (signatureDataUrl) {
+      try {
         const blob = await (await fetch(signatureDataUrl)).blob();
         const sigRef = storageRef(storage, `signatures/${userProfile.uid}/${id}.png`);
         await uploadBytes(sigRef, blob, { contentType: 'image/png' });
         signatureURL = await getDownloadURL(sigRef);
+      } catch (err: unknown) {
+        const e = err as { code?: string; message?: string };
+        console.error('[Step 1 - Upload signature]', err);
+        setError(`Lỗi upload chữ ký (${e?.code || e?.message || 'unknown'})`);
+        setSaving(false);
+        return;
       }
+    }
 
-      // 2. Update contract document
+    // Step 2: Update contract document
+    try {
       const contractRef = doc(db, 'contracts', id);
       await updateDoc(contractRef, {
         'partyB.name': sanitizeText(form.name, 200),
@@ -173,19 +182,18 @@ export default function ContractSignPage() {
         submittedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-
-      // NOTE: Notifications are sent automatically by the Cloud Function
-      // `onContractSubmitted` which triggers when contract status → 'active'.
-      // No need to create notifications from the client side.
-
-      setSuccess(true);
-      setTimeout(() => router.push('/freelancer/contracts'), 2500);
-    } catch (err) {
-      console.error('Contract submit error:', err);
-      setError('Gửi hợp đồng thất bại. Vui lòng thử lại.');
-    } finally {
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      console.error('[Step 2 - Update contract]', err);
+      setError(`Lỗi cập nhật hợp đồng (${e?.code || e?.message || 'unknown'})`);
       setSaving(false);
+      return;
     }
+
+    // NOTE: Notifications are sent automatically by Cloud Function `onContractSubmitted`.
+    setSaving(false);
+    setSuccess(true);
+    setTimeout(() => router.push('/freelancer/contracts'), 2500);
   };
 
   if (loading) {
