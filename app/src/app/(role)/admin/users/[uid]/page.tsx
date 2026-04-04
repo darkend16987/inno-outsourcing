@@ -183,6 +183,12 @@ export default function AdminUserDetailPage() {
                 : <Badge variant="success">Hoạt động</Badge>
               }
             </div>
+            {(user.nickname || user.organization) && (
+              <div className={styles.metaRow} style={{ marginBottom: 4 }}>
+                {user.nickname && <span style={{ fontStyle: 'italic', color: 'var(--color-primary, #6c47ff)' }}>@{user.nickname}</span>}
+                {user.organization && <span>🏢 {user.organization}</span>}
+              </div>
+            )}
             <div className={styles.metaRow}>
               <span><Mail size={14} /> {user.email || '-'}</span>
               <span><Phone size={14} /> {user.phone || '-'}</span>
@@ -286,6 +292,20 @@ export default function AdminUserDetailPage() {
                 <label>Kinh nghiệm</label>
                 <span>{user.yearsOfExperience ? `${user.yearsOfExperience} năm` : '-'}</span>
               </div>
+
+              {user.nickname && (
+                <div className={styles.field}>
+                  <label>Biệt danh (hiển thị công khai)</label>
+                  <span style={{ fontStyle: 'italic', color: 'var(--color-primary, #6c47ff)' }}>@{user.nickname}</span>
+                </div>
+              )}
+
+              {user.organization && (
+                <div className={styles.field}>
+                  <label>Tổ chức / Công ty</label>
+                  <span>{user.organization}</span>
+                </div>
+              )}
             </div>
 
             <div className={styles.field} style={{ marginTop: '16px' }}>
@@ -388,6 +408,29 @@ export default function AdminUserDetailPage() {
                 <label><MapPin size={14} /> Địa chỉ</label>
                 <span>{user.address || '-'}</span>
               </div>
+              {user.idCardImages && user.idCardImages.length > 0 && (
+                <div className={styles.field} style={{ marginTop: '12px' }}>
+                  <label>Ảnh CCCD</label>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+                    {user.idCardImages[0] && (
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #666)', marginBottom: 4 }}>Mặt trước</div>
+                        <a href={user.idCardImages[0]} target="_blank" rel="noopener noreferrer">
+                          <img src={user.idCardImages[0]} alt="CCCD mặt trước" style={{ width: 180, height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', cursor: 'pointer' }} />
+                        </a>
+                      </div>
+                    )}
+                    {user.idCardImages[1] && (
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #666)', marginBottom: 4 }}>Mặt sau</div>
+                        <a href={user.idCardImages[1]} target="_blank" rel="noopener noreferrer">
+                          <img src={user.idCardImages[1]} alt="CCCD mặt sau" style={{ width: 180, height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', cursor: 'pointer' }} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </Card>
 
             <Card className={styles.infoCard}>
@@ -422,15 +465,17 @@ export default function AdminUserDetailPage() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {certs.map((cert, i) => (
-                      <div key={i} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', background: 'var(--color-bg, #fff)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-charcoal, #1a1a2e)' }}>{cert.name}</div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #666)', marginTop: 4 }}>
-                            {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy} | </span>}
-                            {cert.issuedDate && <span>Ngày: {cert.issuedDate} | </span>}
-                            {cert.expiryDate && <span>Hết hạn: {cert.expiryDate}</span>}
+                      <div key={i} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border, #e2e8f0)', background: 'var(--color-bg, #fff)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-charcoal, #1a1a2e)' }}>{cert.name}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #666)', marginTop: 4 }}>
+                              {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy} | </span>}
+                              {cert.issuedDate && <span>Ngày: {cert.issuedDate} | </span>}
+                              {cert.expiryDate && <span>Hết hạn: {cert.expiryDate}</span>}
+                            </div>
                           </div>
-                        </div>
+                          <div>
                         {editing && (!cert.status || cert.status === 'pending') && (
                           <div style={{ display: 'flex', gap: 6 }}>
                             <Button size="sm" variant="success" onClick={() => {
@@ -449,6 +494,15 @@ export default function AdminUserDetailPage() {
                           <Badge variant={cert.status === 'verified' ? 'success' : cert.status === 'rejected' ? 'error' : 'warning'}>
                             {cert.status === 'verified' ? 'Đã xác minh' : cert.status === 'rejected' ? 'Từ chối' : 'Chờ xác minh'}
                           </Badge>
+                        )}
+                          </div>
+                        </div>
+                        {cert.imageUrl && (
+                          <div style={{ marginTop: 8 }}>
+                            <a href={cert.imageUrl} target="_blank" rel="noopener noreferrer">
+                              <img src={cert.imageUrl} alt={`Ảnh chứng chỉ ${cert.name}`} style={{ maxWidth: 200, maxHeight: 130, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--color-border, #e2e8f0)', cursor: 'pointer' }} />
+                            </a>
+                          </div>
                         )}
                       </div>
                     ))}

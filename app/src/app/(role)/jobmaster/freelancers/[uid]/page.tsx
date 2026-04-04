@@ -107,6 +107,12 @@ export default function FreelancerProfilePage() {
               <h1 className={styles.userName}>{user.displayName || 'Freelancer'}</h1>
               <LevelBadge level={user.currentLevel || 'L1'} />
             </div>
+            {(user.nickname || user.organization) && (
+              <div className={styles.metaRow} style={{ marginBottom: 4 }}>
+                {user.nickname && <span style={{ fontStyle: 'italic', color: 'var(--color-primary, #6c47ff)' }}>@{user.nickname}</span>}
+                {user.organization && <span>🏢 {user.organization}</span>}
+              </div>
+            )}
             <div className={styles.metaRow}>
               <TrustBadge badge={trustResult.badge} score={trustResult.totalScore} size="sm" showTooltip />
               {user.availability && <AvailabilityBadge status={user.availability} size="sm" showLabel />}
@@ -286,12 +292,23 @@ export default function FreelancerProfilePage() {
             <div className={styles.certList}>
               {user.certificates.map((cert, i) => (
                 <div key={i} className={styles.certItem}>
-                  <div className={styles.certName}>{cert.name}</div>
-                  <div className={styles.certMeta}>
-                    {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy}</span>}
-                    {cert.issuedDate && <span>Ngày: {cert.issuedDate}</span>}
-                    {cert.status === 'verified' && <Badge variant="success" size="sm">Đã xác minh</Badge>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div className={styles.certName}>{cert.name}</div>
+                      <div className={styles.certMeta}>
+                        {cert.issuedBy && <span>Cấp bởi: {cert.issuedBy}</span>}
+                        {cert.issuedDate && <span>Ngày: {cert.issuedDate}</span>}
+                        {cert.status === 'verified' && <Badge variant="success" size="sm">Đã xác minh</Badge>}
+                      </div>
+                    </div>
                   </div>
+                  {cert.imageUrl && (
+                    <div style={{ marginTop: 8 }}>
+                      <a href={cert.imageUrl} target="_blank" rel="noopener noreferrer">
+                        <img src={cert.imageUrl} alt={`Ảnh chứng chỉ ${cert.name}`} style={{ maxWidth: 200, maxHeight: 130, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--color-border, #e2e8f0)', cursor: 'pointer' }} />
+                      </a>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
