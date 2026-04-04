@@ -102,6 +102,26 @@ service firebase.storage {
     }
 
     // =====================
+    // SYSTEM CONFIG ASSETS (specialties icons, etc.) — Admin only write
+    // =====================
+    match /system-config/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && isWithinSizeLimit()
+                   && isAllowedImageType();
+    }
+
+    // =====================
+    // AVATARS
+    // =====================
+    match /avatars/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner(uid)
+                   && isWithinSizeLimit()
+                   && isAllowedImageType();
+    }
+
+    // =====================
     // DENY ALL OTHER PATHS
     // =====================
     match /{allPaths=**} {
