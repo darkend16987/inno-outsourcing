@@ -24,15 +24,57 @@
 
 .tasksCard { padding: var(--space-6); background: var(--color-surface); }
 .milestones { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
-.milestone { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); border: 1.5px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); opacity: 0.7; }
+.milestone {
+  display: flex; flex-direction: column; gap: 0;
+  padding: var(--space-4); border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md); background: var(--color-bg); opacity: 0.7;
+  transition: all 0.2s;
+}
 .mActive { opacity: 1; border-color: var(--color-primary); background: var(--color-surface); }
+.mRejected { border-color: var(--color-error, #ef4444); background: var(--color-surface); }
+
+/* Milestone header row */
+.msHeader { display: flex; justify-content: space-between; align-items: center; }
 .mLeft { display: flex; align-items: center; gap: var(--space-4); }
 .mNum { width: 32px; height: 32px; border-radius: 50%; background: var(--color-charcoal); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .mActive .mNum { background: var(--color-primary); }
+.mRejected .mNum { background: var(--color-error, #ef4444); }
 .mInfo { display: flex; flex-direction: column; gap: 2px; }
 .mName { font-size: 15px; font-weight: 600; color: var(--color-text); }
 .mSub { font-size: 13px; color: var(--color-text-muted); }
+.mBadge { flex-shrink: 0; }
 .mPending { font-size: 13px; color: var(--color-text-light); font-style: italic; }
+
+/* Rejection alert */
+.rejectionAlert {
+  display: flex; gap: var(--space-3); align-items: flex-start;
+  margin-top: var(--space-3); padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--color-error, #ef4444) 8%, transparent);
+  border-left: 3px solid var(--color-error, #ef4444);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.rejectionIcon { color: var(--color-error, #ef4444); flex-shrink: 0; margin-top: 2px; }
+.rejectionBody { display: flex; flex-direction: column; gap: 4px; }
+.rejectionLabel { font-size: 13px; font-weight: 700; color: var(--color-error, #ef4444); }
+.rejectionReason { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-text-secondary, #555); }
+.rejectionReviewer { font-size: 11px; color: var(--color-text-muted); }
+
+/* Submission detail block */
+.submissionDetail {
+  margin-top: var(--space-3); padding: var(--space-3) var(--space-4);
+  background: var(--color-bg, #f8f9fa); border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+.subDetailHeader { font-size: 12px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--space-2); }
+.subNote { margin: 0 0 6px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
+.subLinks { display: flex; flex-direction: column; gap: 3px; }
+.subLink { font-size: 13px; color: var(--color-primary); word-break: break-all; text-decoration: none; }
+.subLink:hover { text-decoration: underline; }
+.subTime { font-size: 11px; color: var(--color-text-muted); margin-top: 6px; display: block; }
+
+/* Action button area */
+.msAction { margin-top: var(--space-3); display: flex; justify-content: flex-end; }
+
 
 .filesCard { padding: var(--space-6); background: var(--color-surface); }
 .fileItem { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); border: 1.5px solid var(--color-border); border-radius: var(--radius-md); margin-top: var(--space-4); }
@@ -117,7 +159,7 @@
 }
 @media (max-width: 768px) {
   .meta { flex-direction: column; gap: var(--space-2); }
-  .milestone { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
-  .mRight { width: 100%; }
-  .mRight button { width: 100%; }
+  .msHeader { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+  .msAction { justify-content: stretch; }
+  .msAction button { width: 100%; }
 }

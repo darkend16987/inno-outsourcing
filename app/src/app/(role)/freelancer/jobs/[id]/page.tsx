@@ -238,69 +238,79 @@ export default function FreelancerJobDetail() {
                 const hasApprovedSub = latestSub?.status === 'approved';
 
                 return (
-                  <div key={ms.id || index} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''} ${ms.status === 'review' ? styles.mReview : ''}`}>
-                    <div className={styles.mLeft}>
-                      <div className={styles.mNum}>{index + 1}</div>
-                      <div className={styles.mInfo}>
-                        <div className={styles.mName}>{ms.name}</div>
-                        <div className={styles.mSub}>{ms.percentage}% • {formatCurrency(ms.amount)}</div>
+                  <div key={ms.id || index} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''} ${ms.status === 'review' ? styles.mReview : ''} ${hasRejectedSub && ms.status === 'in_progress' ? styles.mRejected : ''}`}>
+                    {/* Row 1: Header — number, name, status badge */}
+                    <div className={styles.msHeader}>
+                      <div className={styles.mLeft}>
+                        <div className={styles.mNum}>{index + 1}</div>
+                        <div className={styles.mInfo}>
+                          <div className={styles.mName}>{ms.name}</div>
+                          <div className={styles.mSub}>{ms.percentage}% • {formatCurrency(ms.amount)}</div>
+                        </div>
+                      </div>
+                      <div className={styles.mBadge}>
+                        {ms.status === 'in_progress' ? (
+                          hasPendingSub ? (
+                            <Badge variant="info"><Clock size={12}/> Đã nộp — chờ duyệt</Badge>
+                          ) : hasRejectedSub ? (
+                            <Badge variant="error"><AlertTriangle size={12}/> Yêu cầu sửa đổi</Badge>
+                          ) : (
+                            <Badge variant="default">Đang thực hiện</Badge>
+                          )
+                        ) : ms.status === 'review' ? (
+                          <Badge variant="info">Đang chờ nghiệm thu</Badge>
+                        ) : ms.status === 'completed' || ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved' ? (
+                          <Badge variant="success"><CheckCircle2 size={12}/> Hoàn thành</Badge>
+                        ) : (
+                          <Badge variant="default">Chưa bắt đầu</Badge>
+                        )}
                       </div>
                     </div>
-                    <div className={styles.mRight}>
-                      {ms.status === 'in_progress' ? (
-                        <>
-                          {/* Show submission status if exists */}
-                          {hasPendingSub ? (
-                            <Badge variant="info"><Clock size={12}/> Đã nộp — đang chờ duyệt</Badge>
-                          ) : hasRejectedSub ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
-                              <Badge variant="error"><AlertTriangle size={12}/> Chưa đạt</Badge>
-                              <div style={{ fontSize: '12px', color: 'var(--color-error, #ef4444)', maxWidth: '280px', textAlign: 'right' }}>
-                                <strong>Lý do:</strong> {latestSub.rejectionReason || 'Không rõ'}
-                                {latestSub.rejectedByName && (
-                                  <span style={{ color: 'var(--color-text-muted)' }}> — {latestSub.rejectedByName}</span>
-                                )}
-                              </div>
-                              <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
-                                <RotateCcw size={14}/> Nộp lại
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
-                              <Link2 size={14}/> Nộp kết quả
-                            </Button>
-                          )}
-                        </>
-                      ) : ms.status === 'review' ? (
-                        <Badge variant="info">Đang chờ nghiệm thu</Badge>
-                      ) : ms.status === 'completed' || ms.status === 'released' || ms.status === 'paid' || ms.status === 'approved' ? (
-                        <Badge variant="success"><CheckCircle2 size={12}/> Hoàn thành</Badge>
-                      ) : (
-                        /* pending / locked / not started */
-                        <Badge variant="default">Chưa bắt đầu</Badge>
-                      )}
-                    </div>
 
-                    {/* Show latest submission details inline */}
+                    {/* Row 2: Rejection alert (only when rejected) */}
+                    {hasRejectedSub && ms.status === 'in_progress' && (
+                      <div className={styles.rejectionAlert}>
+                        <div className={styles.rejectionIcon}><AlertTriangle size={16}/></div>
+                        <div className={styles.rejectionBody}>
+                          <strong className={styles.rejectionLabel}>Lý do yêu cầu sửa đổi:</strong>
+                          <p className={styles.rejectionReason}>{latestSub.rejectionReason || 'Không có lý do cụ thể'}</p>
+                          {latestSub.rejectedByName && (
+                            <span className={styles.rejectionReviewer}>Đánh giá bởi: {latestSub.rejectedByName}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row 3: Previous submission details */}
                     {latestSub && (ms.status === 'in_progress' || ms.status === 'review') && (
-                      <div style={{ width: '100%', marginTop: '10px', padding: '10px 12px', background: 'var(--color-surface, #f8f9fa)', borderRadius: '8px', fontSize: '13px' }}>
+                      <div className={styles.submissionDetail}>
+                        <div className={styles.subDetailHeader}>Nội dung đã nộp</div>
                         {latestSub.note && (
-                          <p style={{ margin: '0 0 6px', color: 'var(--color-text-secondary)' }}>
+                          <p className={styles.subNote}>
                             <strong>Ghi chú:</strong> {latestSub.note}
                           </p>
                         )}
                         {latestSub.links.filter(Boolean).length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div className={styles.subLinks}>
                             {latestSub.links.filter(Boolean).map((link, li) => (
-                              <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                              <a key={li} href={link} target="_blank" rel="noopener noreferrer" className={styles.subLink}>
                                 📎 {link}
                               </a>
                             ))}
                           </div>
                         )}
-                        <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        <span className={styles.subTime}>
                           Gửi lúc: {latestSub.submittedAt instanceof Date ? latestSub.submittedAt.toLocaleString('vi-VN') : new Date(latestSub.submittedAt).toLocaleString('vi-VN')}
-                        </p>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Row 4: Action button */}
+                    {ms.status === 'in_progress' && !hasPendingSub && (
+                      <div className={styles.msAction}>
+                        <Button size="sm" onClick={() => handleSubmitClick(ms.id)}>
+                          {hasRejectedSub ? <><RotateCcw size={14}/> Nộp lại kết quả</> : <><Link2 size={14}/> Nộp kết quả</>}
+                        </Button>
                       </div>
                     )}
                   </div>
