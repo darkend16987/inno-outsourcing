@@ -34,6 +34,7 @@ export interface UserProfile {
 
   // KYC
   kycCompleted: boolean;
+  dateOfBirth?: string;     // ISO date string YYYY-MM-DD
   idNumber: string;
   idIssuedDate: string;
   idIssuedPlace: string;

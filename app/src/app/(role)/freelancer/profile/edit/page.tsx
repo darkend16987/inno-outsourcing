@@ -128,6 +128,7 @@ export default function ProfileEditPage() {
     educationSchool: profile?.educationSchool || '',
     educationYear: profile?.educationYear || '',
     educationMajor: profile?.educationMajor || '',
+    dateOfBirth: profile?.dateOfBirth || '',
     idNumber: profile?.idNumber || '',
     idIssuedDate: profile?.idIssuedDate || '',
     idIssuedPlace: profile?.idIssuedPlace || '',
@@ -321,6 +322,7 @@ export default function ProfileEditPage() {
         educationSchool: form.educationSchool || undefined,
         educationYear: form.educationYear || undefined,
         educationMajor: form.educationMajor || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
         idNumber: form.idNumber || undefined,
         idIssuedDate: form.idIssuedDate || undefined,
         idIssuedPlace: form.idIssuedPlace || undefined,
@@ -437,9 +439,13 @@ export default function ProfileEditPage() {
                 <input type="text" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="0901 234 567" />
               </div>
               <div className={styles.field}>
-                <label>Địa chỉ</label>
-                <input type="text" value={form.address} onChange={e => updateField('address', e.target.value)} placeholder="Quận 7, TP. Hồ Chí Minh" />
+                <label>Ngày sinh</label>
+                <input type="date" value={form.dateOfBirth} onChange={e => updateField('dateOfBirth', e.target.value)} max={new Date().toISOString().split('T')[0]} />
               </div>
+            </div>
+            <div className={styles.field}>
+              <label>Địa chỉ</label>
+              <input type="text" value={form.address} onChange={e => updateField('address', e.target.value)} placeholder="Quận 7, TP. Hồ Chí Minh" />
             </div>
             <div className={styles.field}>
               <label>Giới thiệu bản thân</label>

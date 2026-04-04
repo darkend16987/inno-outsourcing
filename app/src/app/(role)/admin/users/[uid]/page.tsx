@@ -289,6 +289,11 @@ export default function AdminUserDetailPage() {
               </div>
 
               <div className={styles.field}>
+                <label>Ngày sinh</label>
+                <span>{user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('vi-VN') : '-'}</span>
+              </div>
+
+              <div className={styles.field}>
                 <label>Kinh nghiệm</label>
                 <span>{user.yearsOfExperience ? `${user.yearsOfExperience} năm` : '-'}</span>
               </div>

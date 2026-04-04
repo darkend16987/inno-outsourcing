@@ -121,7 +121,7 @@ export default function ContractSignPage() {
       const p = userProfile;
       setForm({
         name: c.partyB?.name || p?.displayName || '',
-        dateOfBirth: (c.partyB as { dateOfBirth?: string })?.dateOfBirth || '',
+        dateOfBirth: (c.partyB as { dateOfBirth?: string })?.dateOfBirth || p?.dateOfBirth || '',
         idNumber: c.partyB?.idNumber || p?.idNumber || '',
         phone: (c.partyB as { phone?: string })?.phone || p?.phone || '',
         address: c.partyB?.address || p?.address || '',
