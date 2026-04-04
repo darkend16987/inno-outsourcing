@@ -20,6 +20,9 @@ export declare const onPaymentUpdated: import("firebase-functions/core").CloudFu
 export declare const onContractStatusChange: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
     contractId: string;
 }>>;
+export declare const onContractSubmitted: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
+    contractId: string;
+}>>;
 export declare const scheduledDeadlineCheck: import("firebase-functions/v2/scheduler").ScheduleFunction;
 export declare const scheduledLeaderboard: import("firebase-functions/v2/scheduler").ScheduleFunction;
 export declare const generateInvoicePDF: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
