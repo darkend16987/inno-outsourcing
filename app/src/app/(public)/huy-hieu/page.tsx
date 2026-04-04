@@ -169,7 +169,8 @@ export default function BadgesPage() {
                     ? b.earnedAt.toLocaleDateString('vi-VN')
                     : 'Gần đây';
                   return (
-                    <Card key={b.id} className={styles.myBadgeCard} style={{ '--badge-theme': def.color } as React.CSSProperties}>
+                    <div key={b.id} style={{ '--badge-theme': def.color } as React.CSSProperties}>
+                    <Card className={styles.myBadgeCard}>
                       <div className={styles.myBadgeIconWrap}>
                         {renderIcon(def.icon, def.color)}
                       </div>
@@ -180,6 +181,7 @@ export default function BadgesPage() {
                       </div>
                       <Badge variant="success" size="sm" glow>Đã nhận</Badge>
                     </Card>
+                    </div>
                   );
                 })}
               </div>
