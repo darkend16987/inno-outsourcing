@@ -199,6 +199,22 @@ service cloud.firestore {
     }
 
     // =====================
+    // BANNERS (Admin write, public read for homepage)
+    // =====================
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =====================
+    // TESTIMONIALS (Admin write, public read for homepage)
+    // =====================
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =====================
     // LEADERBOARD (Public read)
     // =====================
     match /leaderboard/{entryId} {
