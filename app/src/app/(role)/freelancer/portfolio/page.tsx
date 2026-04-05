@@ -85,70 +85,73 @@ export default function PortfolioPage() {
 
     const fetchData = async () => {
       try {
-        // 1. Get all applications for this freelancer
-        const apps = await getApplicationsForFreelancer(userProfile.uid);
-        const acceptedApps = apps.filter(a => a.status === 'accepted');
+        // Fetch all data sources in parallel, each independent
+        const [appsResult, reviewsResult, assignedResult] = await Promise.allSettled([
+          getApplicationsForFreelancer(userProfile.uid),
+          getReviewsForUser(userProfile.uid),
+          import('@/lib/firebase/firestore').then(m => m.getJobs({ assignedTo: userProfile.uid }, 100)),
+        ]);
 
-        // 2. Get all reviews for this user
-        const reviews = await getReviewsForUser(userProfile.uid);
+        const apps = appsResult.status === 'fulfilled' ? appsResult.value : [];
+        if (appsResult.status === 'rejected') console.warn('Portfolio: applications fetch failed:', appsResult.reason);
+
+        const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : [];
+        if (reviewsResult.status === 'rejected') console.warn('Portfolio: reviews fetch failed:', reviewsResult.reason);
+
+        const assignedJobs = assignedResult.status === 'fulfilled' ? assignedResult.value.items : [];
+        if (assignedResult.status === 'rejected') console.warn('Portfolio: assigned jobs fetch failed:', assignedResult.reason);
+
+        // Build review lookup
         const reviewsByJobId = new Map<string, Review>();
         for (const r of reviews) {
           reviewsByJobId.set(r.jobId, r);
         }
 
-        // 3. For each accepted application, fetch the job and filter completed/paid
         const portfolioEntries: PortfolioEntry[] = [];
         const addedJobIds = new Set<string>();
 
         // Source A: From accepted applications
-        for (const app of acceptedApps) {
-          try {
-            const job = await getJobById(app.jobId);
-            if (!job) continue;
-            if (job.status !== 'completed' && job.status !== 'paid') continue;
-            if (addedJobIds.has(job.id)) continue;
-            addedJobIds.add(job.id);
+        const acceptedApps = apps.filter(a => a.status === 'accepted');
+        const jobFetches = await Promise.allSettled(
+          acceptedApps.map(app => getJobById(app.jobId))
+        );
+        for (const result of jobFetches) {
+          if (result.status !== 'fulfilled' || !result.value) continue;
+          const job = result.value;
+          if (job.status !== 'completed' && job.status !== 'paid') continue;
+          if (addedJobIds.has(job.id)) continue;
+          addedJobIds.add(job.id);
 
-            portfolioEntries.push({
-              job: {
-                id: job.id,
-                title: job.title,
-                category: job.category,
-                totalFee: job.totalFee,
-                completedAt: formatDate(job.updatedAt || job.deadline),
-                status: job.status,
-              },
-              review: reviewsByJobId.get(job.id) || null,
-            });
-          } catch (err) {
-            console.warn(`Portfolio: failed to fetch job ${app.jobId}:`, err);
-          }
+          portfolioEntries.push({
+            job: {
+              id: job.id,
+              title: job.title,
+              category: job.category,
+              totalFee: job.totalFee,
+              completedAt: formatDate(job.updatedAt || job.deadline),
+              status: job.status,
+            },
+            review: reviewsByJobId.get(job.id) || null,
+          });
         }
 
-        // Source B: Also check jobs directly assigned to this freelancer
-        // (handles edge case where application data may be missing)
-        try {
-          const { getJobs } = await import('@/lib/firebase/firestore');
-          const assignedResult = await getJobs({ assignedTo: userProfile.uid }, 100);
-          for (const job of assignedResult.items) {
-            if (job.status !== 'completed' && job.status !== 'paid') continue;
-            if (addedJobIds.has(job.id)) continue;
-            addedJobIds.add(job.id);
+        // Source B: Jobs directly assigned to this freelancer
+        for (const job of assignedJobs) {
+          if (job.status !== 'completed' && job.status !== 'paid') continue;
+          if (addedJobIds.has(job.id)) continue;
+          addedJobIds.add(job.id);
 
-            portfolioEntries.push({
-              job: {
-                id: job.id,
-                title: job.title,
-                category: job.category,
-                totalFee: job.totalFee,
-                completedAt: formatDate(job.updatedAt || job.deadline),
-                status: job.status,
-              },
-              review: reviewsByJobId.get(job.id) || null,
-            });
-          }
-        } catch (err) {
-          console.warn('Portfolio: failed to fetch assigned jobs:', err);
+          portfolioEntries.push({
+            job: {
+              id: job.id,
+              title: job.title,
+              category: job.category,
+              totalFee: job.totalFee,
+              completedAt: formatDate(job.updatedAt || job.deadline),
+              status: job.status,
+            },
+            review: reviewsByJobId.get(job.id) || null,
+          });
         }
 
         setEntries(portfolioEntries);

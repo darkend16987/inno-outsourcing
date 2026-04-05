@@ -31,16 +31,25 @@ export default function AdminDashboard() {
         if (count > 0) console.log(`[repair] Fixed ${count} orphaned job assignment(s)`);
       }).catch(() => {});
 
-      const [analyticsData, appsResult] = await Promise.all([
+      // Use allSettled so one failure doesn't block the other
+      const [analyticsResult, appsResult] = await Promise.allSettled([
         cache.get('admin:analytics', () => getAnalyticsData(), TTL.SHORT),
         cache.get('admin:apps:pending', () => getAllApplications({ status: 'pending' }, 100), TTL.SHORT),
       ]);
 
-      setAnalytics(analyticsData);
-      setPendingApps(appsResult.items.length);
+      if (analyticsResult.status === 'fulfilled') {
+        setAnalytics(analyticsResult.value);
+      } else {
+        console.error('[AdminDashboard] Analytics fetch failed:', analyticsResult.reason);
+      }
+      if (appsResult.status === 'fulfilled') {
+        setPendingApps(appsResult.value.items.length);
+      } else {
+        console.error('[AdminDashboard] Pending apps fetch failed:', appsResult.reason);
+      }
       setLoading(false);
     };
-    fetchStats().catch(() => setLoading(false));
+    fetchStats().catch((err) => { console.error('[AdminDashboard] fetchStats error:', err); setLoading(false); });
   }, []);
 
   if (loading) {

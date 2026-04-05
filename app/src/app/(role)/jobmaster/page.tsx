@@ -19,16 +19,26 @@ export default function JobMasterDashboard() {
   useEffect(() => {
     if (!userProfile?.uid) return;
     const fetchStats = async () => {
-      const [jobsResult, appsResult] = await Promise.all([
+      // Use allSettled so one failure doesn't block the other
+      const [jobsResult, appsResult] = await Promise.allSettled([
         cache.get(`jm:jobs:${userProfile.uid}`, () => getJobs({ jobMaster: userProfile.uid }, 200), TTL.SHORT),
         cache.get(`jm:apps:${userProfile.uid}`, () => getAllApplications({ status: 'pending' }, 200), TTL.SHORT),
       ]);
-      const managed = jobsResult.items;
+
+      const managed = jobsResult.status === 'fulfilled' ? jobsResult.value.items : [];
+      if (jobsResult.status === 'rejected') {
+        console.error('[JMDashboard] Jobs fetch failed:', jobsResult.reason);
+      }
       setMyJobs(managed);
-      setPendingApps(appsResult.items.filter(a => managed.some(j => j.id === a.jobId)).length);
+
+      if (appsResult.status === 'fulfilled') {
+        setPendingApps(appsResult.value.items.filter(a => managed.some(j => j.id === a.jobId)).length);
+      } else {
+        console.error('[JMDashboard] Apps fetch failed:', appsResult.reason);
+      }
       setLoading(false);
     };
-    fetchStats().catch(() => setLoading(false));
+    fetchStats().catch((err) => { console.error('[JMDashboard] fetchStats error:', err); setLoading(false); });
   }, [userProfile?.uid]);
 
   if (authLoading || loading) {
