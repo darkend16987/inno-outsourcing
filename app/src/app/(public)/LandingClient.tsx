@@ -8,26 +8,38 @@ import {
   ArrowRight, Search, Zap, Ruler,
   Shield, Clock, Star, ChevronRight, Flame,
   Sparkles, Quote, Building2, Cable, FileSpreadsheet, Eye,
-  Activity
+  Activity, type LucideIcon, Layers,
 } from 'lucide-react';
 import { Button, Badge, Card, Avatar, LevelBadge } from '@/components/ui';
 import { formatFriendlyMoney } from '@/lib/formatters';
 import { getJobs, getLeaderboard } from '@/lib/firebase/firestore';
-import { getTestimonials, type TestimonialItem } from '@/lib/firebase/system-config';
+import { getTestimonials, getConfigItems, type TestimonialItem, type SystemConfigItem } from '@/lib/firebase/system-config';
 import type { LeaderboardEntry, Job } from '@/types';
 import { getJobUrl } from '@/lib/seo/slug';
 import styles from './page.module.css';
 
-// Category icons using distinct Lucide icons with playful colors
-const CATEGORIES = [
-  { name: 'Kiến trúc', icon: Building2, color: '#0d7c66', emoji: '🏛️' },
-  { name: 'Kết cấu', icon: Shield, color: '#6c5ce7', emoji: '🏗️' },
-  { name: 'MEP', icon: Cable, color: '#f49d25', emoji: '⚡' },
-  { name: 'BIM', icon: Sparkles, color: '#c93b28', emoji: '🧊' },
-  { name: 'Dự toán', icon: FileSpreadsheet, color: '#1a8a3e', emoji: '📊' },
-  { name: 'Giám sát', icon: Eye, color: '#c47a0a', emoji: '👁️' },
-  { name: 'Thẩm tra', icon: Ruler, color: '#d63384', emoji: '📐' },
-];
+// Icon + emoji map by specialty id or label (fallback for dynamic specialties)
+const ICON_MAP: Record<string, { icon: LucideIcon; emoji: string }> = {
+  'Kiến trúc':  { icon: Building2, emoji: '🏛️' },
+  'kien_truc':  { icon: Building2, emoji: '🏛️' },
+  'Kết cấu':    { icon: Shield, emoji: '🏗️' },
+  'ket_cau':    { icon: Shield, emoji: '🏗️' },
+  'MEP':        { icon: Cable, emoji: '⚡' },
+  'mep':        { icon: Cable, emoji: '⚡' },
+  'BIM':        { icon: Sparkles, emoji: '🧊' },
+  'bim':        { icon: Sparkles, emoji: '🧊' },
+  'Dự toán':    { icon: FileSpreadsheet, emoji: '📊' },
+  'du_toan':    { icon: FileSpreadsheet, emoji: '📊' },
+  'Giám sát':   { icon: Eye, emoji: '👁️' },
+  'giam_sat':   { icon: Eye, emoji: '👁️' },
+  'Thẩm tra':   { icon: Ruler, emoji: '📐' },
+  'tham_tra':   { icon: Ruler, emoji: '📐' },
+};
+const DEFAULT_ICON = { icon: Layers, emoji: '🔧' };
+
+function getIconForSpecialty(item: SystemConfigItem) {
+  return ICON_MAP[item.label] || ICON_MAP[item.id] || DEFAULT_ICON;
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -46,6 +58,7 @@ function getJobDuration(job: Job): string {
 export default function LandingClient() {
   const [jobTab, setJobTab] = useState<'latest' | 'hot'>('latest');
   const [liveJobs, setLiveJobs] = useState<Job[]>([]);
+  const [specialties, setSpecialties] = useState<SystemConfigItem[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [topWorkers, setTopWorkers] = useState<LeaderboardEntry[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
@@ -58,17 +71,19 @@ export default function LandingClient() {
     const fetchData = async () => {
       try {
         // Fetch open jobs for listing AND all jobs for stats
-        const [openJobResult, allJobResult, testResult, leaderboardResult] = await Promise.allSettled([
+        const [openJobResult, allJobResult, testResult, leaderboardResult, specialtiesResult] = await Promise.allSettled([
           getJobs({ status: 'open' }),
           getJobs({}, 200),  // All jobs for stats
           getTestimonials(),
           getLeaderboard(),
+          getConfigItems('specialties'),
         ]);
 
         const openJobs = openJobResult.status === 'fulfilled' ? (openJobResult.value.items || []) : [];
         const allJobs = allJobResult.status === 'fulfilled' ? (allJobResult.value.items || []) : [];
         const testRes = testResult.status === 'fulfilled' ? testResult.value : [];
         const leaderboardRes = leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [];
+        const specialtiesRes = specialtiesResult.status === 'fulfilled' ? specialtiesResult.value : [];
 
         if (openJobResult.status === 'rejected') console.warn('Landing: getJobs(open) failed:', openJobResult.reason);
         if (allJobResult.status === 'rejected') console.warn('Landing: getJobs(all) failed:', allJobResult.reason);
@@ -76,6 +91,7 @@ export default function LandingClient() {
         if (leaderboardResult.status === 'rejected') console.warn('Landing: getLeaderboard failed:', leaderboardResult.reason);
 
         setLiveJobs(openJobs);
+        setSpecialties(specialtiesRes.filter(s => s.isActive).sort((a, b) => a.order - b.order));
         setTestimonials(testRes.filter(t => t.isActive));
         setTopWorkers(leaderboardRes.slice(0, 4));
 
@@ -243,21 +259,25 @@ export default function LandingClient() {
             </div>
           </div>
           <div className={styles.catGrid}>
-            {CATEGORIES.map((cat, i) => (
-              <motion.div key={cat.name} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
-                <Link href={`/jobs?category=${encodeURIComponent(cat.name)}`} style={{ textDecoration: 'none' }}>
+            {specialties.map((spec, i) => {
+              const { icon: Icon, emoji } = getIconForSpecialty(spec);
+              const color = spec.color || '#6c5ce7';
+              return (
+              <motion.div key={spec.id} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
+                <Link href={`/jobs?category=${encodeURIComponent(spec.label)}`} style={{ textDecoration: 'none' }}>
                   <Card hover className={styles.catCard}>
-                    <div className={styles.catIcon} style={{ background: `${cat.color}15`, color: cat.color }}>
-                      <span className={styles.catEmoji}>{cat.emoji}</span>
-                      <cat.icon size={20} />
+                    <div className={styles.catIcon} style={{ background: `${color}15`, color }}>
+                      <span className={styles.catEmoji}>{emoji}</span>
+                      <Icon size={20} />
                     </div>
-                    <h3 className={styles.catName}>{cat.name}</h3>
-                    <span className={styles.catCount}>{categoryCounts[cat.name] || 0} dự án</span>
+                    <h3 className={styles.catName}>{spec.label}</h3>
+                    <span className={styles.catCount}>{categoryCounts[spec.label] || 0} dự án</span>
                     <span className={styles.catArrow}><ArrowRight size={14} /></span>
                   </Card>
                 </Link>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
