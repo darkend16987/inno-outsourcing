@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, X, Video } from 'lucide-react';
 import { useMessages, useSendMessage } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { markConversationRead } from '@/lib/firebase/firestore';
 import { Avatar } from '@/components/ui';
 import styles from './ChatPanel.module.css';
 
@@ -24,6 +25,13 @@ export default function ChatPanel({ conversationId, participantName, onClose }: 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Mark conversation as read when panel opens or new messages arrive
+  useEffect(() => {
+    if (conversationId && userProfile?.uid) {
+      markConversationRead(conversationId, userProfile.uid);
+    }
+  }, [conversationId, userProfile?.uid, messages.length]);
 
   const handleSend = async () => {
     if (!input.trim() || !userProfile) return;

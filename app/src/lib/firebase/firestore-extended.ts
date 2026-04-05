@@ -793,8 +793,20 @@ export const sendJobInvitation = async (
   const freelancerId = freelancerDoc.id;
   const freelancerName = freelancerDoc.data().displayName || freelancerEmail;
 
+  // Fetch job title for display in invitation
+  let jobTitle = '';
+  try {
+    const jobSnap = await getDoc(doc(db, 'jobs', jobId));
+    if (jobSnap.exists()) {
+      jobTitle = jobSnap.data().title || '';
+    }
+  } catch (e) {
+    console.warn('[sendJobInvitation] Could not fetch job title:', e);
+  }
+
   const ref = await addDoc(collection(db, 'invitations'), {
     jobId,
+    jobTitle,
     freelancerId,
     freelancerName,
     freelancerEmail: freelancerEmail.toLowerCase().trim(),
@@ -808,7 +820,7 @@ export const sendJobInvitation = async (
   await createNotification({
     recipientId: freelancerId,
     type: 'job_invitation',
-    title: 'Bạn được mời tham gia dự án',
+    title: `Bạn được mời tham gia dự án: ${jobTitle || 'Dự án mới'}`,
     body: message || 'Một Jobmaster đã mời bạn apply cho dự án của họ.',
     link: `/freelancer/jobs/${jobId}`,
     read: false,
@@ -939,7 +951,7 @@ export const rehireFreelancer = async (
 
 export const getInvitationsForFreelancer = async (
   freelancerId: string,
-): Promise<Array<{ id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }>> => {
+): Promise<Array<{ id: string; jobId: string; jobTitle?: string; jobmasterId: string; message: string; status: string; createdAt: unknown }>> => {
   if (!db) return [];
   try {
     const q = query(
@@ -949,7 +961,22 @@ export const getInvitationsForFreelancer = async (
       limit(20),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }));
+    const invitations = snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; jobId: string; jobTitle?: string; jobmasterId: string; message: string; status: string; createdAt: unknown }));
+
+    // Backfill job titles for legacy invitations that don't have jobTitle stored
+    const needsTitle = invitations.filter(inv => !inv.jobTitle && inv.jobId);
+    if (needsTitle.length > 0) {
+      await Promise.all(needsTitle.map(async (inv) => {
+        try {
+          const jobSnap = await getDoc(doc(db!, 'jobs', inv.jobId));
+          if (jobSnap.exists()) {
+            inv.jobTitle = jobSnap.data().title || inv.jobId;
+          }
+        } catch { /* ignore */ }
+      }));
+    }
+
+    return invitations;
   } catch (err) {
     console.error('[getInvitationsForFreelancer] Query failed:', err);
     return [];

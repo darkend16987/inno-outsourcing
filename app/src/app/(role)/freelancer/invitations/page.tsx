@@ -62,7 +62,7 @@ export default function FreelancerInvitationsPage() {
             <Card key={inv.id} className={styles.invCard}>
               <div className={styles.invTop}>
                 <div className={styles.invInfo}>
-                  <h3 className={styles.invJobTitle}>{inv.jobId}</h3>
+                  <h3 className={styles.invJobTitle}>{inv.jobTitle || `Dự án #${inv.jobId.slice(0, 8)}`}</h3>
                   <p className={styles.invMessage}>{inv.message || 'Jobmaster mời bạn tham gia dự án này.'}</p>
                   <div className={styles.invMeta}>
                     <Clock size={14} />

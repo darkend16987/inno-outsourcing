@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   onSnapshot,
   addDoc,
+  increment,
   DocumentSnapshot,
   QueryConstraint,
 } from 'firebase/firestore';
@@ -643,11 +644,25 @@ export const sendMessage = async (
     createdAt: serverTimestamp(),
   });
 
-  // Update conversation last message
-  await updateDoc(doc(db, 'conversations', conversationId), {
+  // Get conversation to find other participants
+  const convRef = doc(db, 'conversations', conversationId);
+  const convSnap = await getDoc(convRef);
+  const convData = convSnap.data();
+
+  // Build unreadCount increments: +1 for all except sender
+  const unreadUpdate: Record<string, unknown> = {
     lastMessage: content,
     lastMessageAt: serverTimestamp(),
-  });
+  };
+  if (convData?.participants) {
+    for (const pid of convData.participants) {
+      if (pid !== senderId) {
+        unreadUpdate[`unreadCount.${pid}`] = increment(1);
+      }
+    }
+  }
+
+  await updateDoc(convRef, unreadUpdate);
 };
 
 export const subscribeToMessages = (
@@ -679,6 +694,21 @@ export const subscribeToConversations = (
     const convs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Conversation));
     callback(convs);
   });
+};
+
+/**
+ * Reset unread count for a user in a specific conversation.
+ * Call this when the user opens/views the conversation.
+ */
+export const markConversationRead = async (conversationId: string, userId: string) => {
+  if (!db) return;
+  try {
+    await updateDoc(doc(db, 'conversations', conversationId), {
+      [`unreadCount.${userId}`]: 0,
+    });
+  } catch (err) {
+    console.error('[markConversationRead] Error:', err);
+  }
 };
 
 // =====================

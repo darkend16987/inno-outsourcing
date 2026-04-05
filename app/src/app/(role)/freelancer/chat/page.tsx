@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { MessageSquare, Search, Briefcase, Loader2, Inbox } from 'lucide-react';
 import { ChatPanel } from '@/components/chat';
 import { Avatar } from '@/components/ui';
-import { subscribeToConversations } from '@/lib/firebase/firestore';
+import { subscribeToConversations, markConversationRead } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import type { Conversation } from '@/types';
 import styles from './page.module.css';
@@ -119,8 +119,13 @@ function FreelancerChatContent() {
               return (
                 <button
                   key={conv.id}
-                  className={`${styles.convItem} ${selectedConv === conv.id ? styles.convActive : ''}`}
-                  onClick={() => setSelectedConv(conv.id)}
+                  className={`${styles.convItem} ${selectedConv === conv.id ? styles.convActive : ''} ${unread > 0 ? styles.convUnread : ''}`}
+                  onClick={() => {
+                    setSelectedConv(conv.id);
+                    if (unread > 0 && userProfile?.uid) {
+                      markConversationRead(conv.id, userProfile.uid);
+                    }
+                  }}
                 >
                   <Avatar name={participantName} size="sm" />
                   <div className={styles.convInfo}>

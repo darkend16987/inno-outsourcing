@@ -25,6 +25,8 @@
 
   --color-danger: #c93b28;
   --color-danger-bg: #fce8e5;
+  --color-error: #c93b28;
+  --color-error-bg: #fce8e5;
 
   --color-purple: #6c5ce7;
   --color-purple-bg: #eeecfd;
@@ -118,6 +120,8 @@
 
   --color-danger: #f87171;
   --color-danger-bg: #3b1515;
+  --color-error: #f87171;
+  --color-error-bg: #3b1515;
 
   --color-purple: #a78bfa;
   --color-purple-bg: #1e1842;

@@ -17,6 +17,7 @@ const NAV_CONFIG = {
     { label: 'Tổng quan', href: '/freelancer', icon: LayoutDashboard },
     { label: 'Việc của tôi', href: '/freelancer/jobs', icon: Briefcase },
     { label: 'Lời mời', href: '/freelancer/invitations', icon: Mail },
+    { label: 'Tin nhắn', href: '/freelancer/chat', icon: MessageSquare },
     { label: 'Hợp đồng', href: '/freelancer/contracts', icon: FileSignature },
     { label: 'Portfolio', href: '/freelancer/portfolio', icon: FolderOpen },
     { label: 'Hồ sơ năng lực', href: '/freelancer/profile', icon: User },

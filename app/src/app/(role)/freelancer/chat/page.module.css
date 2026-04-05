@@ -123,6 +123,19 @@
   text-align: center;
 }
 
+/* Highlight unread conversations */
+.convUnread {
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+.convUnread .convName {
+  font-weight: 700;
+  color: var(--color-text);
+}
+.convUnread .convLast {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
 .emptyConv {
   padding: var(--space-8);
   text-align: center;

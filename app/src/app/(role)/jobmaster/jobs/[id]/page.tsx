@@ -22,6 +22,8 @@ import {
   sendJobInvitation,
 } from '@/lib/firebase/firestore-extended';
 import { getJobById, updateJob, getOrCreateConversation } from '@/lib/firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { ActivityFeed, type ActivityItem } from '@/components/jobs/ActivityFeed';
 import { DisputeForm } from '@/components/disputes/DisputeForm';
@@ -162,6 +164,7 @@ export default function JobMasterJobDetailPage() {
   const [activeTab, setActiveTab] = useState<'info' | 'progress' | 'chat' | 'review'>('info');
   const [chatConvId, setChatConvId] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
 
   // Submissions from subcollection
   const [allSubmissions, setAllSubmissions] = useState<MilestoneSubmission[]>([]);
@@ -229,6 +232,39 @@ export default function JobMasterJobDetailPage() {
     }
     setChatLoading(false);
   }, [chatConvId, chatLoading, job, userProfile]);
+
+  // Subscribe to chat unread count (eager: init conversation early if assigned)
+  useEffect(() => {
+    if (!job?.assignedTo || !userProfile?.uid || !db) return;
+    // Eagerly init chat to track unread even before user clicks Chat tab
+    const doInit = async () => {
+      if (chatConvId) return; // already inited
+      try {
+        const participantNames: Record<string, string> = {
+          [userProfile.uid]: userProfile.displayName || 'Job Master',
+          [job.assignedTo!]: job.assignedWorkerName || 'Freelancer',
+        };
+        const convId = await getOrCreateConversation(
+          [userProfile.uid, job.assignedTo!],
+          job.id,
+          { participantNames, jobTitle: job.title }
+        );
+        setChatConvId(convId);
+      } catch { /* ignore */ }
+    };
+    doInit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.assignedTo, userProfile?.uid]);
+
+  // Listen to conversation unread count
+  useEffect(() => {
+    if (!chatConvId || !userProfile?.uid || !db) return;
+    const unsub = onSnapshot(doc(db, 'conversations', chatConvId), (snap) => {
+      const data = snap.data();
+      setChatUnread(data?.unreadCount?.[userProfile.uid] || 0);
+    });
+    return unsub;
+  }, [chatConvId, userProfile?.uid]);
 
   // Get latest submission for a milestone
   const getLatestSubForMilestone = (milestoneId: string): MilestoneSubmission | null => {
@@ -586,6 +622,7 @@ export default function JobMasterJobDetailPage() {
             onClick={() => { setActiveTab('chat'); initChat(); }}
           >
             <MessageSquare size={16}/> Chat
+            {chatUnread > 0 && activeTab !== 'chat' && <span className={styles.tabBadge}>{chatUnread}</span>}
           </button>
         )}
         {(job.status === 'completed' || job.status === 'paid') && (
