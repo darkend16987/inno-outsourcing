@@ -20,8 +20,8 @@ export default function JobMasterDashboard() {
     if (!userProfile?.uid) return;
     const fetchStats = async () => {
       const [jobsResult, appsResult] = await Promise.all([
-        cache.get(`jm:jobs:${userProfile.uid}`, () => getJobs({ jobMaster: userProfile.uid }, 200), TTL.MEDIUM),
-        cache.get(`jm:apps:${userProfile.uid}`, () => getAllApplications({ status: 'pending' }, 200), TTL.MEDIUM),
+        cache.get(`jm:jobs:${userProfile.uid}`, () => getJobs({ jobMaster: userProfile.uid }, 200), TTL.SHORT),
+        cache.get(`jm:apps:${userProfile.uid}`, () => getAllApplications({ status: 'pending' }, 200), TTL.SHORT),
       ]);
       const managed = jobsResult.items;
       setMyJobs(managed);

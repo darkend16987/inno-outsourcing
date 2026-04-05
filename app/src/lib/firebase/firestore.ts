@@ -43,6 +43,7 @@ export interface JobFilters {
   level?: JobLevel;
   searchKeyword?: string;
   jobMaster?: string;
+  assignedTo?: string;
 }
 
 const PAGE_SIZE = 12;
@@ -210,6 +211,7 @@ export const getJobs = async (
   if (filters.category) constraints.push(where('category', '==', filters.category));
   if (filters.level) constraints.push(where('level', '==', filters.level));
   if (filters.jobMaster) constraints.push(where('jobMaster', '==', filters.jobMaster));
+  if (filters.assignedTo) constraints.push(where('assignedTo', '==', filters.assignedTo));
   constraints.push(orderBy('createdAt', 'desc'));
   constraints.push(limit(pageSize + 1)); // +1 to check hasMore
   if (cursor) constraints.push(startAfter(cursor));

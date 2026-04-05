@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FolderKanban, DollarSign, Activity, AlertCircle, Users, TrendingUp, Loader2 } from 'lucide-react';
 import { Card, MetricCard, Badge } from '@/components/ui';
-import { getJobs, getAllApplications, repairOrphanedAssignments } from '@/lib/firebase/firestore';
+import { getAllApplications, repairOrphanedAssignments } from '@/lib/firebase/firestore';
 import { getAnalyticsData, type AnalyticsData } from '@/lib/firebase/analytics';
 import { cache, TTL } from '@/lib/cache/swr-cache';
 import {
@@ -32,8 +32,8 @@ export default function AdminDashboard() {
       }).catch(() => {});
 
       const [analyticsData, appsResult] = await Promise.all([
-        cache.get('admin:analytics', () => getAnalyticsData(), TTL.MEDIUM),
-        cache.get('admin:apps:pending', () => getAllApplications({ status: 'pending' }, 100), TTL.MEDIUM),
+        cache.get('admin:analytics', () => getAnalyticsData(), TTL.SHORT),
+        cache.get('admin:apps:pending', () => getAllApplications({ status: 'pending' }, 100), TTL.SHORT),
       ]);
 
       setAnalytics(analyticsData);
@@ -58,7 +58,9 @@ export default function AdminDashboard() {
   })) || [];
 
   const jobStatusData = data ? [
+    { name: 'Chờ nhận việc', value: data.openJobs },
     { name: 'Đang thực hiện', value: data.activeJobs },
+    { name: 'Đang nghiệm thu', value: data.reviewJobs },
     { name: 'Hoàn thành', value: data.completedJobs },
     { name: 'Huỷ', value: data.cancelledJobs },
   ].filter(d => d.value > 0) : [];

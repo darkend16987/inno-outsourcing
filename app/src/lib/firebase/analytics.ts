@@ -19,7 +19,9 @@ export interface AnalyticsData {
 
   // Jobs
   totalJobs: number;
-  activeJobs: number;
+  activeJobs: number;    // in_progress + assigned only
+  openJobs: number;      // open (waiting for freelancer)
+  reviewJobs: number;    // under review
   completedJobs: number;
   cancelledJobs: number;
 
@@ -49,7 +51,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
 
   try {
     const [jobsData, paymentsData, applicationsData, usersData, disputesData] = await Promise.all([
-      fetchJobsMetrics().catch(e => { console.warn('[Analytics] jobs fetch failed:', e); return { total: 0, active: 0, completed: 0, cancelled: 0 }; }),
+      fetchJobsMetrics().catch(e => { console.warn('[Analytics] jobs fetch failed:', e); return { total: 0, active: 0, open: 0, review: 0, completed: 0, cancelled: 0 }; }),
       fetchPaymentsMetrics().catch(e => { console.warn('[Analytics] payments fetch failed:', e); return { totalRevenue: 0, monthlyRevenue: [] as { month: string; revenue: number }[] }; }),
       fetchApplicationsMetrics().catch(e => { console.warn('[Analytics] applications fetch failed:', e); return { totalApps: 0, hiredCount: 0, avgTimeToHire: 0 }; }),
       fetchUsersMetrics().catch(e => { console.warn('[Analytics] users fetch failed:', e); return { freelancers: 0, jobmasters: 0, activeThisMonth: 0 }; }),
@@ -66,6 +68,8 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       monthlyRevenue: paymentsData.monthlyRevenue,
       totalJobs: jobsData.total,
       activeJobs: jobsData.active,
+      openJobs: jobsData.open,
+      reviewJobs: jobsData.review,
       completedJobs: jobsData.completed,
       cancelledJobs: jobsData.cancelled,
       totalApplications: applicationsData.totalApps,
@@ -89,17 +93,19 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
 
 async function fetchJobsMetrics() {
   const snapshot = await getDocs(collection(db!, 'jobs'));
-  let total = 0, active = 0, completed = 0, cancelled = 0;
+  let total = 0, active = 0, open = 0, review = 0, completed = 0, cancelled = 0;
 
   snapshot.forEach(doc => {
     total++;
     const status = doc.data().status;
-    if (['open', 'assigned', 'in_progress', 'review'].includes(status)) active++;
+    if (['assigned', 'in_progress'].includes(status)) active++;
+    if (status === 'open') open++;
+    if (status === 'review') review++;
     if (['completed', 'paid'].includes(status)) completed++;
     if (status === 'cancelled') cancelled++;
   });
 
-  return { total, active, completed, cancelled };
+  return { total, active, open, review, completed, cancelled };
 }
 
 async function fetchPaymentsMetrics() {
@@ -199,6 +205,8 @@ function getEmptyAnalytics(): AnalyticsData {
     monthlyRevenue: [],
     totalJobs: 0,
     activeJobs: 0,
+    openJobs: 0,
+    reviewJobs: 0,
     completedJobs: 0,
     cancelledJobs: 0,
     totalApplications: 0,

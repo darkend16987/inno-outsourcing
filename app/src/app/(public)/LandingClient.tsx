@@ -57,30 +57,34 @@ export default function LandingClient() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [jobResult, testResult, leaderboardResult] = await Promise.allSettled([
+        // Fetch open jobs for listing AND all jobs for stats
+        const [openJobResult, allJobResult, testResult, leaderboardResult] = await Promise.allSettled([
           getJobs({ status: 'open' }),
+          getJobs({}, 200),  // All jobs for stats
           getTestimonials(),
           getLeaderboard(),
         ]);
 
-        const jobs = jobResult.status === 'fulfilled' ? (jobResult.value.items || []) : [];
+        const openJobs = openJobResult.status === 'fulfilled' ? (openJobResult.value.items || []) : [];
+        const allJobs = allJobResult.status === 'fulfilled' ? (allJobResult.value.items || []) : [];
         const testRes = testResult.status === 'fulfilled' ? testResult.value : [];
         const leaderboardRes = leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [];
 
-        if (jobResult.status === 'rejected') console.warn('Landing: getJobs failed:', jobResult.reason);
+        if (openJobResult.status === 'rejected') console.warn('Landing: getJobs(open) failed:', openJobResult.reason);
+        if (allJobResult.status === 'rejected') console.warn('Landing: getJobs(all) failed:', allJobResult.reason);
         if (testResult.status === 'rejected') console.warn('Landing: getTestimonials failed:', testResult.reason);
         if (leaderboardResult.status === 'rejected') console.warn('Landing: getLeaderboard failed:', leaderboardResult.reason);
 
-        setLiveJobs(jobs);
+        setLiveJobs(openJobs);
         setTestimonials(testRes.filter(t => t.isActive));
         setTopWorkers(leaderboardRes.slice(0, 4));
 
-        // Compute dual-metric stats
-        const activeJobs = jobs.filter(j => j.status === 'in_progress');
+        // Compute dual-metric stats from ALL jobs (not just open)
+        const activeJobs = allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned');
         const activeValue = activeJobs.reduce((sum, j) => sum + getJobFee(j), 0);
-        const totalValue = jobs.reduce((sum, j) => sum + getJobFee(j), 0);
+        const totalValue = allJobs.reduce((sum, j) => sum + getJobFee(j), 0);
         setActiveStats({ count: String(activeJobs.length), value: formatFriendlyMoney(activeValue) });
-        setTotalStats({ count: String(jobs.length), value: formatFriendlyMoney(totalValue) });
+        setTotalStats({ count: String(allJobs.length), value: formatFriendlyMoney(totalValue) });
       } catch (err) {
         console.error('Error fetching landing data:', err);
       }
@@ -89,7 +93,7 @@ export default function LandingClient() {
     fetchData();
   }, []);
 
-  // Compute category counts from real jobs
+  // Category counts from open jobs (for the job listing section)
   const categoryCounts: Record<string, number> = {};
   liveJobs.forEach(j => {
     const cat = j.category;
