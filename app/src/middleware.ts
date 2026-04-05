@@ -33,7 +33,7 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const RATE_LIMIT_CONFIG = {
   api: { window: 60_000, maxRequests: 60 },      // 60 req/min for API
-  auth: { window: 300_000, maxRequests: 10 },     // 10 req/5min for login/register
+  auth: { window: 300_000, maxRequests: 30 },     // 30 req/5min for login/register API POST
   general: { window: 60_000, maxRequests: 120 },  // 120 req/min general
 } as const;
 
@@ -95,8 +95,9 @@ export async function middleware(request: NextRequest) {
   // --- Rate Limiting ---
   cleanupRateLimitMap();
 
-  // Strict rate limit on auth endpoints (anti brute-force)
-  if (path === '/login' || path === '/register' || path.startsWith('/api/auth')) {
+  // Strict rate limit on auth API POST only (anti brute-force on actual login/register attempts)
+  // Page loads (GET /login) should NOT count toward this limit
+  if (path.startsWith('/api/auth') && request.method === 'POST') {
     if (isRateLimited(`auth:${ip}`, RATE_LIMIT_CONFIG.auth)) {
       return new NextResponse(
         JSON.stringify({ error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.' }),
