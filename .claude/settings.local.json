@@ -28,7 +28,13 @@
       "Bash(npx firebase:*)",
       "Bash(find /d/github/inno-outsourcing/app/src -type f -path *admin* -name *page.tsx)",
       "Bash(find /d/github/inno-outsourcing/app/src -type f -path *jobmaster* -name *page.tsx)",
-      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(public\\)/\")"
+      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(public\\)/\")",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(auth\\\\\\)/)",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/)",
+      "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)/freelancer/\")",
+      "Bash(find \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)\" -name \"page.module.css\" -type f)",
+      "Bash(ls D:/GitHub/inno-outsourcing/app/public/*.png D:/GitHub/inno-outsourcing/app/public/*.svg D:/GitHub/inno-outsourcing/app/public/*.ico)",
+      "Bash(npx next:*)"
     ]
   }
 }
