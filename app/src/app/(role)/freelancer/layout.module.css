@@ -17,6 +17,7 @@
   border-bottom: 2px solid var(--color-border);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--space-6);
   position: sticky;
   top: 0;
@@ -29,6 +30,12 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .contentArea {

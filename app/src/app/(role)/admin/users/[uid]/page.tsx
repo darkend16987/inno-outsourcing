@@ -20,11 +20,9 @@ import styles from './page.module.css';
 
 const ROLE_LABELS: Record<string, string> = {
   freelancer: 'Freelancer',
-  job_master: 'JobMaster',
   jobmaster: 'JobMaster',
   admin: 'Admin',
   accountant: 'Kế toán',
-  super_admin: 'Super Admin',
 };
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
