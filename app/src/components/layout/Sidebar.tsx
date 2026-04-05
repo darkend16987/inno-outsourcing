@@ -40,6 +40,7 @@ const NAV_CONFIG = {
   ],
   accountant: [
     { label: 'Tổng quan', href: '/accountant', icon: LayoutDashboard },
+    { label: 'Hợp đồng', href: '/accountant/contracts', icon: FileSignature },
     { label: 'Lệnh thanh toán', href: '/accountant/payments', icon: DollarSign },
   ],
 };
