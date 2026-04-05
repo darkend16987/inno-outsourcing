@@ -319,6 +319,7 @@ export default function ProfileEditPage() {
         specialties: form.specialties,
         software: form.software,
         yearsOfExperience: form.yearsOfExperience ? Number(form.yearsOfExperience) : undefined,
+        experience: form.yearsOfExperience ? Number(form.yearsOfExperience) : 0,
         educationSchool: form.educationSchool || undefined,
         educationYear: form.educationYear || undefined,
         educationMajor: form.educationMajor || undefined,

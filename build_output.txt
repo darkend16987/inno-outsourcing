@@ -1,0 +1,68 @@
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.3s
+  Running TypeScript ...
+  Finished TypeScript in 8.0s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/39) ...
+  Generating static pages using 11 workers (9/39) 
+  Generating static pages using 11 workers (19/39) 
+  Generating static pages using 11 workers (29/39) 
+✓ Generating static pages using 11 workers (39/39) in 1546ms
+  Finalizing page optimization ...
+
+Route (app)                          Revalidate  Expire
+┌ ○ /
+├ ○ /_not-found
+├ ○ /accountant
+├ ○ /accountant/contracts
+├ ○ /accountant/payments
+├ ○ /admin
+├ ○ /admin/applications
+├ ○ /admin/contracts
+├ ○ /admin/jobs
+├ ƒ /admin/jobs/[id]
+├ ○ /admin/jobs/create
+├ ○ /admin/progress
+├ ○ /admin/reports
+├ ○ /admin/settings
+├ ○ /admin/users
+├ ƒ /admin/users/[uid]
+├ ƒ /api/auth/session
+├ ○ /freelancer
+├ ○ /freelancer/chat
+├ ○ /freelancer/contracts
+├ ƒ /freelancer/contracts/[id]/sign
+├ ○ /freelancer/invitations
+├ ○ /freelancer/jobs
+├ ƒ /freelancer/jobs/[id]
+├ ƒ /freelancer/jobs/[id]/apply
+├ ○ /freelancer/portfolio
+├ ○ /freelancer/profile
+├ ○ /freelancer/profile/edit
+├ ○ /huy-hieu
+├ ○ /jobmaster
+├ ○ /jobmaster/applications
+├ ○ /jobmaster/chat
+├ ○ /jobmaster/freelancers
+├ ƒ /jobmaster/freelancers/[uid]
+├ ○ /jobmaster/jobs
+├ ƒ /jobmaster/jobs/[id]
+├ ○ /jobmaster/jobs/create
+├ ○ /jobs
+├ ƒ /jobs/[id]
+├ ○ /login
+├ ○ /register
+├ ○ /robots.txt
+├ ○ /sitemap.xml                             1h      1y
+├ ○ /ve-chung-toi
+└ ○ /vinh-danh
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

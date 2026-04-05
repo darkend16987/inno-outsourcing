@@ -289,11 +289,14 @@ service cloud.firestore {
     // JOB INVITATIONS
     // =====================
     match /invitations/{invId} {
-      // Inviter and invitee can read
-      allow read: if isSignedIn()
+      // Single document read: inviter and invitee only
+      allow get: if isSignedIn()
                   && (resource.data.jobmasterId == request.auth.uid
                       || resource.data.freelancerId == request.auth.uid
                       || isAdmin());
+
+      // List queries: allow authenticated users (query filters by freelancerId/jobmasterId)
+      allow list: if isSignedIn();
 
       // Job masters and admins can create invitations
       allow create: if isAdminOrJobMaster();
