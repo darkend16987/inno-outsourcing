@@ -52,7 +52,7 @@ export function OnboardingChecklist({ profile, onNavigate }: OnboardingChecklist
       label: 'Kinh nghiệm',
       description: 'Khai báo số năm kinh nghiệm',
       section: 'profile',
-      completed: profile.experience > 0,
+      completed: (profile.yearsOfExperience ?? profile.experience ?? 0) > 0,
     },
     {
       id: 'software',

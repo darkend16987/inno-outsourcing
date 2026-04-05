@@ -44,14 +44,17 @@ export default function ProfilePage() {
 
   // Profile completion score
   const completionChecks = [
+    { field: 'Họ và tên', ok: !!p.displayName && p.displayName.length > 2 },
     { field: 'Số điện thoại', ok: !!p.phone },
     { field: 'Giới thiệu bản thân', ok: !!p.bio },
     { field: 'Địa chỉ', ok: !!p.address },
     { field: 'Chuyên môn', ok: (p.specialties || []).length > 0 },
     { field: 'Phần mềm', ok: (p.software || []).length > 0 },
+    { field: 'Năm kinh nghiệm', ok: (p.yearsOfExperience ?? p.experience ?? 0) > 0 },
     { field: 'Trường đào tạo', ok: !!p.educationSchool },
     { field: 'Số CCCD', ok: !!p.idNumber },
     { field: 'Số tài khoản ngân hàng', ok: !!p.bankAccountNumber },
+    { field: 'Ngân hàng', ok: !!p.bankName },
     { field: 'Mã số thuế', ok: !!p.taxId },
   ];
   const completionPercent = Math.round((completionChecks.filter(c => c.ok).length / completionChecks.length) * 100);

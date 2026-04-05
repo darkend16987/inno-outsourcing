@@ -61,8 +61,10 @@ export default function FreelancerJobDetail() {
       const result = await getJobById(params.id as string);
       setJob(result);
       setLoading(false);
-      if (result && (result.status === 'completed' || result.status === 'paid') && result.assignedTo) {
-        const reviewed = await hasUserReviewedJob(result.id, result.assignedTo);
+      // Check if the current user (freelancer) has already reviewed this job
+      const reviewerId = userProfile?.uid;
+      if (result && (result.status === 'completed' || result.status === 'paid') && reviewerId) {
+        const reviewed = await hasUserReviewedJob(result.id, reviewerId);
         setHasReviewed(reviewed);
       }
       // Fetch latest submissions for each milestone
@@ -83,7 +85,7 @@ export default function FreelancerJobDetail() {
       }
     };
     fetchJob().catch(() => setLoading(false));
-  }, [params.id]);
+  }, [params.id, userProfile?.uid]);
 
   const handleSubmitClick = (milestoneId: string) => {
     setSubmittingMilestone(milestoneId);
@@ -413,28 +415,33 @@ export default function FreelancerJobDetail() {
           )}
 
           {/* MutualReview for completed jobs */}
-          {(job.status === 'completed' || job.status === 'paid') && !hasReviewed && (
+          {(job.status === 'completed' || job.status === 'paid') && !hasReviewed && userProfile && (
             <MutualReviewForm
               jobTitle={job.title}
               targetUserName={job.jobMasterName || 'Job Master'}
               reviewerRole="freelancer"
               onSubmit={async (data) => {
-                if (!job.assignedTo) return;
-                await submitReview({
-                  jobId: job.id,
-                  jobTitle: job.title,
-                  reviewerId: job.assignedTo,
-                  reviewerName: job.assignedWorkerName || 'Freelancer',
-                  reviewerRole: 'freelancer',
-                  revieweeId: job.jobMaster,
-                  revieweeName: job.jobMasterName || 'Job Master',
-                  rating: data.rating,
-                  communication: data.communication,
-                  quality: data.quality,
-                  timeliness: data.timeliness,
-                  comment: data.comment,
-                });
-                setHasReviewed(true);
+                if (!userProfile?.uid) return;
+                try {
+                  await submitReview({
+                    jobId: job.id,
+                    jobTitle: job.title,
+                    reviewerId: userProfile.uid,
+                    reviewerName: userProfile.displayName || job.assignedWorkerName || 'Freelancer',
+                    reviewerRole: 'freelancer',
+                    revieweeId: job.jobMaster,
+                    revieweeName: job.jobMasterName || 'Job Master',
+                    rating: data.rating,
+                    communication: data.communication,
+                    quality: data.quality,
+                    timeliness: data.timeliness,
+                    comment: data.comment,
+                  });
+                  setHasReviewed(true);
+                } catch (err) {
+                  console.error('[Review] Submit failed:', err);
+                  alert('Gửi đánh giá thất bại. Vui lòng thử lại.');
+                }
               }}
             />
           )}

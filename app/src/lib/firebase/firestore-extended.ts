@@ -941,15 +941,19 @@ export const getInvitationsForFreelancer = async (
   freelancerId: string,
 ): Promise<Array<{ id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }>> => {
   if (!db) return [];
-  const q = query(
-    collection(db, 'invitations'),
-    where('freelancerId', '==', freelancerId),
-    where('status', '==', 'pending'),
-    orderBy('createdAt', 'desc'),
-    limit(10),
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }));
+  try {
+    const q = query(
+      collection(db, 'invitations'),
+      where('freelancerId', '==', freelancerId),
+      orderBy('createdAt', 'desc'),
+      limit(20),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; jobId: string; jobmasterId: string; message: string; status: string; createdAt: unknown }));
+  } catch (err) {
+    console.error('[getInvitationsForFreelancer] Query failed:', err);
+    return [];
+  }
 };
 
 // =====================
