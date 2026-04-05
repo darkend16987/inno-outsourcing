@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Shield, ShieldCheck, ShieldAlert, Star, Clock, Briefcase, TrendingUp } from 'lucide-react';
 import styles from './TrustBadge.module.css';
 import type { TrustBadgeLevel, UserStats } from '@/types';
-import { calculateTrustScore, type TrustScoreBreakdown } from '@/lib/matching/trust-score';
+import { calculateTrustScore } from '@/lib/matching/trust-score';
 
 interface TrustBadgeProps {
   badge: TrustBadgeLevel;
@@ -39,7 +39,7 @@ const BADGE_CONFIG: Record<TrustBadgeLevel, {
 
 export function TrustBadge({
   badge,
-  score,
+  score: _score, // eslint-disable-line @typescript-eslint/no-unused-vars
   stats,
   size = 'md',
   showTooltip = true,
@@ -93,7 +93,7 @@ export function TrustBadge({
           </div>
           {badge !== 'trusted' && (
             <div className={styles.tooltipHint}>
-              Cần ≥{breakdown.minJobsForTrusted} jobs hoàn thành và score ≥80 để đạt "Đáng tin cậy"
+              Cần ≥{breakdown.minJobsForTrusted} jobs hoàn thành và score ≥80 để đạt &ldquo;Đáng tin cậy&rdquo;
             </div>
           )}
         </div>

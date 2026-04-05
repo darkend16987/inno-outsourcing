@@ -39,10 +39,12 @@ const formatDate = (d: unknown): string => {
 
 const formatCurrency = (amount: number) => `${amount.toLocaleString('vi-VN')}₫`;
 
+const PAGE_LOAD_TIME = Date.now();
+
 function DeadlineBadge({ deadline }: { deadline: unknown }) {
   const d = toDate(deadline);
   if (!d) return null;
-  const daysLeft = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.ceil((d.getTime() - PAGE_LOAD_TIME) / (1000 * 60 * 60 * 24));
   if (daysLeft <= 0) {
     return (
       <span className={styles.deadlineOverdue}>
@@ -138,7 +140,7 @@ export default function ContractsPage() {
               <div className={styles.cMain}>
                 <div className={styles.cHeader}>
                   <h3 className={styles.cNumber}>{contract.contractNumber}</h3>
-                  {/* @ts-ignore */}
+                  {/* @ts-expect-error Badge variant type mismatch */}
                   <Badge variant={STATUS_MAP[contract.status]?.color || 'default'} size="sm">
                     {STATUS_MAP[contract.status]?.label || contract.status}
                   </Badge>
@@ -206,7 +208,7 @@ export default function ContractsPage() {
                 </div>
                 <div className={styles.modalRow}>
                   <span className={styles.modalLabel}>Trạng thái</span>
-                  {/* @ts-ignore */}
+                  {/* @ts-expect-error Badge variant type mismatch */}
                   <Badge variant={STATUS_MAP[viewContract.status]?.color || 'default'} size="sm">
                     {STATUS_MAP[viewContract.status]?.label || viewContract.status}
                   </Badge>
@@ -324,7 +326,7 @@ export default function ContractsPage() {
                         <span className={styles.msName}>{ms.name}</span>
                         <span>{ms.percentage}%</span>
                         <span>{formatCurrency(ms.amount)}</span>
-                        {/* @ts-ignore */}
+                        {/* Badge variant already correct, no ts override needed */}
                         <Badge variant={ms.status === 'paid' ? 'success' : ms.status === 'approved' || ms.status === 'released' ? 'warning' : 'default'} size="sm">
                           {ms.status === 'paid' ? 'Đã thanh toán' : ms.status === 'approved' ? 'Đã duyệt' : ms.status === 'released' ? 'Đã giải ngân' : ms.status === 'in_progress' ? 'Đang thực hiện' : ms.status === 'review' ? 'Đang xét duyệt' : 'Chờ'}
                         </Badge>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
   FileText, MessageSquare, Upload, CheckCircle,
-  UserCheck, Send, Rocket, Users, Clock, Filter,
+  UserCheck, Send, Rocket, Clock, Filter,
   DollarSign, Shield, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import styles from './ActivityFeed.module.css';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- one-off Firestore migration script */
 /**
  * One-time fix: Activate milestone 2 for job BoBURHQmnPGpaLumv7UB
  * Run with: npx tsx scripts/fix-milestone-status.ts

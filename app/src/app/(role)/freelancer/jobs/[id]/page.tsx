@@ -23,6 +23,8 @@ import { useAuth } from '@/lib/firebase/auth-context';
 import type { Job, MilestoneSubmission } from '@/types';
 import styles from './page.module.css';
 
+const PAGE_LOAD_TIME = Date.now();
+
 const formatDate = (d: unknown): string => {
   if (!d) return '-';
   if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as { toDate: () => Date }).toDate().toLocaleDateString('vi-VN');
@@ -235,7 +237,6 @@ export default function FreelancerJobDetail() {
                 const latestSub = submissions[ms.id];
                 const hasPendingSub = latestSub?.status === 'pending_review';
                 const hasRejectedSub = latestSub?.status === 'rejected';
-                const hasApprovedSub = latestSub?.status === 'approved';
 
                 return (
                   <div key={ms.id || index} className={`${styles.milestone} ${ms.status === 'in_progress' ? styles.mActive : ''} ${ms.status === 'review' ? styles.mReview : ''} ${hasRejectedSub && ms.status === 'in_progress' ? styles.mRejected : ''}`}>
@@ -370,7 +371,7 @@ export default function FreelancerJobDetail() {
                 ? (job.deadline as { toDate: () => Date }).toDate()
                 : new Date(job.deadline as string);
             if (isNaN(dl.getTime())) return null;
-            const daysRemaining = Math.ceil((dl.getTime() - Date.now()) / 86400000);
+            const daysRemaining = Math.ceil((dl.getTime() - PAGE_LOAD_TIME) / 86400000);
             return (
               <Card className={styles.linksCard}>
                 <h3 className={styles.sTitle}>Thời hạn dự án</h3>

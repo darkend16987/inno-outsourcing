@@ -26,7 +26,7 @@ if (firebaseConfig.apiKey) {
   console.warn('Firebase config missing, using mock instances for UI development.');
   app = {} as FirebaseApp;
   auth = {
-    onAuthStateChanged: (cb: any) => { cb(null); return () => {}; },
+    onAuthStateChanged: (cb: (user: null) => void) => { cb(null); return () => {}; },
   } as unknown as Auth;
   db = {} as Firestore;
   storage = {} as FirebaseStorage;

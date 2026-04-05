@@ -11,6 +11,7 @@ export function useTheme() {
     // Read from localStorage or system preference
     const stored = localStorage.getItem('vaa-theme') as Theme | null;
     if (stored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- initialize from localStorage
       setThemeState(stored);
       document.documentElement.setAttribute('data-theme', stored);
     } else {

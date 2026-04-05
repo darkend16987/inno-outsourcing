@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Circle } from 'lucide-react';
 import styles from './AvailabilityBadge.module.css';
 import type { AvailabilityStatus } from '@/types';
 

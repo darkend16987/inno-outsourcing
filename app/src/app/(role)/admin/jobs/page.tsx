@@ -6,7 +6,7 @@ import { Plus, Clock, CheckCircle, XCircle, Eye, Search, Loader2, Inbox } from '
 import { Button, Badge, StatusBadge, LevelBadge } from '@/components/ui';
 import { getJobs, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { cache, TTL } from '@/lib/cache/swr-cache';
+import { cache } from '@/lib/cache/swr-cache';
 import type { Job, JobCategory } from '@/types';
 import styles from './page.module.css';
 
@@ -54,6 +54,7 @@ export default function AdminJobsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard data-fetch pattern
     fetchJobs().catch(() => setLoading(false));
   }, [fetchJobs]);
 

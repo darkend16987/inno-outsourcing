@@ -4,7 +4,7 @@
  */
 
 import {
-  collection, getDocs, query, where, Timestamp,
+  collection, getDocs, Timestamp,
 } from 'firebase/firestore';
 import { db } from './config';
 

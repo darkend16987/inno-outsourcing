@@ -7,7 +7,6 @@ import { Clock, ArrowRight, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getApplicationsForFreelancer, getJobById } from '@/lib/firebase/firestore';
-import type { Job } from '@/types';
 import styles from './page.module.css';
 
 interface MyJobEntry {
@@ -111,7 +110,7 @@ export default function MyJobsPage() {
               <div className={styles.jobMain}>
                 <div className={styles.jobTags}>
                   <Badge variant="outline" size="sm">{job.category}</Badge>
-                  {/* @ts-ignore */}
+                  {/* @ts-expect-error Badge variant type mismatch */}
                   <Badge variant={STATUS_MAP[job.status]?.color || 'default'} size="sm">{STATUS_MAP[job.status]?.label || job.status}</Badge>
                 </div>
                 <h3 className={styles.jobTitle}>{job.title}</h3>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Firestore document data is inherently untyped */
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -623,7 +624,7 @@ export const onPaymentUpdated = onDocumentUpdated(
 
         // Fetch job info for invoice
         let jobTitle = after.reason || '';
-        let partyAName = 'VAA Engineering';
+        const partyAName = 'VAA Engineering';
         if (after.jobId) {
           const jSnap = await db.collection('jobs').doc(after.jobId).get();
           if (jSnap.exists) { jobTitle = jSnap.data()?.title || jobTitle; }

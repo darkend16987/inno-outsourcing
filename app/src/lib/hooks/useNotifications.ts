@@ -15,6 +15,7 @@ export function useNotifications(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset state when no userId
       setNotifications([]);
       setUnreadCount(0);
       setLoading(false);

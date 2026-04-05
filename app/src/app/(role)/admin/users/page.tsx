@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Eye, Shield, UserX, UserCheck, Loader2, Inbox } from 'lucide-react';
+import { Search, Eye, UserX, UserCheck, Loader2, Inbox } from 'lucide-react';
 import { Card, Badge, Avatar, Button } from '@/components/ui';
 import { getUsers, updateUserProfile } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { cache, TTL } from '@/lib/cache/swr-cache';
+import { cache } from '@/lib/cache/swr-cache';
 import type { UserProfile } from '@/types';
 import styles from './page.module.css';
 
@@ -35,6 +35,7 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard data-fetch pattern
     fetchUsers().catch(() => setLoading(false));
   }, []);
 

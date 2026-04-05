@@ -8,7 +8,6 @@ import {
   getDocs,
   query,
   where,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from './config';
 import type { Payment, Job } from '@/types';

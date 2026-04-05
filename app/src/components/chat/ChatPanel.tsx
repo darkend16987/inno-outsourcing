@@ -80,7 +80,7 @@ export default function ChatPanel({ conversationId, participantName, onClose }: 
                 )}
                 <span className={styles.messageTime}>
                   {msg.createdAt && typeof msg.createdAt === 'object' && 'toDate' in msg.createdAt
-                    ? (msg.createdAt as any).toDate().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                    ? (msg.createdAt as { toDate: () => Date }).toDate().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                     : ''}
                 </span>
               </div>

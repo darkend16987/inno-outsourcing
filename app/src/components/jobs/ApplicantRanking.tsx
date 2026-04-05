@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import {
-  Trophy, Star, ChevronDown, ChevronUp,
-  UserCheck, ExternalLink, Shield, Zap,
+  Trophy, ChevronDown, ChevronUp,
+  UserCheck, ExternalLink,
 } from 'lucide-react';
 import styles from './ApplicantRanking.module.css';
 import { MatchBadge, MatchScoreBar } from '@/components/ui/MatchBadge';

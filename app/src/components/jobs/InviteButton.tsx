@@ -15,7 +15,7 @@ interface InviteButtonProps {
   className?: string;
 }
 
-export function InviteButton({ freelancerId, freelancerName, jobId, jobTitle, jobmasterId, className }: InviteButtonProps) {
+export function InviteButton({ freelancerId, jobId, jobTitle, jobmasterId, className }: InviteButtonProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent'>('idle');
 
   const handleInvite = async () => {

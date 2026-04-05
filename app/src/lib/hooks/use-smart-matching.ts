@@ -102,6 +102,7 @@ export function useDeadlineAlerts({ jobs, enabled = true }: UseDeadlineAlertsOpt
 
   useEffect(() => {
     if (!enabled || jobs.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when disabled
       setAlerts([]);
       setUrgentCount(0);
       return;
@@ -146,6 +147,7 @@ export function useMilestoneProgress(job: Job | null) {
 
   useEffect(() => {
     if (!job) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when no job
       setData(null);
       return;
     }
@@ -167,7 +169,7 @@ interface UseNotificationsOpts {
   notifications: Notification[];
 }
 
-export function useNotifications({ userId, notifications }: UseNotificationsOpts) {
+export function useNotifications({ notifications }: UseNotificationsOpts) {
   const unreadCount = notifications.filter(n => !n.read).length;
   
   const grouped = {

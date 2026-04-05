@@ -17,10 +17,8 @@ import {
   doc,
   getDoc,
   getDocs,
-  setDoc,
   updateDoc,
   addDoc,
-  deleteDoc,
   arrayUnion,
   arrayRemove,
   query,
@@ -31,13 +29,11 @@ import {
   onSnapshot,
   writeBatch,
   QueryConstraint,
-  increment,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from './config';
 import type {
-  Job, JobApplication, PaymentMilestone,
-  Notification, NotificationType, UserProfile,
+  PaymentMilestone,
+  Notification, NotificationType,
   MilestoneSubmission, SubmissionStatus,
 } from '@/types';
 

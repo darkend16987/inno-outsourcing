@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any -- seed script uses require for dynamic JSON loading */
 import * as admin from 'firebase-admin';
 import * as fs from 'fs';
 import * as path from 'path';

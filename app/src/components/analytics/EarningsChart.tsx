@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Calendar } from 'lucide-react';
 import styles from './EarningsChart.module.css';
 
 interface MonthlyEarning {

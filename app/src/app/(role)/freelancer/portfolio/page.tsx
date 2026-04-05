@@ -228,7 +228,6 @@ export default function PortfolioPage() {
                 <div className={styles.listMain}>
                   <div className={styles.listTags}>
                     <Badge variant="outline" size="sm">{entry.job.category}</Badge>
-                    {/* @ts-ignore */}
                     <Badge variant={entry.job.status === 'paid' ? 'info' : 'success'} size="sm">
                       {entry.job.status === 'paid' ? '\u0110\u00E3 thanh to\u00E1n' : 'Ho\u00E0n th\u00E0nh'}
                     </Badge>
@@ -280,7 +279,6 @@ export default function PortfolioPage() {
               <Card className={styles.gridCard}>
                 <div className={styles.gridTags}>
                   <Badge variant="outline" size="sm">{entry.job.category}</Badge>
-                  {/* @ts-ignore */}
                   <Badge variant={entry.job.status === 'paid' ? 'info' : 'success'} size="sm">
                     {entry.job.status === 'paid' ? '\u0110\u00E3 thanh to\u00E1n' : 'Ho\u00E0n th\u00E0nh'}
                   </Badge>

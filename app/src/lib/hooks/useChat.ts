@@ -15,6 +15,7 @@ export function useConversations(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset state when no userId
       setConversations([]);
       setLoading(false);
       return;
@@ -38,6 +39,7 @@ export function useMessages(conversationId: string | undefined) {
 
   useEffect(() => {
     if (!conversationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset state when no conversationId
       setMessages([]);
       setLoading(false);
       return;

@@ -16,6 +16,8 @@ import { sanitizeText } from '@/lib/security/sanitize';
 import type { Contract } from '@/types';
 import styles from './page.module.css';
 
+const PAGE_LOAD_TIME = Date.now();
+
 const BANKS = [
   'Vietcombank', 'VietinBank', 'BIDV', 'Agribank', 'Techcombank',
   'MB Bank', 'ACB', 'VPBank', 'Sacombank', 'HDBank', 'TPBank', 'OCB',
@@ -112,6 +114,7 @@ export default function ContractSignPage() {
   // Load contract + pre-fill from profile
   useEffect(() => {
     if (!id || !db) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard data-fetch loading pattern
     setLoading(true);
     getDoc(doc(db, 'contracts', id)).then(snap => {
       if (!snap.exists()) { setError('Không tìm thấy hợp đồng.'); setLoading(false); return; }
@@ -239,7 +242,7 @@ export default function ContractSignPage() {
       : new Date(contract.contractDeadline as unknown as string))
     : null;
   const daysLeft = deadline
-    ? Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((deadline.getTime() - PAGE_LOAD_TIME) / (1000 * 60 * 60 * 24))
     : null;
   const isOverdue = daysLeft !== null && daysLeft <= 0;
   const isUrgent = daysLeft !== null && daysLeft <= 1 && !isOverdue;

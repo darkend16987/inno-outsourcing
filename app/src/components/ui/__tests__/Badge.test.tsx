@@ -37,6 +37,7 @@ describe('Badge Components', () => {
   describe('LevelBadge', () => {
     it('renders the correct level text and applies level class', () => {
       // Using type casting to bypass the specific JobLevel type for tests
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { container } = render(<LevelBadge level={"L3" as any} />);
       expect(screen.getByText('L3')).toBeInTheDocument();
       
