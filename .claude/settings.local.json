@@ -37,7 +37,12 @@
       "Bash(npx next:*)",
       "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_teams",
       "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_projects",
-      "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_deployments"
+      "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_deployments",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/app/'\\(role\\)'/admin/)",
+      "Bash(grep -r \"active projects\\\\|pending applications\\\\|system revenue\\\\|total freelancers\" /d/GitHub/inno-outsourcing/app/src --include=*.tsx --include=*.ts)",
+      "Bash(find /d/GitHub/inno-outsourcing -type f -name *portfolio*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(firebase deploy:*)"
     ]
   }
 }
