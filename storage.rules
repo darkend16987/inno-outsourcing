@@ -122,6 +122,19 @@ service firebase.storage {
     }
 
     // =====================
+    // SIGNATURES (Contract signing)
+    // =====================
+    match /signatures/{uid}/{allPaths=**} {
+      // Authenticated users can read signatures
+      allow read: if isSignedIn();
+
+      // Only the owner can upload to their own signatures folder
+      allow write: if isOwner(uid)
+                   && isWithinSizeLimit()
+                   && request.resource.contentType == 'image/png';
+    }
+
+    // =====================
     // DENY ALL OTHER PATHS
     // =====================
     match /{allPaths=**} {

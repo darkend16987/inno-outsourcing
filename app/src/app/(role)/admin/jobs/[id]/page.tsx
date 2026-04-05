@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox, Lock, Unlock, RotateCcw, Edit3, Save, X, ImageIcon, AlertTriangle, Zap, BarChart3 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Clock, User, DollarSign, FileText, Send, Loader2, Inbox, Lock, RotateCcw, Edit3, Save, X, AlertTriangle, Zap, BarChart3, Ruler, Paperclip, FolderOpen } from 'lucide-react';
 import { Button, Card, Badge, StatusBadge, LevelBadge } from '@/components/ui';
 import { getJobById, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { cache } from '@/lib/cache/swr-cache';
+import { FileItem } from '@/components/ui/FileItem';
 import { formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import { getConfigItems, type SystemConfigItem, type ConfigCategory } from '@/lib/firebase/system-config';
 import {
@@ -409,8 +410,8 @@ export default function AdminJobReviewPage() {
   };
 
   const canEdit = ['draft', 'pending_approval'].includes(job.status) && applicationCount === 0;
-  const canLock = job.status === 'open' && applicationCount === 0;
-  const canRevoke = job.status === 'open' && applicationCount === 0;
+  const canLock = job.status === 'open';
+  const canRevoke = job.status === 'open';
   const isActiveJob = ['in_progress', 'review', 'assigned'].includes(job.status);
   const showMilestoneReview = ['in_progress', 'review', 'assigned', 'completed', 'paid'].includes(job.status);
   const hasPendingSubmissions = allSubmissions.some(s => s.status === 'pending_review');
@@ -455,10 +456,16 @@ export default function AdminJobReviewPage() {
             </>
           )}
           {canLock && !editing && (
-            <Button variant="outline" size="md" icon={<Lock size={16} />} onClick={handleLockJob} disabled={actionLoading}>Khóa Job</Button>
+            <Button variant="outline" size="md" icon={<Lock size={16} />} onClick={() => {
+              if (applicationCount > 0 && !confirm(`Job hiện có ${applicationCount} ứng viên. Bạn có chắc muốn khóa?`)) return;
+              handleLockJob();
+            }} disabled={actionLoading}>Khóa Job{applicationCount > 0 ? ` (${applicationCount} ứng viên)` : ''}</Button>
           )}
           {canRevoke && !editing && (
-            <Button variant="outline" size="md" icon={<RotateCcw size={16} />} onClick={handleRevokeApproval} disabled={actionLoading}>Thu hồi duyệt</Button>
+            <Button variant="outline" size="md" icon={<RotateCcw size={16} />} onClick={() => {
+              if (applicationCount > 0 && !confirm(`Job hiện có ${applicationCount} ứng viên. Bạn có chắc muốn thu hồi duyệt?`)) return;
+              handleRevokeApproval();
+            }} disabled={actionLoading}>Thu hồi duyệt{applicationCount > 0 ? ` (${applicationCount} ứng viên)` : ''}</Button>
           )}
           {canEdit && !editing && (
             <Button variant="primary" size="md" icon={<Edit3 size={16} />} onClick={startEditing}>Chỉnh sửa</Button>
@@ -520,7 +527,7 @@ export default function AdminJobReviewPage() {
           {/* Project Scale */}
           {(editing || job.projectScale) && (
             <Card variant="bordered">
-              <h3 className={styles.sectionTitle}>📐 Quy mô dự án</h3>
+              <h3 className={styles.sectionTitle}><Ruler size={18} /> Quy mô dự án</h3>
               {editing ? (
                 <textarea className={styles.textarea} value={editProjectScale} onChange={e => setEditProjectScale(e.target.value)} rows={3} placeholder="VD: 8 tầng, 3000m² sàn..." />
               ) : (
@@ -532,7 +539,7 @@ export default function AdminJobReviewPage() {
           {/* Project Images */}
           {(editing || (job.projectImages && job.projectImages.length > 0)) && (
             <Card variant="bordered">
-              <h3 className={styles.sectionTitle}><ImageIcon size={18} /> Hình ảnh công trình</h3>
+              <h3 className={styles.sectionTitle}><FolderOpen size={18} /> File thông tin</h3>
               {editing ? (
                 <>
                   <div className={styles.imageGallery}>
@@ -550,10 +557,8 @@ export default function AdminJobReviewPage() {
                 </>
               ) : (
                 <div className={styles.imageGallery}>
-                  {(job.projectImages || []).map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.galleryItem}>
-                      <img src={url} alt={`Project ${i + 1}`} className={styles.galleryImg} />
-                    </a>
+                  {(job.projectImages || []).map((url: string, i: number) => (
+                    <FileItem key={i} url={url} index={i} className={styles.galleryItem} />
                   ))}
                 </div>
               )}
@@ -600,7 +605,7 @@ export default function AdminJobReviewPage() {
           <Card variant="bordered">
             <h3 className={styles.sectionTitle}>Thông tin dự án</h3>
             <div className={styles.infoList}>
-              <div className={styles.infoRow}><span>Người tạo:</span><strong>{job.createdBy || '-'}</strong></div>
+              <div className={styles.infoRow}><span>Người tạo:</span><strong>{job.jobMasterName || job.createdBy || '-'}</strong></div>
               <div className={styles.infoRow}><span>Ngày tạo:</span><strong>{formatDate(job.createdAt)}</strong></div>
               <div className={styles.infoRow}><span>Hạn nộp:</span><strong>{formatDate(job.deadline)}</strong></div>
               <div className={styles.infoRow}><span>Hình thức:</span><strong>{job.workMode === 'remote' ? 'Từ xa' : job.workMode === 'on-site' ? 'Tại chỗ' : 'Kết hợp'}</strong></div>
@@ -608,6 +613,28 @@ export default function AdminJobReviewPage() {
               {job.projectScale && <div className={styles.infoRow}><span>Quy mô:</span><strong>{job.projectScale}</strong></div>}
             </div>
           </Card>
+
+          {/* Internal Info - chỉ admin thấy */}
+          {job.internalInfo && (
+            <Card variant="bordered">
+              <h3 className={styles.sectionTitle}><DollarSign size={18} /> Thông tin nội bộ</h3>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 12, fontStyle: 'italic' }}>Chỉ admin/jobmaster thấy — không hiển thị cho freelancer.</p>
+              <div className={styles.infoList}>
+                {job.internalInfo.internalCost != null && (
+                  <div className={styles.infoRow}><span>Chi phí nội bộ:</span><strong>{formatCurrency(job.internalInfo.internalCost)}</strong></div>
+                )}
+                {job.internalInfo.expectedProfit != null && (
+                  <div className={styles.infoRow}><span>Lợi nhuận dự kiến:</span><strong>{formatCurrency(job.internalInfo.expectedProfit)}</strong></div>
+                )}
+                {job.internalInfo.reason && (
+                  <div className={styles.infoRow}><span>Lý do tạo job:</span><strong>{job.internalInfo.reason}</strong></div>
+                )}
+                {job.internalInfo.notes && (
+                  <div className={styles.infoRow}><span>Ghi chú nội bộ:</span><strong>{job.internalInfo.notes}</strong></div>
+                )}
+              </div>
+            </Card>
+          )}
 
           <Card variant="bordered" className={styles.notesCard}>
             <h3 className={styles.sectionTitle}><MessageSquare size={18} /> Ghi chú nội bộ</h3>
@@ -682,7 +709,7 @@ export default function AdminJobReviewPage() {
                         {/* Pending submission from freelancer */}
                         {isInProgress && pendingSub && (
                           <div className={`${styles.submissionBox} ${styles.submissionBoxPending}`}>
-                            <h5><FileText size={14}/> 📋 Freelancer đã nộp báo cáo — chờ xem xét</h5>
+                            <h5><FileText size={14}/> Freelancer đã nộp báo cáo — chờ xem xét</h5>
                             {pendingSub.note && (
                               <p className={styles.msDesc} style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                                 <strong>Ghi chú:</strong> {pendingSub.note}
@@ -693,7 +720,7 @@ export default function AdminJobReviewPage() {
                                 <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
                                 {pendingSub.links.filter(Boolean).map((link, li) => (
                                   <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
-                                    📎 {link}
+                                    <Paperclip size={12} style={{display:'inline',marginRight:4}}/>{link}
                                   </a>
                                 ))}
                               </div>
@@ -715,7 +742,7 @@ export default function AdminJobReviewPage() {
                         {/* Milestone in review — ready for payment */}
                         {isReview && (
                           <div className={`${styles.submissionBox} ${styles.submissionBoxReview}`}>
-                            <h5><FileText size={14}/> ✅ Báo cáo đã chấp nhận — sẵn sàng nghiệm thu</h5>
+                            <h5><CheckCircle size={14}/> Báo cáo đã chấp nhận — sẵn sàng nghiệm thu</h5>
                             {latestSub && latestSub.note && (
                               <p className={styles.msDesc} style={{ marginTop: '0.5rem' }}>
                                 <strong>Ghi chú:</strong> {latestSub.note}
@@ -726,7 +753,7 @@ export default function AdminJobReviewPage() {
                                 <strong style={{ fontSize: '13px' }}>Link kết quả:</strong>
                                 {latestSub.links.filter(Boolean).map((link, li) => (
                                   <a key={li} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: 'var(--color-primary)', wordBreak: 'break-all' }}>
-                                    📎 {link}
+                                    <Paperclip size={12} style={{display:'inline',marginRight:4}}/>{link}
                                   </a>
                                 ))}
                               </div>
@@ -775,7 +802,7 @@ export default function AdminJobReviewPage() {
           <Card variant="bordered">
             <h3 className={styles.sectionTitle}>Thông tin dự án</h3>
             <div className={styles.infoList}>
-              <div className={styles.infoRow}><span>Người tạo:</span><strong>{job.createdBy || '-'}</strong></div>
+              <div className={styles.infoRow}><span>Người tạo:</span><strong>{job.jobMasterName || job.createdBy || '-'}</strong></div>
               <div className={styles.infoRow}><span>Ngày tạo:</span><strong>{formatDate(job.createdAt)}</strong></div>
               <div className={styles.infoRow}><span>Hạn nộp:</span><strong>{formatDate(job.deadline)}</strong></div>
               <div className={styles.infoRow}><span>Hình thức:</span><strong>{job.workMode === 'remote' ? 'Từ xa' : job.workMode === 'on-site' ? 'Tại chỗ' : 'Kết hợp'}</strong></div>

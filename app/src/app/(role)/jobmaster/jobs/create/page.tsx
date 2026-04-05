@@ -324,7 +324,7 @@ export default function JMCreateJobPage() {
               />
             </div>
             <div className={styles.formGroup}>
-              <label>Hình ảnh công trình <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>(URL, tùy chọn)</span></label>
+              <label>File thông tin <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>(URL, tùy chọn)</span></label>
               {projectImages.length > 0 && (
                 <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8}}>
                   {projectImages.map((url, i) => (

@@ -9,10 +9,12 @@ import {
   Sparkles, Zap, Star, Target, Send,
   FileText, MessageSquare, Info, X,
   CheckCircle, ExternalLink, AlertCircle,
-  Copy, ChevronDown, ChevronUp, Users, Check
+  Copy, ChevronDown, ChevronUp, Users, Check,
+  Ruler, FolderOpen,
 } from 'lucide-react';
 import { Button, Badge, Card, LevelBadge, Avatar, Skeleton } from '@/components/ui';
 import { ActiveJobWarning } from '@/components/ui/ActiveJobWarning';
+import { FileItem } from '@/components/ui/FileItem';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { CompletionChecklist, ChecklistItemData } from '@/components/checklist/CompletionChecklist';
 import { getJobById, applyForJob, checkExistingApplication } from '@/lib/firebase/firestore';
@@ -530,7 +532,7 @@ export default function JobDetailPage() {
 
             {job.projectScale && (
               <section className={styles.section}>
-                <h2 className={styles.sectionTitle}>📐 Quy mô dự án</h2>
+                <h2 className={styles.sectionTitle}><Ruler size={20} /> Quy mô dự án</h2>
                 <div className={styles.content}>
                   <p>{job.projectScale}</p>
                 </div>
@@ -539,13 +541,10 @@ export default function JobDetailPage() {
 
             {job.projectImages && job.projectImages.length > 0 && (
               <section className={styles.section}>
-                <h2 className={styles.sectionTitle}>🏗️ Hình ảnh công trình</h2>
+                <h2 className={styles.sectionTitle}><FolderOpen size={20} /> File thông tin</h2>
                 <div className={styles.imageGallery}>
                   {job.projectImages.map((url: string, i: number) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.imageGalleryItem}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`Hình ảnh dự án ${i+1}`} />
-                    </a>
+                    <FileItem key={i} url={url} index={i} className={styles.imageGalleryItem} />
                   ))}
                 </div>
               </section>

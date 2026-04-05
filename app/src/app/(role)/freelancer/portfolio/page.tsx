@@ -66,10 +66,10 @@ function StarRating({ rating }: { rating: number }) {
 // ---------- Category labels for sub-ratings ----------
 
 const CATEGORY_LABELS: Record<string, string> = {
-  quality: 'Ch\u1EA5t l\u01B0\u1EE3ng',
-  communication: 'Giao ti\u1EBFp',
-  timeliness: '\u0110\u00FAng h\u1EA1n',
-  professionalism: 'Chuy\u00EAn nghi\u1EC7p',
+  quality: 'Chất lượng',
+  communication: 'Giao tiếp',
+  timeliness: 'Đúng hạn',
+  professionalism: 'Chuyên nghiệp',
 };
 
 // ---------- Main Page ----------

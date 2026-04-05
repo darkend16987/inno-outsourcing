@@ -3,10 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon, BarChart3, Mail, UserPlus, Star } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, CheckCircle, MessageSquare, AlertTriangle, Zap, X, Loader2, Inbox, Pencil, Save, Send, ImageIcon, BarChart3, Mail, UserPlus, Star, Ruler, FolderOpen } from 'lucide-react';
 import { Button, Card, Badge, Avatar } from '@/components/ui';
 import { ChatPanel } from '@/components/chat';
 import { EscrowStatus } from '@/components/escrow/EscrowStatus';
+import { FileItem } from '@/components/ui/FileItem';
 import { DeadlineIndicator } from '@/components/jobs/DeadlineAlert';
 import { MutualReviewForm } from '@/components/reviews/MutualReview';
 import {
@@ -181,7 +182,7 @@ export default function JobMasterJobDetailPage() {
 
   // Invite modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteFreelancerId, setInviteFreelancerId] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
 
@@ -670,7 +671,7 @@ export default function JobMasterJobDetailPage() {
                   />
                 </div>
                 <div className={styles.editField}>
-                  <label>Hình ảnh công trình <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>URL trực tiếp</span></label>
+                  <label>File thông tin <span style={{fontSize:'12px',fontWeight:400,color:'var(--color-text-muted)'}}>URL trực tiếp</span></label>
                   {editProjectImages.length > 0 && (
                     <div className={styles.imageGallery}>
                       {editProjectImages.map((url, i) => (
@@ -728,19 +729,16 @@ export default function JobMasterJobDetailPage() {
           {/* Project Scale & Images */}
           {!isEditing && job.projectScale && (
             <Card className={styles.sectionCard}>
-              <h3 className={styles.secTitle}>📐 Quy mô dự án</h3>
+              <h3 className={styles.secTitle}><Ruler size={16} /> Quy mô dự án</h3>
               <p className={styles.descText}>{job.projectScale}</p>
             </Card>
           )}
           {!isEditing && job.projectImages && job.projectImages.length > 0 && (
             <Card className={styles.sectionCard}>
-              <h3 className={styles.secTitle}>🏗️ Hình ảnh công trình</h3>
+              <h3 className={styles.secTitle}><FolderOpen size={16} /> File thông tin</h3>
               <div className={styles.imageGallery}>
                 {job.projectImages.map((url: string, i: number) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={styles.galleryItemLarge}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Project ${i + 1}`} className={styles.galleryImg} />
-                  </a>
+                  <FileItem key={i} url={url} index={i} className={styles.galleryItemLarge} />
                 ))}
               </div>
             </Card>
@@ -1072,16 +1070,16 @@ export default function JobMasterJobDetailPage() {
             </div>
             <div className={styles.modalBody}>
               <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>
-                Nhập UID của freelancer bạn muốn mời. Freelancer sẽ nhận được thông báo mời ứng tuyển vào dự án này.
+                Nhập email của freelancer bạn muốn mời. Freelancer sẽ nhận được thông báo mời ứng tuyển vào dự án này.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 4 }}>Freelancer UID *</label>
+                  <label style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 4 }}>Email Freelancer *</label>
                   <input
-                    type="text"
-                    placeholder="VD: abc123..."
-                    value={inviteFreelancerId}
-                    onChange={e => setInviteFreelancerId(e.target.value)}
+                    type="email"
+                    placeholder="VD: freelancer@gmail.com"
+                    value={inviteEmail}
+                    onChange={e => setInviteEmail(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-secondary)', fontSize: 14 }}
                   />
                 </div>
@@ -1100,24 +1098,25 @@ export default function JobMasterJobDetailPage() {
             <div className={styles.modalFooter}>
               <Button variant="outline" onClick={() => setShowInviteModal(false)}>Hủy</Button>
               <Button
-                disabled={!inviteFreelancerId.trim() || inviteSending}
+                disabled={!inviteEmail.trim() || inviteSending}
                 onClick={async () => {
                   if (!userProfile || !job) return;
                   setInviteSending(true);
                   try {
                     await sendJobInvitation(
                       job.id,
-                      inviteFreelancerId.trim(),
+                      inviteEmail.trim(),
                       userProfile.uid,
                       inviteMessage || undefined,
                     );
                     alert('Đã gửi lời mời thành công!');
                     setShowInviteModal(false);
-                    setInviteFreelancerId('');
+                    setInviteEmail('');
                     setInviteMessage('');
                   } catch (err) {
                     console.error(err);
-                    alert('Lỗi khi gửi lời mời. Vui lòng thử lại.');
+                    const msg = err instanceof Error ? err.message : 'Vui lòng thử lại.';
+                    alert('Lỗi: ' + msg);
                   }
                   setInviteSending(false);
                 }}

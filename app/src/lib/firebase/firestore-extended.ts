@@ -777,14 +777,31 @@ export const toggleSavedFreelancer = async (userId: string, freelancerId: string
 
 export const sendJobInvitation = async (
   jobId: string,
-  freelancerId: string,
+  freelancerEmail: string,
   jobmasterId: string,
   message?: string,
 ): Promise<string | null> => {
   if (!db) return null;
+
+  // Lookup freelancer by email
+  const usersQ = query(
+    collection(db, 'users'),
+    where('email', '==', freelancerEmail.toLowerCase().trim()),
+    limit(1),
+  );
+  const userSnap = await getDocs(usersQ);
+  if (userSnap.empty) {
+    throw new Error(`Không tìm thấy freelancer với email: ${freelancerEmail}`);
+  }
+  const freelancerDoc = userSnap.docs[0];
+  const freelancerId = freelancerDoc.id;
+  const freelancerName = freelancerDoc.data().displayName || freelancerEmail;
+
   const ref = await addDoc(collection(db, 'invitations'), {
     jobId,
     freelancerId,
+    freelancerName,
+    freelancerEmail: freelancerEmail.toLowerCase().trim(),
     jobmasterId,
     message: message || '',
     status: 'pending',

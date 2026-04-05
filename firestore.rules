@@ -308,21 +308,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =====================
-    // INVITATIONS
-    // =====================
-    match /invitations/{invitationId} {
-      // Jobmasters can create invitations
-      allow create: if isSignedIn();
 
-      // Freelancers can read invitations sent to them, jobmasters can read their own
-      allow read: if isSignedIn();
-
-      // Freelancers can update (accept/decline) their invitations
-      allow update: if isSignedIn();
-
-      // Only admins can delete
-      allow delete: if isAdmin();
-    }
   }
 }

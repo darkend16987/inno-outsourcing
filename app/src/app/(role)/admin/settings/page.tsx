@@ -127,8 +127,8 @@ export default function AdminSettingsPage() {
       await addConfigItem(activeTab as ConfigCategory, {
         label: newLabel.trim(),
         color: newColor,
-        description: newDesc || undefined,
-        icon: newIcon || undefined,
+        description: newDesc.trim() || '',
+        icon: newIcon.trim() || '',
         isActive: true,
       });
       setNewLabel('');

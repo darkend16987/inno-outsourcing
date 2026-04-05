@@ -74,8 +74,18 @@ export const getConfigItems = async (category: ConfigCategory): Promise<SystemCo
 export const saveConfigItems = async (category: ConfigCategory, items: SystemConfigItem[]) => {
   if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const docRef = doc(db, CONFIG_COLLECTION, category);
+  // Strip undefined values from each item — Firestore rejects undefined
+  const cleanItems = items.map(item => {
+    const clean: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(item)) {
+      if (value !== undefined) {
+        clean[key] = value;
+      }
+    }
+    return clean;
+  });
   await setDoc(docRef, {
-    items,
+    items: cleanItems,
     updatedAt: serverTimestamp(),
   }, { merge: true });
 };
