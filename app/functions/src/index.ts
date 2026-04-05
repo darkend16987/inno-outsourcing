@@ -409,7 +409,7 @@ export const onJobStatusChange = onDocumentUpdated(
       const countSnap = await db.collection('contracts')
         .where('createdAt', '>=', yearStart).get();
       const seqNum = countSnap.size + 1;
-      const contractNumber = `${seqNum}/${year}/VAA/${catCode}`;
+      const contractNumber = `${seqNum}/${year}/VAA-${catCode}`;
 
       // Contract deadline: 3 days from now
       const contractDeadline = new Date();

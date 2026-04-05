@@ -62,9 +62,6 @@ export function TrustBadge({
       <span className={`${styles.badge} ${styles[badge]} ${styles[size]}`}>
         <IconComponent size={iconSize} />
         <span className={styles.label}>{config.label}</span>
-        {score !== undefined && (
-          <span className={styles.score}>{score}</span>
-        )}
       </span>
 
       {tooltipVisible && breakdown && (

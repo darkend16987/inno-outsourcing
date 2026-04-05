@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,7 +13,7 @@ import { SignaturePad } from '@/components/profile/SignaturePad';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { storage, db } from '@/lib/firebase/config';
 import { sanitizeText } from '@/lib/security/sanitize';
-import type { Contract, UserProfile } from '@/types';
+import type { Contract } from '@/types';
 import styles from './page.module.css';
 
 const BANKS = [
@@ -300,6 +300,7 @@ export default function ContractSignPage() {
             <p><strong>Đại diện:</strong> Ông Đỗ Tất Kiên</p>
             <p><strong>Chức vụ:</strong> Tổng giám đốc</p>
             <p><strong>Địa chỉ trụ sở:</strong> Số 40, phố Tăng Bạt Hổ, Phường Hai Bà Trưng, Thành phố Hà Nội, Việt Nam</p>
+            <p><strong>Địa chỉ VPGD:</strong> Tầng 19, Tòa nhà Center Building, Số 1 Nguyễn Huy Tưởng, Thanh Xuân, Hà Nội</p>
             <p><strong>Mã số thuế:</strong> 0102341714</p>
           </section>
 
@@ -351,57 +352,185 @@ export default function ContractSignPage() {
             </div>
           </section>
 
-          {/* Key contract articles summary */}
+          {/* ═══════════ ĐIỀU 1 ═══════════ */}
           <section className={styles.docSection}>
-            <h3>ĐIỀU 1. PHẠM VI CÔNG VIỆC</h3>
+            <h3>ĐIỀU 1. NỘI DUNG CÔNG VIỆC</h3>
+            <p>1.1. Bên A giao khoán cho Bên B thực hiện công việc:</p>
             <div className={styles.scopeBox}>
               {contract.jobDescription || contract.scope || '(Theo mô tả công việc của job được giao)'}
             </div>
+            <p>1.2. Sản phẩm giao nộp: Theo yêu cầu kỹ thuật của từng giai đoạn công việc.</p>
+            <p>1.3. Tiêu chuẩn áp dụng: Theo quy chuẩn, tiêu chuẩn hiện hành của Việt Nam và yêu cầu cụ thể của Bên A.</p>
           </section>
 
+          {/* ═══════════ ĐIỀU 2 ═══════════ */}
           <section className={styles.docSection}>
-            <h3>ĐIỀU 2. GIÁ TRỊ HỢP ĐỒNG</h3>
-            <p>
-              Giá trị hợp đồng (trọn gói):&nbsp;
-              <strong>{contract.totalValue?.toLocaleString('vi-VN')}₫</strong>
-            </p>
+            <h3>ĐIỀU 2. GIÁ TRỊ HỢP ĐỒNG, TẠM ỨNG VÀ THANH TOÁN</h3>
+            <p>2.1. Giá trị hợp đồng (trọn gói): <strong>{contract.totalValue?.toLocaleString('vi-VN')}₫</strong></p>
             <p>Bằng chữ: <em>{numberToVietnameseWords(contract.totalValue)}</em></p>
-            <p>Giá hợp đồng trên là thu nhập thực nhận sau khi đã khấu trừ thuế thu nhập cá nhân. Bên A có trách nhiệm tính ngược để khấu trừ, kê khai và nộp thuế TNCN thay cho Bên B.</p>
+            <p>2.2. Giá hợp đồng trên là thu nhập thực nhận sau khi đã khấu trừ thuế thu nhập cá nhân. Bên A có trách nhiệm tính ngược để khấu trừ, kê khai và nộp thuế TNCN thay cho Bên B theo quy định pháp luật hiện hành.</p>
           </section>
 
-          {contract.milestones && contract.milestones.length > 0 && (
-            <section className={styles.docSection}>
-              <h3>ĐIỀU 3. PHƯƠNG THỨC THANH TOÁN</h3>
-              <p>Hình thức thanh toán: Chuyển khoản</p>
-              <p>Các đợt thanh toán:</p>
-              <table className={styles.milestoneTable}>
-                <thead>
-                  <tr><th>Đợt</th><th>Nội dung</th><th>Tỷ lệ</th><th>Số tiền (VNĐ)</th></tr>
-                </thead>
-                <tbody>
-                  {contract.milestones.map((m, i) => (
-                    <tr key={m.id || i}>
-                      <td>Đợt {i + 1}</td>
-                      <td>{m.name}</td>
-                      <td>{m.percentage}%</td>
-                      <td>{m.amount?.toLocaleString('vi-VN')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-          )}
-
+          {/* ═══════════ ĐIỀU 3 ═══════════ */}
           <section className={styles.docSection}>
-            <h3>ĐIỀU 5. TIẾN ĐỘ THỰC HIỆN</h3>
-            <p>Thời gian bắt đầu: Ngay sau khi hợp đồng được ký kết.</p>
-            <p>Thời gian hoàn thành: Theo tiến độ chung của dự án và các milestone đã thỏa thuận.</p>
+            <h3>ĐIỀU 3. PHƯƠNG THỨC THANH TOÁN</h3>
+            <p>3.1. Hình thức thanh toán: Chuyển khoản qua tài khoản ngân hàng của Bên B.</p>
+            {contract.milestones && contract.milestones.length > 0 && (
+              <>
+                <p>3.2. Các đợt thanh toán:</p>
+                <table className={styles.milestoneTable}>
+                  <thead>
+                    <tr><th>Đợt</th><th>Nội dung</th><th>Tỷ lệ</th><th>Số tiền (VNĐ)</th></tr>
+                  </thead>
+                  <tbody>
+                    {contract.milestones.map((m, i) => (
+                      <tr key={m.id || i}>
+                        <td>Đợt {i + 1}</td>
+                        <td>{m.name}</td>
+                        <td>{m.percentage}%</td>
+                        <td>{m.amount?.toLocaleString('vi-VN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+            <p>3.3. Hồ sơ thanh toán gồm: Biên bản nghiệm thu sản phẩm, Giấy đề nghị thanh toán, Hóa đơn (nếu có).</p>
+            <p>3.4. Thời hạn thanh toán: Trong vòng 15 ngày làm việc sau khi Bên B nộp đầy đủ hồ sơ thanh toán hợp lệ.</p>
           </section>
 
+          {/* ═══════════ ĐIỀU 4 ═══════════ */}
           <section className={styles.docSection}>
-            <p style={{ fontSize: '0.82rem', color: '#666', fontStyle: 'italic' }}>
-              (Các điều khoản 4, 6–17 theo mẫu hợp đồng tiêu chuẩn của VAA — bao gồm điều chỉnh giá, quyền và nghĩa vụ các bên, chế tài vi phạm, bảo mật, bất khả kháng và giải quyết tranh chấp.)
-            </p>
+            <h3>ĐIỀU 4. THAY ĐỔI VÀ ĐIỀU CHỈNH GIÁ HỢP ĐỒNG</h3>
+            <p>4.1. Giá hợp đồng được điều chỉnh trong các trường hợp sau:</p>
+            <p className={styles.indent}>a) Bên A thay đổi, bổ sung nội dung công việc so với hợp đồng đã ký;</p>
+            <p className={styles.indent}>b) Thay đổi điều kiện kinh tế vĩ mô theo quy định pháp luật;</p>
+            <p className={styles.indent}>c) Trường hợp bất khả kháng theo Điều 15 của hợp đồng này.</p>
+            <p>4.2. Việc điều chỉnh giá phải được hai bên thống nhất bằng văn bản trước khi thực hiện.</p>
+            <p>4.3. Mọi công việc phát sinh ngoài phạm vi hợp đồng phải có phụ lục hợp đồng bổ sung.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 5 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 5. TIẾN ĐỘ THỰC HIỆN HỢP ĐỒNG</h3>
+            <p>5.1. Thời gian bắt đầu: Ngay sau khi hợp đồng được ký kết bởi hai bên.</p>
+            <p>5.2. Thời gian hoàn thành: Theo tiến độ chung của dự án và các milestone đã thỏa thuận tại Điều 3.</p>
+            <p>5.3. Bên B phải thông báo cho Bên A khi tiến độ có nguy cơ chậm trễ. Trường hợp chậm tiến độ do lỗi của Bên B, Bên B chịu phạt theo Điều 12.</p>
+            <p>5.4. Trường hợp chậm tiến độ do lỗi của Bên A hoặc nguyên nhân khách quan, hai bên sẽ thương lượng để điều chỉnh tiến độ.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 6 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 6. QUYỀN VÀ NGHĨA VỤ CỦA BÊN B</h3>
+            <p>6.1. Thực hiện đúng và đầy đủ các nội dung công việc theo Điều 1 của hợp đồng.</p>
+            <p>6.2. Đảm bảo chất lượng sản phẩm theo đúng tiêu chuẩn, quy chuẩn kỹ thuật hiện hành.</p>
+            <p>6.3. Tuân thủ tiến độ thực hiện đã cam kết; thông báo kịp thời các rủi ro chậm trễ.</p>
+            <p>6.4. Tự chịu trách nhiệm về công cụ, phương tiện, chi phí đi lại và thiết bị cá nhân phục vụ công việc.</p>
+            <p>6.5. Chịu trách nhiệm về tính chính xác, hợp lệ của các tài liệu, bản vẽ, hồ sơ do mình lập.</p>
+            <p>6.6. Bảo mật toàn bộ thông tin liên quan đến công việc, dự án, khách hàng của Bên A theo Điều 13.</p>
+            <p>6.7. Sửa chữa, hoàn thiện sản phẩm theo yêu cầu nghiệm thu của Bên A mà không phát sinh chi phí (trừ khi do thay đổi nội dung từ Bên A).</p>
+            <p>6.8. Không được chuyển giao một phần hoặc toàn bộ công việc cho bên thứ ba khi chưa có sự đồng ý bằng văn bản của Bên A.</p>
+            <p>6.9. Được quyền yêu cầu Bên A cung cấp đầy đủ thông tin, tài liệu cần thiết để thực hiện công việc.</p>
+            <p>6.10. Được quyền thanh toán theo đúng giá trị và tiến độ quy định tại Điều 2 và Điều 3.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 7 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 7. QUYỀN VÀ NGHĨA VỤ CỦA BÊN A</h3>
+            <p>7.1. Cung cấp đầy đủ, kịp thời các thông tin, tài liệu kỹ thuật cần thiết cho Bên B thực hiện công việc.</p>
+            <p>7.2. Tổ chức nghiệm thu sản phẩm theo đúng quy trình và tiến độ đã thỏa thuận.</p>
+            <p>7.3. Thanh toán cho Bên B theo đúng giá trị và tiến độ quy định tại hợp đồng.</p>
+            <p>7.4. Được quyền kiểm tra, giám sát tiến độ và chất lượng công việc của Bên B.</p>
+            <p>7.5. Được quyền yêu cầu Bên B sửa chữa, hoàn thiện sản phẩm chưa đạt yêu cầu.</p>
+            <p>7.6. Được quyền chấm dứt hợp đồng theo Điều 10 nếu Bên B vi phạm nghiêm trọng nghĩa vụ hợp đồng.</p>
+            <p>7.7. Chịu trách nhiệm kê khai và nộp thuế TNCN thay cho Bên B theo quy định.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 8 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 8. VẬT LIỆU VÀ THIẾT BỊ</h3>
+            <p>8.1. Bên B tự chuẩn bị máy tính, phần mềm bản quyền và các công cụ cần thiết để thực hiện công việc.</p>
+            <p>8.2. Bên A cung cấp tài khoản phần mềm chuyên dụng (nếu yêu cầu) trong thời gian thực hiện hợp đồng.</p>
+            <p>8.3. Bên B có trách nhiệm bảo quản, trả lại các tài liệu, tài khoản do Bên A cung cấp khi kết thúc hợp đồng.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 9 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 9. SẢN PHẨM VÀ NGHIỆM THU</h3>
+            <p>9.1. Bên B nộp sản phẩm theo từng đợt tương ứng với các milestone tại Điều 3.</p>
+            <p>9.2. Bên A tổ chức nghiệm thu trong vòng 07 ngày làm việc kể từ khi nhận sản phẩm.</p>
+            <p>9.3. Trường hợp sản phẩm chưa đạt yêu cầu, Bên A thông báo bằng văn bản và Bên B phải sửa chữa trong thời hạn do hai bên thỏa thuận.</p>
+            <p>9.4. Biên bản nghiệm thu có chữ ký xác nhận của hai bên là căn cứ để thanh toán.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 10 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 10. TẠM NGỪNG VÀ CHẤM DỨT HỢP ĐỒNG</h3>
+            <p>10.1. Hợp đồng có thể tạm ngừng khi:</p>
+            <p className={styles.indent}>a) Bên A yêu cầu tạm ngừng do thay đổi kế hoạch dự án;</p>
+            <p className={styles.indent}>b) Xảy ra sự kiện bất khả kháng theo Điều 15.</p>
+            <p>10.2. Hợp đồng chấm dứt khi:</p>
+            <p className={styles.indent}>a) Hai bên hoàn thành đầy đủ nghĩa vụ hợp đồng;</p>
+            <p className={styles.indent}>b) Hai bên thỏa thuận chấm dứt trước hạn;</p>
+            <p className={styles.indent}>c) Một bên vi phạm nghiêm trọng nghĩa vụ và bên kia có quyền đơn phương chấm dứt sau khi thông báo 15 ngày.</p>
+            <p>10.3. Khi chấm dứt trước hạn, Bên A thanh toán cho Bên B phần công việc đã hoàn thành được nghiệm thu.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 11 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 11. BỒI THƯỜNG VÀ GIỚI HẠN TRÁCH NHIỆM</h3>
+            <p>11.1. Bên vi phạm nghĩa vụ hợp đồng gây thiệt hại cho bên kia phải bồi thường thiệt hại thực tế phát sinh.</p>
+            <p>11.2. Tổng giá trị bồi thường không vượt quá giá trị hợp đồng quy định tại Điều 2.</p>
+            <p>11.3. Không bên nào chịu trách nhiệm về các thiệt hại gián tiếp, mất lợi nhuận kỳ vọng.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 12 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 12. PHẠT VI PHẠM</h3>
+            <p>12.1. Bên B chậm tiến độ không có lý do chính đáng: phạt 0.1% giá trị hợp đồng cho mỗi ngày chậm, tối đa không quá 8% giá trị hợp đồng.</p>
+            <p>12.2. Bên A chậm thanh toán: phạt 0.05% giá trị chậm thanh toán cho mỗi ngày chậm.</p>
+            <p>12.3. Vi phạm điều khoản bảo mật: phạt 30% giá trị hợp đồng và bồi thường thiệt hại thực tế (nếu có).</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 13 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 13. BẢO MẬT, BẢN QUYỀN</h3>
+            <p>13.1. Mọi thông tin liên quan đến công việc, dự án, khách hàng, quy trình, công nghệ của Bên A đều được coi là thông tin mật.</p>
+            <p>13.2. Bên B không được tiết lộ, sao chép, sử dụng thông tin mật cho mục đích ngoài phạm vi hợp đồng.</p>
+            <p>13.3. Toàn bộ sản phẩm, bản vẽ, tài liệu do Bên B thực hiện theo hợp đồng thuộc quyền sở hữu của Bên A.</p>
+            <p>13.4. Bên B không được sử dụng sản phẩm cho mục đích cá nhân hoặc chuyển cho bên thứ ba khi chưa có sự đồng ý bằng văn bản của Bên A.</p>
+            <p>13.5. Nghĩa vụ bảo mật có hiệu lực trong thời gian thực hiện hợp đồng và 03 năm sau khi hợp đồng kết thúc.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 14 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 14. BẢO HIỂM</h3>
+            <p>14.1. Hợp đồng giao khoán này không thuộc đối tượng bắt buộc tham gia bảo hiểm xã hội, bảo hiểm y tế theo quy định pháp luật hiện hành.</p>
+            <p>14.2. Bên B tự chịu trách nhiệm về bảo hiểm cá nhân của mình trong quá trình thực hiện hợp đồng.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 15 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 15. BẤT KHẢ KHÁNG</h3>
+            <p>15.1. Sự kiện bất khả kháng là sự kiện xảy ra một cách khách quan, không thể lường trước được và không thể khắc phục được mặc dù đã áp dụng mọi biện pháp cần thiết, bao gồm nhưng không giới hạn: thiên tai, dịch bệnh, chiến tranh, thay đổi chính sách pháp luật.</p>
+            <p>15.2. Bên bị ảnh hưởng phải thông báo cho bên kia trong vòng 07 ngày kể từ khi xảy ra sự kiện bất khả kháng.</p>
+            <p>15.3. Trong thời gian bất khả kháng, nghĩa vụ của các bên được tạm hoãn tương ứng.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 16 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 16. KHIẾU NẠI, TRANH CHẤP</h3>
+            <p>16.1. Mọi tranh chấp phát sinh trong quá trình thực hiện hợp đồng sẽ được giải quyết trước tiên bằng thương lượng, hòa giải giữa hai bên.</p>
+            <p>16.2. Trường hợp không thương lượng được, tranh chấp sẽ được giải quyết tại Tòa án nhân dân có thẩm quyền theo quy định pháp luật Việt Nam.</p>
+          </section>
+
+          {/* ═══════════ ĐIỀU 17 ═══════════ */}
+          <section className={styles.docSection}>
+            <h3>ĐIỀU 17. ĐIỀU KHOẢN CHUNG</h3>
+            <p>17.1. Hợp đồng này có hiệu lực kể từ ngày ký và chấm dứt khi hai bên hoàn thành đầy đủ nghĩa vụ hoặc theo các trường hợp quy định tại Điều 10.</p>
+            <p>17.2. Hợp đồng được lập thành 02 bản có giá trị pháp lý ngang nhau, mỗi bên giữ 01 bản.</p>
+            <p>17.3. Mọi sửa đổi, bổ sung hợp đồng phải được lập thành phụ lục và có chữ ký xác nhận của cả hai bên.</p>
+            <p>17.4. Các phụ lục hợp đồng (nếu có) là bộ phận không tách rời của hợp đồng này.</p>
           </section>
 
           {/* Signature section */}
@@ -434,7 +563,7 @@ export default function ContractSignPage() {
       {/* Bottom action bar */}
       <div className={styles.bottomBar}>
         <p className={styles.legalNote}>
-          Bằng cách nhấn "Ký & Gửi hợp đồng", bạn xác nhận tất cả thông tin trên là chính xác và đồng ý với các điều khoản hợp đồng.
+          Bằng cách nhấn &ldquo;Ký &amp; Gửi hợp đồng&rdquo;, bạn xác nhận tất cả thông tin trên là chính xác và đồng ý với các điều khoản hợp đồng.
         </p>
         <Button onClick={handleSubmit} disabled={saving || !signatureDataUrl}>
           {saving ? <><Loader2 size={16} className={styles.spin} /> Đang gửi...</> : <><Save size={16} /> Ký & Gửi hợp đồng</>}

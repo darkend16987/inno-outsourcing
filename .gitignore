@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Firebase
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# AI Assistant configs
+.claude/
+app/CLAUDE.md
+app/AGENTS.md
+
+# Temporary/Generated files
+app/tsc_errors.txt
+IMPROVEMENT_PLAN.md
+task.md
+task_*.md
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.tsbuildinfo
+next-env.d.ts

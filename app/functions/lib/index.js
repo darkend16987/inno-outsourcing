@@ -247,8 +247,15 @@ exports.onCreateContractPDF = (0, firestore_2.onDocumentCreated)('contracts/{con
             try {
                 const finalBuffer = Buffer.concat(buffers);
                 const file = bucket.file(filePath);
-                await file.save(finalBuffer, { metadata: { contentType: 'application/pdf' } });
-                const pdfURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+                const dlToken = crypto.randomUUID();
+                await file.save(finalBuffer, {
+                    metadata: {
+                        contentType: 'application/pdf',
+                        metadata: { firebaseStorageDownloadTokens: dlToken },
+                    },
+                });
+                const encodedPath = encodeURIComponent(filePath);
+                const pdfURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${dlToken}`;
                 await snap.ref.update({ pdfURL });
                 resolve();
             }
@@ -350,7 +357,7 @@ exports.onJobStatusChange = (0, firestore_2.onDocumentUpdated)('jobs/{jobId}', a
         const countSnap = await db.collection('contracts')
             .where('createdAt', '>=', yearStart).get();
         const seqNum = countSnap.size + 1;
-        const contractNumber = `${seqNum}/${year}/VAA/${catCode}`;
+        const contractNumber = `${seqNum}/${year}/VAA-${catCode}`;
         // Contract deadline: 3 days from now
         const contractDeadline = new Date();
         contractDeadline.setDate(contractDeadline.getDate() + 3);
@@ -833,8 +840,15 @@ exports.generateInvoicePDF = (0, https_1.onCall)(async (request) => {
             try {
                 const finalBuffer = Buffer.concat(buffers);
                 const file = bucket.file(filePath);
-                await file.save(finalBuffer, { metadata: { contentType: 'application/pdf' } });
-                const pdfURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+                const dlToken = crypto.randomUUID();
+                await file.save(finalBuffer, {
+                    metadata: {
+                        contentType: 'application/pdf',
+                        metadata: { firebaseStorageDownloadTokens: dlToken },
+                    },
+                });
+                const encodedPath = encodeURIComponent(filePath);
+                const pdfURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${dlToken}`;
                 await invoiceSnap.ref.update({ pdfURL });
                 resolve({ pdfURL });
             }
