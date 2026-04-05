@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Eye, UserX, UserCheck, Loader2, Inbox, UserPlus, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, Eye, UserX, UserCheck, Loader2, Inbox, UserPlus, X, AlertTriangle, CheckCircle, ClipboardList, Wallet, Wrench } from 'lucide-react';
 import { Card, Badge, Avatar, Button } from '@/components/ui';
 import { getUsers, updateUserProfile } from '@/lib/firebase/firestore';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
 
   // Create User Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: '', password: '', displayName: '', phone: '', role: 'freelancer' as UserRole });
+  const [createForm, setCreateForm] = useState({ email: '', password: '', displayName: '', phone: '', role: 'jobmaster' as UserRole });
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
@@ -157,7 +157,7 @@ export default function AdminUsersPage() {
       await setDoc(doc(db, 'users', newUid), profileData);
 
       setCreateSuccess(`Tạo thành công tài khoản "${createForm.displayName.trim()}" (${ROLE_LABELS[createForm.role]}).`);
-      setCreateForm({ email: '', password: '', displayName: '', phone: '', role: 'freelancer' });
+      setCreateForm({ email: '', password: '', displayName: '', phone: '', role: 'jobmaster' });
 
       // Refresh user list
       await fetchUsers();
@@ -337,14 +337,18 @@ export default function AdminUsersPage() {
                 <div className={`${styles.formField} ${styles.fullWidth}`}>
                   <label className={styles.formLabel}>Vai trò <span className={styles.req}>*</span></label>
                   <div className={styles.roleGrid}>
-                    {([['freelancer', 'Freelancer', '🎨'], ['jobmaster', 'JobMaster', '📋'], ['accountant', 'Kế toán', '💰'], ['admin', 'Admin', '🔧']] as [UserRole, string, string][]).map(([val, label, icon]) => (
+                    {([
+                      { val: 'jobmaster' as UserRole, label: 'JobMaster', Icon: ClipboardList },
+                      { val: 'accountant' as UserRole, label: 'Kế toán', Icon: Wallet },
+                      { val: 'admin' as UserRole, label: 'Admin', Icon: Wrench },
+                    ]).map(({ val, label, Icon }) => (
                       <button
                         key={val}
                         type="button"
                         className={`${styles.roleOption} ${createForm.role === val ? styles.roleActive : ''}`}
                         onClick={() => setCreateForm(f => ({ ...f, role: val }))}
                       >
-                        <span className={styles.roleIcon}>{icon}</span>
+                        <Icon size={20} className={styles.roleIcon} />
                         <span>{label}</span>
                       </button>
                     ))}

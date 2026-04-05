@@ -44,6 +44,11 @@ service cloud.firestore {
       allow create: if isOwner(uid)
                     && request.resource.data.role == 'freelancer';
 
+      // Admins can create profiles for backend users (jobmaster, accountant, admin)
+      // Freelancers self-register via the public registration flow
+      allow create: if isAdmin()
+                    && request.resource.data.role in ['jobmaster', 'accountant', 'admin'];
+
       // Users can update their OWN profile but CANNOT change protected fields
       // stats, trustScore, trustBadge are managed by Cloud Functions only
       allow update: if isOwner(uid)

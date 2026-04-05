@@ -1,0 +1,8 @@
+fix: admin create user permission denied and UI improvements
+
+- Add Firestore rule allowing admins to create backend user profiles
+- Restrict admin user creation to jobmaster/accountant/admin only
+- Replace emoji icons with Lucide icons for visual consistency
+- Make placeholder text lighter and italic for better UX
+- Update role grid to 3 columns (removed freelancer option)
+- Deploy Firestore rules to fix permission denied error
