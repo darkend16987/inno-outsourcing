@@ -34,7 +34,10 @@
       "Bash(ls \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)/freelancer/\")",
       "Bash(find \"D:/GitHub/inno-outsourcing/app/src/app/\\(role\\)\" -name \"page.module.css\" -type f)",
       "Bash(ls D:/GitHub/inno-outsourcing/app/public/*.png D:/GitHub/inno-outsourcing/app/public/*.svg D:/GitHub/inno-outsourcing/app/public/*.ico)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_teams",
+      "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_projects",
+      "mcp__15babbb3-b0fc-4be9-a808-2eac8bf05027__list_deployments"
     ]
   }
 }
