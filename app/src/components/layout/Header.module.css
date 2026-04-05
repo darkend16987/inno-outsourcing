@@ -27,7 +27,7 @@
 
 /* ── Brand ── */
 .brand { display: flex; align-items: center; gap: var(--space-3); text-decoration: none; }
-.logo { width: 36px; height: 36px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.logo { width: 36px; height: 36px; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
 .logoImg { width: 100%; height: 100%; object-fit: contain; }
 .brandText { display: flex; flex-direction: column; line-height: 1.1; }
 .brandName { font-size: 16px; font-weight: 800; color: var(--color-charcoal); font-family: var(--font-heading); }

@@ -52,9 +52,9 @@ export default function AdminDashboard() {
   }
 
   const data = analytics;
-  const revenueChartData = data?.monthlyRevenue?.map((amount, idx) => ({
-    name: `T${idx + 1}`,
-    revenue: amount,
+  const revenueChartData = data?.monthlyRevenue?.map((item) => ({
+    name: item.month,
+    revenue: item.revenue,
   })) || [];
 
   const jobStatusData = data ? [

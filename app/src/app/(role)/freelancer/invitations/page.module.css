@@ -13,11 +13,11 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
-  color: var(--color-charcoal, #1a1a2e);
+  color: var(--color-charcoal);
 }
 .subtitle {
   font-size: 0.9rem;
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-muted);
 }
 
 .loadingWrap {
@@ -26,7 +26,7 @@
   justify-content: center;
   gap: 8px;
   padding: 60px 20px;
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-muted);
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }
@@ -38,7 +38,7 @@
   gap: 12px;
   padding: 60px 20px;
   text-align: center;
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-muted);
 }
 
 .invList {
@@ -65,13 +65,13 @@
 .invJobTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-charcoal, #1a1a2e);
+  color: var(--color-charcoal);
   margin: 0 0 6px;
 }
 
 .invMessage {
   font-size: 0.88rem;
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-muted);
   margin: 0 0 8px;
   line-height: 1.5;
 }
@@ -81,7 +81,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.78rem;
-  color: var(--color-text-light, #999);
+  color: var(--color-text-light);
 }
 
 .invActions {
@@ -90,7 +90,7 @@
   align-items: center;
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
+  border-top: 1.5px solid var(--color-border);
 }
 
 .invBtns {

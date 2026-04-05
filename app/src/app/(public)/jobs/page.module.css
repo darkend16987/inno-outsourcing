@@ -70,7 +70,7 @@
   background: var(--color-primary);
   color: #fff;
   border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb, 79 70 229) / 0.25);
+  box-shadow: var(--shadow-neo-sm);
 }
 
 /* ── Filter Bar ── */

@@ -7,7 +7,7 @@ import { Button, Badge, StatusBadge, LevelBadge } from '@/components/ui';
 import { getJobs, updateJob } from '@/lib/firebase/firestore';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { cache, TTL } from '@/lib/cache/swr-cache';
-import type { Job } from '@/types';
+import type { Job, JobCategory } from '@/types';
 import styles from './page.module.css';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -22,6 +22,10 @@ const FILTER_TABS = [
   { key: 'in_progress', label: 'Đang thực hiện' },
   { key: 'review', label: 'Nghiệm thu' },
   { key: 'completed', label: 'Hoàn thành' },
+];
+
+const JOB_CATEGORIES: JobCategory[] = [
+  'Kiến trúc', 'Kết cấu', 'MEP', 'BIM', 'Dự toán', 'Giám sát', 'Thẩm tra',
 ];
 
 const formatDate = (d: unknown): string => {
@@ -39,6 +43,7 @@ export default function AdminJobsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | JobCategory>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchJobs = useCallback(async () => {
@@ -91,6 +96,7 @@ export default function AdminJobsPage() {
 
   const filtered = jobs.filter(j => {
     if (activeTab !== 'all' && j.status !== activeTab) return false;
+    if (categoryFilter !== 'all' && j.category !== categoryFilter) return false;
     if (search && !j.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -139,15 +145,27 @@ export default function AdminJobsPage() {
             </button>
           ))}
         </div>
-        <div className={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Tìm theo tên job..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className={styles.searchInput}
-          />
+        <div className={styles.filterControls}>
+          <select
+            className={styles.categorySelect}
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value as 'all' | JobCategory)}
+          >
+            <option value="all">Tất cả lĩnh vực</option>
+            {JOB_CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+          <div className={styles.searchBox}>
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Tìm theo tên job..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import {
   collection, doc, getDoc, setDoc, updateDoc,
   getDocs, deleteDoc, serverTimestamp, orderBy, query
 } from 'firebase/firestore';
-import { db } from './config';
+import { db, firebaseInitialized } from './config';
 
 // =====================
 // SYSTEM CONFIGURATION
@@ -60,7 +60,7 @@ const TESTIMONIALS_COLLECTION = 'testimonials';
  * Get all items for a config category
  */
 export const getConfigItems = async (category: ConfigCategory): Promise<SystemConfigItem[]> => {
-  if (!db) return [];
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const docRef = doc(db, CONFIG_COLLECTION, category);
   const snap = await getDoc(docRef);
   if (!snap.exists()) return getDefaultConfig(category);
@@ -72,7 +72,7 @@ export const getConfigItems = async (category: ConfigCategory): Promise<SystemCo
  * Save all items for a config category
  */
 export const saveConfigItems = async (category: ConfigCategory, items: SystemConfigItem[]) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const docRef = doc(db, CONFIG_COLLECTION, category);
   await setDoc(docRef, {
     items,
@@ -84,7 +84,7 @@ export const saveConfigItems = async (category: ConfigCategory, items: SystemCon
  * Add a single item to a config category
  */
 export const addConfigItem = async (category: ConfigCategory, item: Omit<SystemConfigItem, 'id' | 'order'>) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const existing = await getConfigItems(category);
   const newItem: SystemConfigItem = {
     ...item,
@@ -101,10 +101,10 @@ export const addConfigItem = async (category: ConfigCategory, item: Omit<SystemC
  * Update a single item in a config category
  */
 export const updateConfigItem = async (category: ConfigCategory, itemId: string, updates: Partial<SystemConfigItem>) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const items = await getConfigItems(category);
   const idx = items.findIndex(i => i.id === itemId);
-  if (idx === -1) return;
+  if (idx === -1) throw new Error(`Không tìm thấy mục với ID: ${itemId}`);
   items[idx] = { ...items[idx], ...updates };
   await saveConfigItems(category, items);
 };
@@ -113,7 +113,7 @@ export const updateConfigItem = async (category: ConfigCategory, itemId: string,
  * Delete a single item from a config category
  */
 export const deleteConfigItem = async (category: ConfigCategory, itemId: string) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const items = await getConfigItems(category);
   const filtered = items.filter(i => i.id !== itemId);
   // Reorder
@@ -125,7 +125,7 @@ export const deleteConfigItem = async (category: ConfigCategory, itemId: string)
  * Reorder items within a config category
  */
 export const reorderConfigItems = async (category: ConfigCategory, itemIds: string[]) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const items = await getConfigItems(category);
   const reordered: SystemConfigItem[] = [];
   itemIds.forEach((id, idx) => {
@@ -143,26 +143,26 @@ export const reorderConfigItems = async (category: ConfigCategory, itemIds: stri
 // =====================
 
 export const getBanners = async (): Promise<BannerItem[]> => {
-  if (!db) return [];
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const q = query(collection(db, BANNERS_COLLECTION), orderBy('order', 'asc'));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as BannerItem));
 };
 
 export const saveBanner = async (banner: Omit<BannerItem, 'id' | 'createdAt'>): Promise<string> => {
-  if (!db) return '';
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const docRef = doc(collection(db, BANNERS_COLLECTION));
   await setDoc(docRef, { ...banner, createdAt: serverTimestamp() });
   return docRef.id;
 };
 
 export const updateBanner = async (id: string, data: Partial<BannerItem>) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   await updateDoc(doc(db, BANNERS_COLLECTION, id), data);
 };
 
 export const deleteBanner = async (id: string) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   await deleteDoc(doc(db, BANNERS_COLLECTION, id));
 };
 
@@ -171,7 +171,7 @@ export const deleteBanner = async (id: string) => {
 // =====================
 
 export const getTestimonials = async (): Promise<TestimonialItem[]> => {
-  if (!db) return [];
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const q = query(collection(db, TESTIMONIALS_COLLECTION), orderBy('order', 'asc'));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return getDefaultTestimonials();
@@ -179,19 +179,19 @@ export const getTestimonials = async (): Promise<TestimonialItem[]> => {
 };
 
 export const saveTestimonial = async (item: Omit<TestimonialItem, 'id'>): Promise<string> => {
-  if (!db) return '';
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const docRef = doc(collection(db, TESTIMONIALS_COLLECTION));
   await setDoc(docRef, item);
   return docRef.id;
 };
 
 export const updateTestimonial = async (id: string, data: Partial<TestimonialItem>) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   await updateDoc(doc(db, TESTIMONIALS_COLLECTION, id), data);
 };
 
 export const deleteTestimonial = async (id: string) => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   await deleteDoc(doc(db, TESTIMONIALS_COLLECTION, id));
 };
 
@@ -320,7 +320,7 @@ const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
  * Get global settings
  */
 export const getGlobalSettings = async (): Promise<GlobalSettings> => {
-  if (!db) return DEFAULT_GLOBAL_SETTINGS;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   const snap = await getDoc(doc(db, CONFIG_COLLECTION, 'global_settings'));
   if (!snap.exists()) return DEFAULT_GLOBAL_SETTINGS;
   return { ...DEFAULT_GLOBAL_SETTINGS, ...snap.data() } as GlobalSettings;
@@ -330,7 +330,7 @@ export const getGlobalSettings = async (): Promise<GlobalSettings> => {
  * Save global settings (merge)
  */
 export const saveGlobalSettings = async (settings: Partial<GlobalSettings>): Promise<void> => {
-  if (!db) return;
+  if (!firebaseInitialized) throw new Error('Firebase chưa được khởi tạo. Vui lòng kiểm tra cấu hình.');
   await setDoc(doc(db, CONFIG_COLLECTION, 'global_settings'), {
     ...settings,
     updatedAt: serverTimestamp(),

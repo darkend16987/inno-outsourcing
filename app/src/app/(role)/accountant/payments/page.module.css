@@ -94,7 +94,7 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: rgba(0,0,0,0.02);
+  background: var(--color-bg);
 }
 
 .tId { font-family: monospace; color: var(--color-text-muted); font-size: 13px; }

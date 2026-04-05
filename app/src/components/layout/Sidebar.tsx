@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet, Activity, MessageSquare, Mail } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileSignature, User, LogOut, Settings, Users, FolderKanban, CheckSquare, DollarSign, FileSpreadsheet, Activity, MessageSquare, Mail, FolderOpen } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import styles from './Sidebar.module.css';
@@ -18,6 +18,7 @@ const NAV_CONFIG = {
     { label: 'Việc của tôi', href: '/freelancer/jobs', icon: Briefcase },
     { label: 'Lời mời', href: '/freelancer/invitations', icon: Mail },
     { label: 'Hợp đồng', href: '/freelancer/contracts', icon: FileSignature },
+    { label: 'Portfolio', href: '/freelancer/portfolio', icon: FolderOpen },
     { label: 'Hồ sơ năng lực', href: '/freelancer/profile', icon: User },
   ],
   admin: [
@@ -63,7 +64,7 @@ export function Sidebar({ role }: SidebarProps) {
       {/* Brand */}
       <div className={styles.brand}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-white.png" alt="VAA Job" className={styles.logoImg} />
+        <img src="/logo.png" alt="VAA Job" className={styles.logoImg} />
         <div className={styles.brandText}>VAA JOB<br /><span>CMS Portal</span></div>
       </div>
 

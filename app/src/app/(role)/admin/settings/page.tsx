@@ -62,6 +62,22 @@ export default function AdminSettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  const getErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+      if (err.message.includes('permission') || err.message.includes('PERMISSION_DENIED')) {
+        return 'Bạn không có quyền thực hiện thao tác này. Vui lòng kiểm tra tài khoản admin.';
+      }
+      if (err.message.includes('Firebase chưa được khởi tạo')) {
+        return err.message;
+      }
+      if (err.message.includes('network') || err.message.includes('unavailable')) {
+        return 'Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.';
+      }
+      return `Lỗi: ${err.message}`;
+    }
+    return 'Đã xảy ra lỗi không xác định.';
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -78,6 +94,7 @@ export default function AdminSettingsPage() {
       }
     } catch (err) {
       console.error('Error loading config:', err);
+      alert('Lỗi tải dữ liệu: ' + getErrorMessage(err));
     }
     setLoading(false);
   };
@@ -101,7 +118,10 @@ export default function AdminSettingsPage() {
   };
 
   const handleAddItem = async () => {
-    if (!newLabel.trim()) return;
+    if (!newLabel.trim()) {
+      alert('Vui lòng nhập tên mục.');
+      return;
+    }
     setSaving(true);
     try {
       await addConfigItem(activeTab as ConfigCategory, {
@@ -114,9 +134,11 @@ export default function AdminSettingsPage() {
       setNewLabel('');
       setNewDesc('');
       setNewIcon('');
+      setNewColor('#0d7c66');
       await loadData();
     } catch (err) {
       console.error('Error adding item:', err);
+      alert('Không thể thêm mục. ' + getErrorMessage(err));
     }
     setSaving(false);
   };
@@ -129,11 +151,13 @@ export default function AdminSettingsPage() {
       await loadData();
     } catch (err) {
       console.error('Error deleting item:', err);
+      alert('Không thể xóa mục. ' + getErrorMessage(err));
     }
     setSaving(false);
   };
 
   const handleToggle = async (itemId: string) => {
+    const previous = items;
     const updated = items.map(i =>
       i.id === itemId ? { ...i, isActive: !i.isActive } : i
     );
@@ -142,6 +166,8 @@ export default function AdminSettingsPage() {
       await saveConfigItems(activeTab as ConfigCategory, updated);
     } catch (err) {
       console.error('Error toggling item:', err);
+      setItems(previous); // rollback on failure
+      alert('Không thể thay đổi trạng thái. ' + getErrorMessage(err));
     }
   };
 
@@ -152,6 +178,7 @@ export default function AdminSettingsPage() {
       alert('Đã lưu thành công!');
     } catch (err) {
       console.error('Error saving:', err);
+      alert('Không thể lưu thay đổi. ' + getErrorMessage(err));
     }
     setSaving(false);
   };
@@ -250,15 +277,13 @@ export default function AdminSettingsPage() {
                       />
                     </div>
                   )}
-                  {activeTab === 'levels' && (
-                    <input
-                      type="text"
-                      placeholder="Mô tả..."
-                      value={newDesc}
-                      onChange={e => setNewDesc(e.target.value)}
-                      className={styles.inputSmall}
-                    />
-                  )}
+                  <input
+                    type="text"
+                    placeholder="Mô tả (tuỳ chọn)..."
+                    value={newDesc}
+                    onChange={e => setNewDesc(e.target.value)}
+                    className={styles.inputSmall}
+                  />
                   <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={handleAddItem} disabled={saving}>
                     Thêm
                   </Button>
@@ -316,7 +341,10 @@ export default function AdminSettingsPage() {
                       await saveBanner({ imageUrl: bnImageUrl.trim(), title: bnTitle.trim() || undefined, linkUrl: bnLinkUrl.trim() || undefined, isActive: true, order: banners.length });
                       setBnTitle(''); setBnImageUrl(''); setBnLinkUrl('');
                       await loadData();
-                    } catch (err) { console.error(err); }
+                    } catch (err) {
+                      console.error(err);
+                      alert('Không thể thêm banner. ' + getErrorMessage(err));
+                    }
                     setSaving(false);
                   }}>Thêm banner</Button>
                 </div>
@@ -330,7 +358,10 @@ export default function AdminSettingsPage() {
                     <span>{b.title || 'Untitled'}</span>
                     <span className={styles.bannerLink}>{b.linkUrl || 'No link'}</span>
                   </div>
-                  <button className={styles.deleteBtn} onClick={() => deleteBanner(b.id).then(loadData)}>
+                  <button className={styles.deleteBtn} onClick={() => deleteBanner(b.id).then(loadData).catch(err => {
+                    console.error(err);
+                    alert('Không thể xóa banner. ' + getErrorMessage(err));
+                  })}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -362,7 +393,10 @@ export default function AdminSettingsPage() {
                       await saveTestimonial({ name: tmName.trim(), role: tmRole.trim(), company: tmCompany.trim(), avatarUrl: '', content: tmContent.trim(), rating: parseInt(tmRating), isActive: true, order: testimonials.length });
                       setTmName(''); setTmRole(''); setTmCompany(''); setTmContent(''); setTmRating('5');
                       await loadData();
-                    } catch (err) { console.error(err); }
+                    } catch (err) {
+                      console.error(err);
+                      alert('Không thể thêm nhận xét. ' + getErrorMessage(err));
+                    }
                     setSaving(false);
                   }}>Thêm</Button>
                 </div>
@@ -376,7 +410,10 @@ export default function AdminSettingsPage() {
                     <p className={styles.testContent}>&ldquo;{t.content}&rdquo;</p>
                   </div>
                   <Badge variant={t.isActive ? 'success' : 'default'}>{t.isActive ? 'Active' : 'Hidden'}</Badge>
-                  <button className={styles.deleteBtn} onClick={() => deleteTestimonial(t.id).then(loadData)}>
+                  <button className={styles.deleteBtn} onClick={() => deleteTestimonial(t.id).then(loadData).catch(err => {
+                    console.error(err);
+                    alert('Không thể xóa nhận xét. ' + getErrorMessage(err));
+                  })}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -425,7 +462,7 @@ export default function AdminSettingsPage() {
                       alert('Đã lưu cài đặt chung!');
                     } catch (err) {
                       console.error(err);
-                      alert('Lỗi khi lưu.');
+                      alert('Không thể lưu cài đặt chung. ' + getErrorMessage(err));
                     }
                     setGlobalSaving(false);
                   }}

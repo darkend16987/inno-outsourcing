@@ -132,6 +132,12 @@
   flex-shrink: 0;
 }
 
+.childrenWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

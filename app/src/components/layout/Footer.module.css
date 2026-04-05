@@ -1,6 +1,6 @@
 .footer {
-  background: var(--color-charcoal);
-  color: #fff;
+  background: var(--color-dark-surface);
+  color: #e8edf1;
   margin-top: auto;
 }
 
@@ -29,7 +29,7 @@
 .logoImg {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-md);
+  border-radius: 4px;
   object-fit: contain;
   flex-shrink: 0;
 }

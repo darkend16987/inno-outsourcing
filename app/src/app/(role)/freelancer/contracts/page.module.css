@@ -35,54 +35,195 @@
 .cMeta { display: flex; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--color-text-muted); margin-top: 4px; }
 .sep { opacity: 0.3; }
 
-.cActions { display: flex; align-items: center; margin-left: var(--space-4); }
+.cActions { display: flex; align-items: center; gap: var(--space-2); margin-left: var(--space-4); }
 
-.empty { padding: var(--space-8); text-align: center; color: var(--color-text-muted); font-size: 14px; background: var(--color-surface); border-radius: var(--radius-lg); border: 2px dashed var(--color-border); }
+.empty { padding: var(--space-8); text-align: center; color: var(--color-text-muted); font-size: 14px; background: var(--color-surface); border-radius: var(--radius-lg); border: 1.5px dashed var(--color-border); }
 
 /* Pending contract highlight */
 .contractPending {
-  border-color: #f59e0b !important;
-  background: #fffbeb;
+  border-color: var(--color-warning) !important;
+  background: var(--color-warning-bg, #fffbeb);
 }
 
 /* Warning banner for pending contracts */
 .pendingBanner {
   display: flex; align-items: center; gap: 10px;
-  padding: 14px 18px; border-radius: 10px;
-  background: #fffbeb; border: 1px solid #fde68a;
-  color: #92400e; font-size: 0.88rem;
+  padding: 14px 18px; border-radius: var(--radius-md);
+  background: var(--color-warning-bg, #fffbeb); border: 1.5px solid var(--color-warning-border, #fde68a);
+  color: var(--color-warning-text, #92400e); font-size: 0.88rem;
 }
-.pendingBanner svg { flex-shrink: 0; color: #d97706; }
+.pendingBanner svg { flex-shrink: 0; color: var(--color-warning); }
 
 /* Deadline badges */
 .deadlineRow { margin-top: 6px; }
 .deadlineOverdue {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 20px;
-  background: #fef2f2; color: #b91c1c;
+  padding: 3px 10px; border-radius: var(--radius-full);
+  background: var(--color-danger-bg, #fef2f2); color: var(--color-danger, #b91c1c);
   font-size: 0.75rem; font-weight: 700;
-  border: 1px solid #fecaca;
+  border: 1.5px solid var(--color-danger-border, #fecaca);
 }
 .deadlineUrgent {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 20px;
-  background: #fffbeb; color: #b45309;
+  padding: 3px 10px; border-radius: var(--radius-full);
+  background: var(--color-warning-bg, #fffbeb); color: var(--color-warning-text, #b45309);
   font-size: 0.75rem; font-weight: 700;
-  border: 1px solid #fde68a;
+  border: 1.5px solid var(--color-warning-border, #fde68a);
 }
 .deadlineNormal {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 20px;
-  background: #f0fdf4; color: #15803d;
+  padding: 3px 10px; border-radius: var(--radius-full);
+  background: var(--color-success-bg, #f0fdf4); color: var(--color-success, #15803d);
   font-size: 0.75rem; font-weight: 600;
-  border: 1px solid #bbf7d0;
+  border: 1.5px solid var(--color-success-border, #bbf7d0);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }
 
+/* ---- Contract Detail Modal ---- */
+.modalOverlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--color-surface, #fff);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 680px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+.modalHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1.5px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-family: var(--font-heading);
+  font-size: 20px; font-weight: 800;
+  color: var(--color-charcoal);
+}
+
+.modalClose {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.modalClose:hover { background: var(--color-surface-2, #f3f4f6); color: var(--color-text); }
+
+.modalBody {
+  padding: var(--space-5) var(--space-6);
+  overflow-y: auto; flex: 1;
+}
+
+.modalSection {
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.modalSection:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.modalSectionTitle {
+  font-size: 14px; font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.modalSubTitle {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3); margin-bottom: var(--space-1);
+}
+
+.modalRow {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 6px 0; gap: var(--space-4);
+}
+
+.modalLabel {
+  font-size: 13px; color: var(--color-text-muted);
+  flex-shrink: 0; min-width: 130px;
+}
+
+.modalValue {
+  font-size: 14px; color: var(--color-text);
+  text-align: right; word-break: break-word;
+}
+
+.modalText {
+  font-size: 14px; color: var(--color-text);
+  line-height: 1.65; white-space: pre-wrap;
+}
+
+/* Milestones table */
+.milestonesTable {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.msHeader {
+  display: grid; grid-template-columns: 1fr 70px 120px 110px;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  background: var(--color-surface-2, #f9fafb);
+  font-size: 12px; font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.msRow {
+  display: grid; grid-template-columns: 1fr 70px 120px 110px;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  font-size: 13px;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+}
+
+.msName {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.modalFooter {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1.5px solid var(--color-border);
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .contractCard { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
-  .cActions { margin-left: 0; margin-top: var(--space-2); width: 100%; }
+  .cActions { margin-left: 0; margin-top: var(--space-2); width: 100%; flex-wrap: wrap; }
   .cActions button { width: 100%; }
+
+  .modal { max-width: 100%; margin: var(--space-2); }
+  .modalHeader { padding: var(--space-4); }
+  .modalBody { padding: var(--space-4); }
+  .modalFooter { padding: var(--space-3) var(--space-4); }
+
+  .modalRow { flex-direction: column; gap: 2px; }
+  .modalValue { text-align: left; }
+
+  .msHeader, .msRow { grid-template-columns: 1fr 55px 90px 90px; font-size: 11px; }
 }

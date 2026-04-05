@@ -49,11 +49,11 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
 
   try {
     const [jobsData, paymentsData, applicationsData, usersData, disputesData] = await Promise.all([
-      fetchJobsMetrics(),
-      fetchPaymentsMetrics(),
-      fetchApplicationsMetrics(),
-      fetchUsersMetrics(),
-      fetchDisputesMetrics(),
+      fetchJobsMetrics().catch(e => { console.warn('[Analytics] jobs fetch failed:', e); return { total: 0, active: 0, completed: 0, cancelled: 0 }; }),
+      fetchPaymentsMetrics().catch(e => { console.warn('[Analytics] payments fetch failed:', e); return { totalRevenue: 0, monthlyRevenue: [] as { month: string; revenue: number }[] }; }),
+      fetchApplicationsMetrics().catch(e => { console.warn('[Analytics] applications fetch failed:', e); return { totalApps: 0, hiredCount: 0, avgTimeToHire: 0 }; }),
+      fetchUsersMetrics().catch(e => { console.warn('[Analytics] users fetch failed:', e); return { freelancers: 0, jobmasters: 0, activeThisMonth: 0 }; }),
+      fetchDisputesMetrics().catch(e => { console.warn('[Analytics] disputes fetch failed:', e); return { total: 0, open: 0 }; }),
     ]);
 
     // Calculate conversion rate

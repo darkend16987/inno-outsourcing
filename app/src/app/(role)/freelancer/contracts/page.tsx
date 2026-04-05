@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FileSignature, Download, Search, FileText, Loader2, Inbox, AlertTriangle, Clock } from 'lucide-react';
+import { FileSignature, Download, Search, FileText, Loader2, Inbox, AlertTriangle, Clock, Eye, X } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { getContractsForFreelancer } from '@/lib/firebase/firestore';
@@ -69,6 +69,7 @@ export default function ContractsPage() {
   const [search, setSearch] = useState('');
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewContract, setViewContract] = useState<Contract | null>(null);
 
   useEffect(() => {
     if (!userProfile?.uid) return;
@@ -156,6 +157,9 @@ export default function ContractsPage() {
               </div>
 
               <div className={styles.cActions}>
+                <Button variant="ghost" size="sm" onClick={() => setViewContract(contract)}>
+                  <Eye size={14} /> Xem hợp đồng
+                </Button>
                 {contract.status === 'pending_signature' ? (
                   <Link href={`/freelancer/contracts/${contract.id}/sign`}>
                     <Button size="sm"><FileSignature size={14} /> Ký hợp đồng</Button>
@@ -181,6 +185,175 @@ export default function ContractsPage() {
           </div>
         )}
       </div>
+
+      {/* Contract Detail Modal */}
+      {viewContract && (
+        <div className={styles.modalOverlay} onClick={() => setViewContract(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Chi tiết hợp đồng</h2>
+              <button className={styles.modalClose} onClick={() => setViewContract(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              {/* Contract number & status */}
+              <div className={styles.modalSection}>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Số hợp đồng</span>
+                  <span className={styles.modalValue}><strong>{viewContract.contractNumber}</strong></span>
+                </div>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Trạng thái</span>
+                  {/* @ts-ignore */}
+                  <Badge variant={STATUS_MAP[viewContract.status]?.color || 'default'} size="sm">
+                    {STATUS_MAP[viewContract.status]?.label || viewContract.status}
+                  </Badge>
+                </div>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Tên dự án</span>
+                  <span className={styles.modalValue}>{viewContract.jobTitle}</span>
+                </div>
+                {viewContract.jobCategory && (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>Hạng mục</span>
+                    <span className={styles.modalValue}>{viewContract.jobCategory}</span>
+                  </div>
+                )}
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Ngày ký</span>
+                  <span className={styles.modalValue}>{formatDate(viewContract.signedByWorkerAt || viewContract.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* Party A */}
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Bên A (Công ty)</h3>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Tên công ty</span>
+                  <span className={styles.modalValue}>{viewContract.partyA.name}</span>
+                </div>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Đại diện</span>
+                  <span className={styles.modalValue}>{viewContract.partyA.representative}</span>
+                </div>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Chức vụ</span>
+                  <span className={styles.modalValue}>{viewContract.partyA.position}</span>
+                </div>
+              </div>
+
+              {/* Party B */}
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Bên B (Freelancer)</h3>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Họ tên</span>
+                  <span className={styles.modalValue}>{viewContract.partyB.name}</span>
+                </div>
+                {viewContract.partyB.dateOfBirth && (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>Ngày sinh</span>
+                    <span className={styles.modalValue}>{viewContract.partyB.dateOfBirth}</span>
+                  </div>
+                )}
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>CMND/CCCD</span>
+                  <span className={styles.modalValue}>{viewContract.partyB.idNumber}</span>
+                </div>
+                {viewContract.partyB.phone && (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>Số điện thoại</span>
+                    <span className={styles.modalValue}>{viewContract.partyB.phone}</span>
+                  </div>
+                )}
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Địa chỉ</span>
+                  <span className={styles.modalValue}>{viewContract.partyB.address}</span>
+                </div>
+                {viewContract.partyB.taxId && (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>Mã số thuế</span>
+                    <span className={styles.modalValue}>{viewContract.partyB.taxId}</span>
+                  </div>
+                )}
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Tài khoản NH</span>
+                  <span className={styles.modalValue}>{viewContract.partyB.bankAccount} - {viewContract.partyB.bankName}{viewContract.partyB.bankBranch ? ` - ${viewContract.partyB.bankBranch}` : ''}</span>
+                </div>
+              </div>
+
+              {/* Scope & Terms */}
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Nội dung công việc</h3>
+                <p className={styles.modalText}>{viewContract.scope}</p>
+                {viewContract.jobDescription && (
+                  <>
+                    <h4 className={styles.modalSubTitle}>Mô tả chi tiết</h4>
+                    <p className={styles.modalText}>{viewContract.jobDescription}</p>
+                  </>
+                )}
+              </div>
+
+              {/* Value & Payment */}
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Giá trị &amp; thanh toán</h3>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Tổng giá trị</span>
+                  <span className={styles.modalValue}><strong>{formatCurrency(viewContract.totalValue)}</strong></span>
+                </div>
+                <div className={styles.modalRow}>
+                  <span className={styles.modalLabel}>Điều khoản thanh toán</span>
+                  <span className={styles.modalValue}>{viewContract.paymentTerms}</span>
+                </div>
+              </div>
+
+              {/* Milestones */}
+              {viewContract.milestones && viewContract.milestones.length > 0 && (
+                <div className={styles.modalSection}>
+                  <h3 className={styles.modalSectionTitle}>Các mốc thanh toán</h3>
+                  <div className={styles.milestonesTable}>
+                    <div className={styles.msHeader}>
+                      <span>Mốc</span>
+                      <span>Tỷ lệ</span>
+                      <span>Số tiền</span>
+                      <span>Trạng thái</span>
+                    </div>
+                    {viewContract.milestones.map((ms, idx) => (
+                      <div key={ms.id || idx} className={styles.msRow}>
+                        <span className={styles.msName}>{ms.name}</span>
+                        <span>{ms.percentage}%</span>
+                        <span>{formatCurrency(ms.amount)}</span>
+                        {/* @ts-ignore */}
+                        <Badge variant={ms.status === 'paid' ? 'success' : ms.status === 'approved' || ms.status === 'released' ? 'warning' : 'default'} size="sm">
+                          {ms.status === 'paid' ? 'Đã thanh toán' : ms.status === 'approved' ? 'Đã duyệt' : ms.status === 'released' ? 'Đã giải ngân' : ms.status === 'in_progress' ? 'Đang thực hiện' : ms.status === 'review' ? 'Đang xét duyệt' : 'Chờ'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Contract terms */}
+              {viewContract.terms && (
+                <div className={styles.modalSection}>
+                  <h3 className={styles.modalSectionTitle}>Điều khoản hợp đồng</h3>
+                  <p className={styles.modalText}>{viewContract.terms}</p>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              {(viewContract.pdfURL || viewContract.signedPdfURL) && (
+                <a href={viewContract.signedPdfURL || viewContract.pdfURL} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm"><Download size={14} /> Tải PDF</Button>
+                </a>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => setViewContract(null)}>Đóng</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

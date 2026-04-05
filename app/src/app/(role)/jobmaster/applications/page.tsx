@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Check, X, FileText, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
-import { Card, Badge, Avatar, Button, LevelBadge } from '@/components/ui';
+import { Search, Check, X, FileText, ArrowUpRight, Loader2, Inbox, Briefcase, CheckCircle } from 'lucide-react';
+import { Badge, Avatar, Button, LevelBadge } from '@/components/ui';
 import { TrustBadge } from '@/components/ui/TrustBadge';
 import { AvailabilityBadge } from '@/components/ui/AvailabilityBadge';
 import { ActiveJobWarning } from '@/components/ui/ActiveJobWarning';
@@ -32,6 +32,7 @@ interface AppItem {
   trustScore?: number;
   availability?: AvailabilityStatus;
   activeJobCount?: number;
+  completedJobs?: number;
 }
 
 const formatDate = (d: unknown): string => {
@@ -74,7 +75,7 @@ export default function ApplicationsPage() {
 
       // Enrich with trust, availability, active job count in background
       const uniqueIds = [...new Set(mapped.map(a => a.candidateId).filter(Boolean))];
-      const enrichMap = new Map<string, { trustBadge?: TrustBadgeLevel; trustScore?: number; availability?: AvailabilityStatus; activeJobCount?: number }>();
+      const enrichMap = new Map<string, { trustBadge?: TrustBadgeLevel; trustScore?: number; availability?: AvailabilityStatus; activeJobCount?: number; completedJobs?: number }>();
       await Promise.all(uniqueIds.map(async (uid) => {
         try {
           const [profile, activeCount] = await Promise.all([
@@ -89,6 +90,7 @@ export default function ApplicationsPage() {
               trustScore: trust.totalScore,
               availability: profile.availability,
               activeJobCount: activeCount,
+              completedJobs: stats.completedJobs || 0,
             });
           }
         } catch { /* skip */ }
@@ -178,10 +180,10 @@ export default function ApplicationsPage() {
 
       <div className={styles.appList}>
         {filteredApps.map(app => (
-          <Card key={app.id} className={styles.appCard}>
+          <div key={app.id} className={styles.appCard}>
             <div className={styles.appHeader}>
               <div className={styles.jobInfo}>
-                <span className={styles.jLabel}>Dự án ứng tuyển:</span>
+                <span className={styles.jLabel}>Dự án:</span>
                 <span className={styles.jTitle}>{app.jobTitle}</span>
               </div>
               <div className={styles.timeInfo}>{formatDate(app.createdAt)}</div>
@@ -199,27 +201,40 @@ export default function ApplicationsPage() {
                   </div>
                   {app.candidateId && (
                     <Link href={`/jobmaster/freelancers/${app.candidateId}`} className={styles.viewProfileBtn}>
-                      Xem hồ sơ kỹ năng <ArrowUpRight size={14}/>
+                      Xem hồ sơ <ArrowUpRight size={14}/>
                     </Link>
-                  )}
-                  {app.activeJobCount !== undefined && app.activeJobCount >= 3 && (
-                    <ActiveJobWarning count={app.activeJobCount} threshold={3} variant="applicant" />
                   )}
                 </div>
               </div>
 
-              <div className={styles.proposalCol}>
-                <div className={styles.pItem}>
-                  <span className={styles.pLabel}>Ngân sách đề xuất</span>
-                  <span className={styles.pVal}>{app.bidAmount > 0 ? formatCurrency(app.bidAmount) : '-'}</span>
+              <div className={styles.statsCol}>
+                <div className={styles.statItem}>
+                  <span className={styles.statIcon}><Briefcase size={15} /></span>
+                  <div className={styles.statContent}>
+                    <span className={styles.statVal}>{app.bidAmount > 0 ? formatCurrency(app.bidAmount) : '-'}</span>
+                    <span className={styles.statLabel}>Ngân sách đề xuất</span>
+                  </div>
                 </div>
-                <div className={styles.pItem}>
-                  <span className={styles.pLabel}>Thời gian thi công</span>
-                  <span className={styles.pVal}>{app.duration > 0 ? `${app.duration} ngày` : '-'}</span>
+                <div className={styles.statItem}>
+                  <span className={styles.statIcon}><CheckCircle size={15} /></span>
+                  <div className={styles.statContent}>
+                    <span className={styles.statVal}>{app.completedJobs ?? '-'}</span>
+                    <span className={styles.statLabel}>Job hoàn thành</span>
+                  </div>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statIcon}><Loader2 size={15} /></span>
+                  <div className={styles.statContent}>
+                    <span className={styles.statVal}>{app.activeJobCount ?? '-'}</span>
+                    <span className={styles.statLabel}>Job đang thực hiện</span>
+                  </div>
                 </div>
               </div>
 
               <div className={styles.actionCol}>
+                {app.activeJobCount !== undefined && app.activeJobCount >= 3 && (
+                  <ActiveJobWarning count={app.activeJobCount} threshold={3} variant="applicant" />
+                )}
                 {app.status === 'pending' ? (
                   <>
                     <Button
@@ -256,12 +271,12 @@ export default function ApplicationsPage() {
             </div>
 
             {expandedLetter === app.id && app.coverLetter && (
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)', borderRadius: '0 0 12px 12px', fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+              <div className={styles.expandedLetter}>
                 <strong>Thư giới thiệu:</strong>
-                <p style={{ marginTop: '4px' }}>{app.coverLetter}</p>
+                <p>{app.coverLetter}</p>
               </div>
             )}
-          </Card>
+          </div>
         ))}
 
         {filteredApps.length === 0 && (

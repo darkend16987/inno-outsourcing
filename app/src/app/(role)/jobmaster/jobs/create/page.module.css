@@ -100,11 +100,11 @@
 }
 .input, .textarea {
   padding: 12px 16px;
-  border: 2px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: 14px;
-  background: #fff;
-  transition: border-color 0.2s ease;
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
   font-family: inherit;
   width: 100%;
 }
@@ -176,6 +176,46 @@
   gap: var(--space-2);
   flex-wrap: wrap;
   margin-top: var(--space-2);
+}
+
+.tabBar {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-2);
+}
+.tab {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+.tab:hover {
+  color: var(--color-charcoal);
+}
+.tabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.internalTab {
+  max-width: 720px;
+}
+.internalNote {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-warning, #f59e0b);
 }
 
 @media (max-width: 1024px) {

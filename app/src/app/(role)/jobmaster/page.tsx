@@ -20,11 +20,10 @@ export default function JobMasterDashboard() {
     if (!userProfile?.uid) return;
     const fetchStats = async () => {
       const [jobsResult, appsResult] = await Promise.all([
-        cache.get(`jm:jobs:${userProfile.uid}`, () => getJobs({}, 50), TTL.MEDIUM),
-        cache.get(`jm:apps:${userProfile.uid}`, () => getAllApplications({ status: 'pending' }, 50), TTL.MEDIUM),
+        cache.get(`jm:jobs:${userProfile.uid}`, () => getJobs({ jobMaster: userProfile.uid }, 200), TTL.MEDIUM),
+        cache.get(`jm:apps:${userProfile.uid}`, () => getAllApplications({ status: 'pending' }, 200), TTL.MEDIUM),
       ]);
-      // Filter jobs managed by this jobmaster
-      const managed = jobsResult.items.filter(j => j.jobMaster === userProfile.uid || j.createdBy === userProfile.uid);
+      const managed = jobsResult.items;
       setMyJobs(managed);
       setPendingApps(appsResult.items.filter(a => managed.some(j => j.id === a.jobId)).length);
       setLoading(false);

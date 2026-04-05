@@ -364,7 +364,12 @@ export default function FreelancerJobDetail() {
 
           {/* Deadline Indicator */}
           {job.deadline && (() => {
-            const dl = job.deadline instanceof Date ? job.deadline : new Date(job.deadline as string);
+            const dl = job.deadline instanceof Date
+              ? job.deadline
+              : (typeof job.deadline === 'object' && job.deadline !== null && 'toDate' in job.deadline)
+                ? (job.deadline as { toDate: () => Date }).toDate()
+                : new Date(job.deadline as string);
+            if (isNaN(dl.getTime())) return null;
             const daysRemaining = Math.ceil((dl.getTime() - Date.now()) / 86400000);
             return (
               <Card className={styles.linksCard}>

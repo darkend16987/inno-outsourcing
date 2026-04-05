@@ -236,6 +236,17 @@ export interface Job {
   projectScale?: string;
   projectImages?: string[];
 
+  // Required certificates (free text)
+  requiredCertificates?: string;
+
+  // Internal info (visible only to jobmaster creator and admin)
+  internalInfo?: {
+    internalCost?: number;
+    expectedProfit?: number;
+    reason?: string;
+    notes?: string;
+  };
+
   // SEO
   slug?: string;
 }

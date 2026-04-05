@@ -5,10 +5,10 @@
 
 .filterRow { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .filterBtn {
-  padding: 8px 16px; border-radius: var(--radius-pill); border: 2px solid var(--color-border);
-  background: var(--color-surface); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  padding: 8px 16px; border-radius: var(--radius-full); border: 1.5px solid var(--color-border);
+  background: var(--color-surface); font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition-fast);
 }
-.filterBtn:hover { border-color: var(--color-primary); }
+.filterBtn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .filterActive { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 
 .appGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: var(--space-5); }

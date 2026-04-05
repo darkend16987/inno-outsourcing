@@ -95,7 +95,7 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: rgba(0,0,0,0.02);
+  background: var(--color-bg);
 }
 
 .tId { font-family: monospace; font-weight: 600; color: var(--color-charcoal); }
@@ -105,7 +105,7 @@
 .cVal { font-weight: 700; color: var(--color-charcoal); }
 
 .tAction { text-align: right; }
-.fileActions { display: flex; justify-content: flex-end; }
+.fileActions { display: flex; justify-content: flex-end; gap: var(--space-3); }
 .urlBtn {
   background: none; border: none; color: var(--color-primary); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
 }

@@ -14,12 +14,14 @@ const firebaseConfig = {
 
 // Conditionally initialize Firebase to avoid crash without env vars during UI dev
 let app: FirebaseApp, auth: Auth, db: Firestore, storage: FirebaseStorage;
+let firebaseInitialized = false;
 
 if (firebaseConfig.apiKey) {
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+  firebaseInitialized = true;
 } else {
   console.warn('Firebase config missing, using mock instances for UI development.');
   app = {} as FirebaseApp;
@@ -30,4 +32,4 @@ if (firebaseConfig.apiKey) {
   storage = {} as FirebaseStorage;
 }
 
-export { app, auth, db, storage };
+export { app, auth, db, storage, firebaseInitialized };

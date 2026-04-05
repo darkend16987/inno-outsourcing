@@ -50,6 +50,12 @@ export default function JMCreateJobPage() {
   const [projectScale, setProjectScale] = useState('');
   const [projectImages, setProjectImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [requiredCertificates, setRequiredCertificates] = useState('');
+  const [activeTab, setActiveTab] = useState<'general' | 'internal'>('general');
+  const [internalCost, setInternalCost] = useState('');
+  const [expectedProfit, setExpectedProfit] = useState('');
+  const [internalReason, setInternalReason] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
 
   // Load system config on mount
   useEffect(() => {
@@ -146,10 +152,11 @@ export default function JMCreateJobPage() {
           })),
         requirements: {
           experience: '',
-          certifications: '',
+          certifications: requiredCertificates.trim(),
           software: selectedSoftware,
           standards: [],
         },
+        ...(requiredCertificates.trim() && { requiredCertificates: requiredCertificates.trim() }),
         checklist: [],
         attachments: [],
         status,
@@ -163,6 +170,14 @@ export default function JMCreateJobPage() {
         highlightTags: selectedTags,
         ...(projectScale.trim() && { projectScale: projectScale.trim() }),
         ...(projectImages.length > 0 && { projectImages }),
+        ...((internalCost || expectedProfit || internalReason.trim() || internalNotes.trim()) && {
+          internalInfo: {
+            ...(internalCost && { internalCost: parseCurrencyInput(internalCost) }),
+            ...(expectedProfit && { expectedProfit: parseCurrencyInput(expectedProfit) }),
+            ...(internalReason.trim() && { reason: internalReason.trim() }),
+            ...(internalNotes.trim() && { notes: internalNotes.trim() }),
+          },
+        }),
       };
 
       await createJob(jobData as never);
@@ -203,11 +218,27 @@ export default function JMCreateJobPage() {
             {saving ? 'Đang lưu...' : 'Lưu nháp'}
           </Button>
           <Button onClick={() => handleSubmit('pending_approval')} disabled={saving}>
-            <Save size={16} /> {saving ? 'Đang gửi...' : 'Đăng công việc'}
+            {saving ? 'Đang gửi...' : 'Đăng công việc'}
           </Button>
         </div>
       </div>
 
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tab} ${activeTab === 'general' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('general')}
+        >
+          Thông tin chung
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'internal' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('internal')}
+        >
+          Thông tin nội bộ
+        </button>
+      </div>
+
+      {activeTab === 'general' && (
       <div className={styles.grid}>
         <div className={styles.mainCol}>
           <Card className={styles.formCard}>
@@ -281,7 +312,7 @@ export default function JMCreateJobPage() {
           </Card>
 
           <Card className={styles.formCard}>
-            <h3 className={styles.sectionTitle}>📐 Quy mô dự án & Hình ảnh</h3>
+            <h3 className={styles.sectionTitle}>Quy mô dự án & Hình ảnh</h3>
             <div className={styles.formGroup}>
               <label>Quy mô dự án</label>
               <textarea
@@ -410,6 +441,19 @@ export default function JMCreateJobPage() {
             </div>
           </Card>
 
+          <Card className={styles.sideCard}>
+            <h3 className={styles.sectionTitle}>Chứng chỉ yêu cầu</h3>
+            <div className={styles.formGroup}>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="VD: CCHN Kiến trúc, PMP, BIM Certificate..."
+                value={requiredCertificates}
+                onChange={e => setRequiredCertificates(e.target.value)}
+              />
+            </div>
+          </Card>
+
           {jobTags.length > 0 && (
             <Card className={styles.sideCard}>
               <h3 className={styles.sectionTitle}>Tag nổi bật</h3>
@@ -438,6 +482,61 @@ export default function JMCreateJobPage() {
           )}
         </div>
       </div>
+      )}
+
+      {activeTab === 'internal' && (
+      <div className={styles.internalTab}>
+        <Card className={styles.formCard}>
+          <h3 className={styles.sectionTitle}>Thông tin nội bộ</h3>
+          <p className={styles.internalNote}>Chỉ hiển thị cho người tạo job và admin. Freelancer sẽ không thấy thông tin này.</p>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Chi phí dự kiến nội bộ (VND)</label>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="VD: 80.000.000"
+                value={internalCost}
+                onChange={e => setInternalCost(formatCurrencyInput(e.target.value))}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Lợi nhuận dự kiến (VND)</label>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="VD: 40.000.000"
+                value={expectedProfit}
+                onChange={e => setExpectedProfit(formatCurrencyInput(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Lý do / mục đích tạo job</label>
+            <textarea
+              rows={4}
+              className={styles.textarea}
+              placeholder="Mô tả lý do hoặc mục đích tạo job này..."
+              value={internalReason}
+              onChange={e => setInternalReason(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Ghi chú nội bộ</label>
+            <textarea
+              rows={4}
+              className={styles.textarea}
+              placeholder="Ghi chú nội bộ cho team..."
+              value={internalNotes}
+              onChange={e => setInternalNotes(e.target.value)}
+            />
+          </div>
+        </Card>
+      </div>
+      )}
     </div>
   );
 }

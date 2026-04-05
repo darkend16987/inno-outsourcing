@@ -44,7 +44,7 @@ export function Button({
     <>
       {loading && <span className={styles.spinner} />}
       {!loading && icon && <span className={styles.icon}>{icon}</span>}
-      {children && <span>{children}</span>}
+      {children && <span className={styles.childrenWrap}>{children}</span>}
       {iconRight && <span className={styles.icon}>{iconRight}</span>}
     </>
   );

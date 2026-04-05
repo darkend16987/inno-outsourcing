@@ -66,7 +66,7 @@
 /* Edit Mode */
 .editTitleInput {
   font-family: var(--font-heading); font-size: 24px; font-weight: 800;
-  border: 2px solid var(--color-primary); border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-primary); border-radius: var(--radius-sm);
   padding: 4px 8px; background: var(--color-surface); color: var(--color-charcoal);
   width: 100%; max-width: 500px;
 }
@@ -93,7 +93,7 @@
 .imageGallery { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .galleryItem {
   position: relative; width: 120px; height: 80px; border-radius: var(--radius-sm);
-  overflow: hidden; border: 1px solid var(--color-border);
+  overflow: hidden; border: 1.5px solid var(--color-border);
 }
 .galleryImg { width: 100%; height: 100%; object-fit: cover; }
 .removeImgBtn {
@@ -106,7 +106,7 @@
 .addImageRow { display: flex; gap: 8px; align-items: center; }
 .galleryItemLarge {
   position: relative; width: 200px; height: 140px; border-radius: var(--radius-md);
-  overflow: hidden; border: 1px solid var(--color-border); display: block;
+  overflow: hidden; border: 1.5px solid var(--color-border); display: block;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .galleryItemLarge:hover { transform: scale(1.03); box-shadow: var(--shadow-md); }
@@ -172,9 +172,9 @@
 .tmInfo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .tmName { font-size: 14px; font-weight: 600; color: var(--color-charcoal); }
 .tmRole { font-size: 12px; color: var(--color-text-muted); }
-.chatBtn { background: var(--color-bg); border: 1px solid var(--color-border); padding: 6px; border-radius: 50%; color: var(--color-text-muted); cursor: pointer; transition: all 0.2s; }
+.chatBtn { background: var(--color-bg); border: 1.5px solid var(--color-border); padding: 6px; border-radius: 50%; color: var(--color-text-muted); cursor: pointer; transition: all 0.2s; }
 .chatBtn:hover { color: var(--color-primary); border-color: var(--color-primary); }
-.addBtn { font-size: 13px; border: 1px dashed var(--color-border); }
+.addBtn { font-size: 13px; border: 1.5px dashed var(--color-border); }
 
 /* Budget Box */
 .budgetBox { display: flex; flex-direction: column; gap: var(--space-3); }

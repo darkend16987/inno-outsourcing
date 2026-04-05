@@ -55,7 +55,7 @@
 
 /* Certificates */
 .certList { display: flex; flex-direction: column; gap: var(--space-3); }
-.certItem { padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-bg); }
+.certItem { padding: var(--space-3) var(--space-4); border: 1.5px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); }
 .certName { font-weight: 600; font-size: 0.9rem; color: var(--color-charcoal); margin-bottom: 4px; }
 .certMeta { font-size: 0.78rem; color: var(--color-text-muted); display: flex; gap: var(--space-4); flex-wrap: wrap; }
 .certLink { display: inline-block; margin-top: 6px; font-size: 0.8rem; color: var(--color-primary); text-decoration: none; font-weight: 500; }
