@@ -38,6 +38,7 @@ const NAV_CONFIG = {
     { label: 'Duyệt ứng viên', href: '/jobmaster/applications', icon: CheckSquare },
     { label: 'Freelancer', href: '/jobmaster/freelancers', icon: Users },
     { label: 'Tin nhắn', href: '/jobmaster/chat', icon: MessageSquare },
+    { label: 'Portfolio', href: '/jobmaster/portfolio', icon: FolderOpen },
   ],
   accountant: [
     { label: 'Tổng quan', href: '/accountant', icon: LayoutDashboard },

@@ -3,30 +3,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Star, Loader2, Inbox, LayoutGrid, List,
-  Calendar, DollarSign, Briefcase, Award,
-  MessageSquare, TrendingUp, Users,
+  Star, Loader2, Inbox, Calendar, DollarSign,
+  Briefcase, Award, MessageSquare, TrendingUp, Users,
 } from 'lucide-react';
 import { Card, Badge } from '@/components/ui';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { getApplicationsForFreelancer, getJobById } from '@/lib/firebase/firestore';
+import { getJobs } from '@/lib/firebase/firestore';
 import { getReviewsForUser } from '@/lib/firebase/reviews';
-import type { Review } from '@/types';
+import type { Review, Job } from '@/types';
 import styles from './page.module.css';
 
 /* ────────── helpers ────────── */
-
-interface PortfolioEntry {
-  job: {
-    id: string;
-    title: string;
-    category: string;
-    totalFee: number;
-    completedAt: string;
-    status: string;
-  };
-  review: Review | null;
-}
 
 const formatDate = (d: unknown): string => {
   if (!d) return '';
@@ -47,14 +34,14 @@ const fadeUp = {
   }),
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  quality: 'Chất lượng',
+const JM_CATEGORY_LABELS: Record<string, string> = {
+  descriptionClarity: 'Mô tả rõ ràng',
+  paymentTimeliness: 'Thanh toán đúng hạn',
   communication: 'Giao tiếp',
-  timeliness: 'Đúng hạn',
   professionalism: 'Chuyên nghiệp',
 };
 
-/* ────────── StarRating ────────── */
+/* ────────── Stars ────────── */
 
 function StarRating({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
@@ -92,81 +79,63 @@ function RatingBar({ label, value, max = 5 }: { label: string; value: number; ma
   );
 }
 
+/* ────────── Types ────────── */
+
+interface PortfolioEntry {
+  job: {
+    id: string;
+    title: string;
+    category: string;
+    totalFee: number;
+    completedAt: string;
+    status: string;
+  };
+  review: Review | null;
+}
+
 /* ────────── Main Page ────────── */
 
-export default function PortfolioPage() {
+export default function JobmasterPortfolioPage() {
   const { userProfile } = useAuth();
   const [entries, setEntries] = useState<PortfolioEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     if (!userProfile?.uid) return;
 
     const fetchData = async () => {
       try {
-        const [appsResult, reviewsResult, assignedResult] = await Promise.allSettled([
-          getApplicationsForFreelancer(userProfile.uid),
+        // Fetch jobs created by this jobmaster that are completed/paid
+        const [jobsResult, reviewsResult] = await Promise.allSettled([
+          getJobs({ jobMaster: userProfile.uid }, 200),
           getReviewsForUser(userProfile.uid),
-          import('@/lib/firebase/firestore').then(m => m.getJobs({ assignedTo: userProfile.uid }, 100)),
         ]);
 
-        const apps = appsResult.status === 'fulfilled' ? appsResult.value : [];
+        const allJobs = jobsResult.status === 'fulfilled' ? jobsResult.value.items : [];
         const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : [];
-        const assignedJobs = assignedResult.status === 'fulfilled' ? assignedResult.value.items : [];
 
-        // Build review lookup
+        // Only completed/paid jobs
+        const completedJobs = allJobs.filter(
+          (j: Job) => j.status === 'completed' || j.status === 'paid'
+        );
+
+        // Build review lookup by jobId
         const reviewsByJobId = new Map<string, Review>();
         for (const r of reviews) {
           reviewsByJobId.set(r.jobId, r);
         }
 
-        const portfolioEntries: PortfolioEntry[] = [];
-        const addedJobIds = new Set<string>();
-
-        // Source A: From accepted applications
-        const acceptedApps = apps.filter(a => a.status === 'accepted');
-        const jobFetches = await Promise.allSettled(
-          acceptedApps.map(app => getJobById(app.jobId))
-        );
-        for (const result of jobFetches) {
-          if (result.status !== 'fulfilled' || !result.value) continue;
-          const job = result.value;
-          if (job.status !== 'completed' && job.status !== 'paid') continue;
-          if (addedJobIds.has(job.id)) continue;
-          addedJobIds.add(job.id);
-
-          portfolioEntries.push({
-            job: {
-              id: job.id,
-              title: job.title,
-              category: job.category,
-              totalFee: job.totalFee,
-              completedAt: formatDate(job.updatedAt || job.deadline),
-              status: job.status,
-            },
-            review: reviewsByJobId.get(job.id) || null,
-          });
-        }
-
-        // Source B: Jobs directly assigned
-        for (const job of assignedJobs) {
-          if (job.status !== 'completed' && job.status !== 'paid') continue;
-          if (addedJobIds.has(job.id)) continue;
-          addedJobIds.add(job.id);
-
-          portfolioEntries.push({
-            job: {
-              id: job.id,
-              title: job.title,
-              category: job.category,
-              totalFee: job.totalFee,
-              completedAt: formatDate(job.updatedAt || job.deadline),
-              status: job.status,
-            },
-            review: reviewsByJobId.get(job.id) || null,
-          });
-        }
+        const portfolioEntries: PortfolioEntry[] = completedJobs.map((job: Job) => ({
+          job: {
+            id: job.id,
+            title: job.title,
+            category: job.category,
+            totalFee: job.totalFee,
+            completedAt: formatDate(job.updatedAt || job.deadline),
+            status: job.status,
+          },
+          review: reviewsByJobId.get(job.id) || null,
+        }));
 
         setEntries(portfolioEntries);
       } catch (err) {
@@ -179,7 +148,7 @@ export default function PortfolioPage() {
     fetchData();
   }, [userProfile?.uid]);
 
-  /* ────────── Summary stats ────────── */
+  /* ────────── Summary ────────── */
 
   const summary = useMemo(() => {
     const total = entries.length;
@@ -204,10 +173,9 @@ export default function PortfolioPage() {
       categoryAvgs[key] = sum / count;
     }
 
-    // Total earnings from completed jobs
-    const totalEarnings = entries.reduce((sum, e) => sum + (e.job.totalFee || 0), 0);
+    const totalSpent = entries.reduce((sum, e) => sum + (e.job.totalFee || 0), 0);
 
-    return { total, avgRating, reviewCount: reviewedEntries.length, categoryAvgs, totalEarnings };
+    return { total, avgRating, reviewCount: reviewedEntries.length, categoryAvgs, totalSpent };
   }, [entries]);
 
   /* ────────── Loading ────────── */
@@ -230,9 +198,9 @@ export default function PortfolioPage() {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <h1 className={styles.title}>Portfolio</h1>
+          <h1 className={styles.title}>Portfolio Jobmaster</h1>
           <p className={styles.subtitle}>
-            Tổng hợp các dự án đã hoàn thành và đánh giá từ Jobmaster.
+            Tổng hợp các dự án đã hoàn thành và đánh giá từ Freelancer.
           </p>
         </div>
       </div>
@@ -267,9 +235,9 @@ export default function PortfolioPage() {
           </div>
           <div className={styles.summaryInfo}>
             <span className={styles.summaryValue}>
-              {summary.totalEarnings > 0 ? formatCurrency(summary.totalEarnings) : '--'}
+              {summary.totalSpent > 0 ? formatCurrency(summary.totalSpent) : '--'}
             </span>
-            <span className={styles.summaryLabel}>Tổng thu nhập</span>
+            <span className={styles.summaryLabel}>Tổng chi trả</span>
           </div>
         </div>
       </div>
@@ -279,7 +247,7 @@ export default function PortfolioPage() {
         <Card className={styles.ratingsBreakdown}>
           <div className={styles.breakdownHeader}>
             <TrendingUp size={18} />
-            <h3>Đánh giá chi tiết trung bình</h3>
+            <h3>Đánh giá chi tiết trung bình từ Freelancer</h3>
           </div>
           <div className={styles.breakdownContent}>
             <div className={styles.breakdownOverall}>
@@ -292,7 +260,7 @@ export default function PortfolioPage() {
               </span>
             </div>
             <div className={styles.breakdownBars}>
-              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+              {Object.entries(JM_CATEGORY_LABELS).map(([key, label]) => (
                 <RatingBar
                   key={key}
                   label={label}
@@ -304,36 +272,13 @@ export default function PortfolioPage() {
         </Card>
       )}
 
-      {/* Toolbar */}
-      <div className={styles.toolbar}>
-        <span className={styles.resultCount}>
-          {entries.length} dự án
-        </span>
-        <div className={styles.viewToggle}>
-          <button
-            className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
-            onClick={() => setViewMode('list')}
-            title="Dạng danh sách"
-          >
-            <List size={16} />
-          </button>
-          <button
-            className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.viewBtnActive : ''}`}
-            onClick={() => setViewMode('grid')}
-            title="Dạng lưới"
-          >
-            <LayoutGrid size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Job entries */}
+      {/* Job list */}
       {entries.length === 0 ? (
         <div className={styles.empty}>
           <Inbox size={32} />
           <p>Chưa có dự án nào hoàn thành trong portfolio.</p>
         </div>
-      ) : viewMode === 'list' ? (
+      ) : (
         <div className={styles.listView}>
           {entries.map((entry, i) => (
             <motion.div key={entry.job.id} initial="hidden" animate="visible" custom={i} variants={fadeUp}>
@@ -374,64 +319,7 @@ export default function PortfolioPage() {
                           {Object.entries(entry.review.categories).map(([key, val]) =>
                             val ? (
                               <span key={key} className={styles.categoryTag}>
-                                {CATEGORY_LABELS[key] || key}: {val}/5
-                              </span>
-                            ) : null
-                          )}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span className={styles.noReview}>
-                      <Users size={14} /> Chưa có đánh giá
-                    </span>
-                  )}
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      ) : (
-        <div className={styles.gridView}>
-          {entries.map((entry, i) => (
-            <motion.div key={entry.job.id} initial="hidden" animate="visible" custom={i} variants={fadeUp}>
-              <Card className={styles.gridCard}>
-                <div className={styles.gridTags}>
-                  <Badge variant="outline" size="sm">{entry.job.category}</Badge>
-                  <Badge variant={entry.job.status === 'paid' ? 'info' : 'success'} size="sm">
-                    {entry.job.status === 'paid' ? 'Đã thanh toán' : 'Hoàn thành'}
-                  </Badge>
-                </div>
-                <h3 className={styles.gridTitle}>{entry.job.title}</h3>
-                <div className={styles.gridMeta}>
-                  <span><DollarSign size={14} /> {formatCurrency(entry.job.totalFee)}</span>
-                  <span><Calendar size={14} /> {entry.job.completedAt}</span>
-                </div>
-
-                <div className={styles.gridDivider} />
-
-                <div className={styles.gridReview}>
-                  {entry.review ? (
-                    <>
-                      <div className={styles.reviewHeader}>
-                        <Award size={14} />
-                        <span className={styles.reviewerName}>{entry.review.reviewerName}</span>
-                      </div>
-                      <StarRating rating={entry.review.rating} />
-                      {entry.review.comment && (
-                        <div className={styles.reviewCommentBlock}>
-                          <MessageSquare size={12} />
-                          <p className={styles.reviewComment}>
-                            &ldquo;{entry.review.comment}&rdquo;
-                          </p>
-                        </div>
-                      )}
-                      {entry.review.categories && (
-                        <div className={styles.reviewCategories}>
-                          {Object.entries(entry.review.categories).map(([key, val]) =>
-                            val ? (
-                              <span key={key} className={styles.categoryTag}>
-                                {CATEGORY_LABELS[key] || key}: {val}/5
+                                {JM_CATEGORY_LABELS[key] || key}: {val}/5
                               </span>
                             ) : null
                           )}
