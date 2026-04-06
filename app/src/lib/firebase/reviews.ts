@@ -69,6 +69,52 @@ export async function createReview(
 // QUERY REVIEWS
 // =====================
 
+// Category rating keys that may be stored as flat top-level fields
+const CATEGORY_KEYS = [
+  'quality', 'communication', 'timeliness', 'professionalism',
+  'descriptionClarity', 'paymentTimeliness',
+] as const;
+
+/**
+ * Normalize a review document from Firestore.
+ * Handles both legacy format (flat category fields) and new format (nested categories object).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeReview(id: string, data: Record<string, any>): Review {
+  const createdAt = (data.createdAt as Timestamp)?.toDate?.() || new Date();
+
+  // Build categories from either nested object or flat fields
+  let categories = data.categories || {};
+  
+  // Check for flat category fields and merge them into categories
+  for (const key of CATEGORY_KEYS) {
+    if (data[key] !== undefined && data[key] !== null) {
+      categories = { ...categories, [key]: Number(data[key]) };
+    }
+  }
+
+  // Only keep categories if there are actual values
+  const hasCategories = Object.values(categories).some((v) => v && Number(v) > 0);
+
+  return {
+    id,
+    jobId: data.jobId,
+    jobTitle: data.jobTitle,
+    reviewerId: data.reviewerId,
+    reviewerName: data.reviewerName,
+    reviewerRole: data.reviewerRole,
+    revieweeId: data.revieweeId,
+    revieweeName: data.revieweeName,
+    revieweeRole: data.revieweeRole,
+    rating: Number(data.rating) || 0,
+    comment: data.comment || '',
+    categories: hasCategories ? categories : undefined,
+    visible: data.visible,
+    wouldRehire: data.wouldRehire,
+    createdAt,
+  };
+}
+
 export async function getReviewsForUser(userId: string): Promise<Review[]> {
   if (!db) return [];
 
@@ -79,11 +125,7 @@ export async function getReviewsForUser(userId: string): Promise<Review[]> {
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({
-    id: d.id,
-    ...d.data(),
-    createdAt: (d.data().createdAt as Timestamp)?.toDate?.() || new Date(),
-  } as Review));
+  return snapshot.docs.map(d => normalizeReview(d.id, d.data()));
 }
 
 export async function getReviewsForJob(jobId: string): Promise<Review[]> {
@@ -96,11 +138,7 @@ export async function getReviewsForJob(jobId: string): Promise<Review[]> {
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({
-    id: d.id,
-    ...d.data(),
-    createdAt: (d.data().createdAt as Timestamp)?.toDate?.() || new Date(),
-  } as Review));
+  return snapshot.docs.map(d => normalizeReview(d.id, d.data()));
 }
 
 export async function getLatestReviews(count = 10): Promise<Review[]> {
@@ -113,11 +151,7 @@ export async function getLatestReviews(count = 10): Promise<Review[]> {
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({
-    id: d.id,
-    ...d.data(),
-    createdAt: (d.data().createdAt as Timestamp)?.toDate?.() || new Date(),
-  } as Review));
+  return snapshot.docs.map(d => normalizeReview(d.id, d.data()));
 }
 
 // =====================

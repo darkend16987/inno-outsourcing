@@ -42,7 +42,19 @@
       "Bash(grep -r \"active projects\\\\|pending applications\\\\|system revenue\\\\|total freelancers\" /d/GitHub/inno-outsourcing/app/src --include=*.tsx --include=*.ts)",
       "Bash(find /d/GitHub/inno-outsourcing -type f -name *portfolio*)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(firebase deploy:*)"
+      "Bash(firebase deploy:*)",
+      "Bash(grep -r \"pdfkit\\\\|jspdf\\\\|html2pdf\\\\|pdfmake\" /d/GitHub/inno-outsourcing/app/src /d/GitHub/inno-outsourcing/app/functions/src --include=*.ts --include=*.tsx --include=*.js --include=*.json)",
+      "Bash(grep -r /signatures/ /d/GitHub/inno-outsourcing/app/src /d/GitHub/inno-outsourcing/app/functions/src --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(head -100 \"/d/GitHub/inno-outsourcing/app/src/app/\\(role\\)/freelancer/contracts/page.tsx\")",
+      "Bash(head -80 \"/d/GitHub/inno-outsourcing/app/src/app/\\(role\\)/admin/contracts/page.tsx\")",
+      "Bash(find /d/GitHub/inno-outsourcing/app/src/components -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(ls -la /d/GitHub/inno-outsourcing/app/src/app/\\\\\\(role\\\\\\)/freelancer/contracts/)",
+      "Bash(grep -r \"generatePDF\\\\|exportPDF\\\\|downloadPDF\\\\|toPDF\\\\|generateContract\\\\|PDF\" /d/GitHub/inno-outsourcing/app/functions/src --include=*.ts)",
+      "Bash(grep -r \"storage.*pdf\\\\|bucket\\\\|file.*download\\\\|getDownloadURL\\\\|/signatures/\" /d/GitHub/inno-outsourcing/app/src /d/GitHub/inno-outsourcing/app/functions/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -r \"contracts\\\\|Contract\" /d/GitHub/inno-outsourcing/app/src --include=*.tsx --include=*.ts -l)",
+      "Bash(curl -L -o \"D:/GitHub/inno-outsourcing/app/functions/fonts/NotoSans-Regular.ttf\" \"https://github.com/google/fonts/raw/main/ofl/notosans/NotoSans%5Bwdth%2Cwght%5D.ttf\")",
+      "Bash(curl -L -o \"D:/GitHub/inno-outsourcing/app/functions/fonts/NotoSans-Regular.ttf\" \"https://github.com/google/fonts/raw/main/ofl/notosans/NotoSans-Regular.ttf\")",
+      "Bash(curl -L -o \"D:/GitHub/inno-outsourcing/app/functions/fonts/NotoSans-Bold.ttf\" \"https://github.com/google/fonts/raw/main/ofl/notosans/NotoSans-Bold.ttf\")"
     ]
   }
 }

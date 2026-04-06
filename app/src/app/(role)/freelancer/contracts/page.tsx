@@ -287,8 +287,20 @@ export default function ContractsPage() {
     if (printWindow) {
       printWindow.document.write(html);
       printWindow.document.close();
-      // Delay print to ensure content is rendered
-      setTimeout(() => printWindow.print(), 500);
+      // Wait for all images (signature) to load before printing
+      const images = printWindow.document.querySelectorAll('img');
+      if (images.length > 0) {
+        let loaded = 0;
+        const tryPrint = () => { loaded++; if (loaded >= images.length) setTimeout(() => printWindow.print(), 300); };
+        images.forEach(img => {
+          if (img.complete) { tryPrint(); }
+          else { img.onload = tryPrint; img.onerror = tryPrint; }
+        });
+        // Fallback timeout in case image events don't fire
+        setTimeout(() => printWindow.print(), 3000);
+      } else {
+        setTimeout(() => printWindow.print(), 500);
+      }
     }
   };
 

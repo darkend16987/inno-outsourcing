@@ -1,9 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onReviewCreated = exports.generateInvoicePDF = exports.scheduledLeaderboard = exports.scheduledDeadlineCheck = exports.onContractSubmitted = exports.onContractStatusChange = exports.onPaymentUpdated = exports.onApplicationUpdated = exports.onApplicationSubmitted = exports.onJobStatusChange = exports.requestPaymentOrder = exports.onCreateContractPDF = void 0;
+exports.onReviewCreated = exports.generateInvoicePDF = exports.scheduledLeaderboard = exports.scheduledDeadlineCheck = exports.onContractSubmitted = exports.onContractStatusChange = exports.onPaymentUpdated = exports.onApplicationUpdated = exports.onApplicationSubmitted = exports.onJobStatusChange = exports.requestPaymentOrder = exports.onContractSigned = exports.onCreateContractPDF = void 0;
+/* eslint-disable @typescript-eslint/no-explicit-any -- Firestore document data is inherently untyped */
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
@@ -11,6 +45,8 @@ const firestore_2 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const pdfkit_1 = __importDefault(require("pdfkit"));
+const path = __importStar(require("path"));
+const crypto = __importStar(require("crypto"));
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 const storage = (0, storage_1.getStorage)();
@@ -133,114 +169,223 @@ async function computeMatchScore(applicationData, jobData) {
     return { score: finalScore, badge, reasons };
 }
 // ============================================================
-// 1. onCreateContractPDF
+// HELPER: Font paths for Vietnamese support
 // ============================================================
-exports.onCreateContractPDF = (0, firestore_2.onDocumentCreated)('contracts/{contractId}', async (event) => {
-    const snap = event.data;
-    if (!snap)
-        return;
-    const c = snap.data();
-    const contractId = event.params.contractId;
+const FONT_REGULAR = path.join(__dirname, '..', 'fonts', 'NotoSans-Regular.ttf');
+const FONT_BOLD = path.join(__dirname, '..', 'fonts', 'NotoSans-Bold.ttf');
+// ============================================================
+// HELPER: Generate contract PDF with Vietnamese fonts & signature
+// ============================================================
+async function buildContractPDF(c, contractId, contractRef) {
     const bucket = storage.bucket();
     const filePath = `contracts/${contractId}.pdf`;
     const doc = new pdfkit_1.default({ margin: 50, size: 'A4' });
     const buffers = [];
     doc.on('data', (chunk) => buffers.push(chunk));
+    // Register Vietnamese fonts
+    doc.registerFont('Vn', FONT_REGULAR);
+    doc.registerFont('VnBold', FONT_BOLD);
     const now = new Date();
     const dateStr = `ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
     // ── Header ──────────────────────────────────────────────────────
-    doc.fontSize(13).font('Helvetica-Bold')
+    doc.fontSize(13).font('VnBold')
         .text('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { align: 'center' });
-    doc.fontSize(11).font('Helvetica')
+    doc.fontSize(11).font('Vn')
         .text('Độc lập - Tự do - Hạnh phúc', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.moveTo(150, doc.y).lineTo(450, doc.y).stroke();
-    doc.moveDown(1);
-    doc.fontSize(16).font('Helvetica-Bold')
+    doc.moveDown(0.3);
+    doc.text('---o0o---', { align: 'center' });
+    doc.moveDown(0.8);
+    doc.fontSize(16).font('VnBold')
         .text('HỢP ĐỒNG GIAO KHOÁN', { align: 'center' });
-    doc.fontSize(11).font('Helvetica')
+    doc.fontSize(11).font('Vn')
         .text(`Số: ${c.contractNumber}`, { align: 'center' });
     doc.text(`Về việc: ${c.jobTitle}`, { align: 'center' });
     doc.moveDown(1);
-    // ── Section I ──────────────────────────────────────────────────
-    doc.fontSize(12).font('Helvetica-Bold').text('PHẦN I. CÁC CĂN CỨ KÝ KẾT HỢP ĐỒNG');
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
-        .text('- Luật Xây dựng số 50/2014 ngày 18/06/2014; Luật Dân sự ngày 14/06/2005;')
-        .text('- Luật thuế thu nhập cá nhân hiện hành;')
-        .text('- Và các văn bản pháp quy hiện hành có liên quan;')
-        .text('- Căn cứ năng lực của Bên B và nhu cầu của Bên A.');
+    // ── PHẦN I ──────────────────────────────────────────────────────
+    doc.fontSize(12).font('VnBold').text('PHẦN I. CÁC CĂN CỨ KÝ KẾT HỢP ĐỒNG');
+    doc.fontSize(10).font('Vn').moveDown(0.3)
+        .text('- Luật Xây dựng số 50/2014/QH13 và Luật sửa đổi bổ sung số 62/2020/QH14;')
+        .text('- Nghị định số 37/2015/NĐ-CP quy định chi tiết về hợp đồng xây dựng và các sửa đổi bổ sung;')
+        .text('- Nghị định số 10/2021/NĐ-CP về quản lý chi phí đầu tư xây dựng;')
+        .text('- Căn cứ nhu cầu thực tế và năng lực của các bên.');
     doc.moveDown(0.8);
-    // ── Section II ─────────────────────────────────────────────────
-    doc.fontSize(12).font('Helvetica-Bold').text('PHẦN II. CÁC ĐIỀU KHOẢN VÀ ĐIỀU KIỆN CỦA HỢP ĐỒNG');
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
+    // ── PHẦN II ─────────────────────────────────────────────────────
+    doc.fontSize(12).font('VnBold').text('PHẦN II. CÁC BÊN KÝ KẾT HỢP ĐỒNG');
+    doc.fontSize(10).font('Vn').moveDown(0.3)
         .text(`Hôm nay, ${dateStr} tại Công ty TNHH Tư vấn Kiến trúc Việt Nam VAA, chúng tôi gồm các bên:`);
     doc.moveDown(0.5);
     // Party A
-    doc.fontSize(11).font('Helvetica-Bold').text('1. Bên A: CÔNG TY TNHH TƯ VẤN KIẾN TRÚC VIỆT NAM VAA');
-    doc.fontSize(10).font('Helvetica')
-        .text('Đại diện: Ông Đỗ Tất Kiên')
-        .text('Chức vụ: Tổng giám đốc')
+    doc.fontSize(11).font('VnBold').text('BÊN A (Bên giao khoán):');
+    doc.fontSize(10).font('Vn')
+        .text(`Tên đơn vị: ${c.partyA?.name || 'CÔNG TY TNHH TƯ VẤN KIẾN TRÚC VIỆT NAM VAA'}`)
+        .text(`Người đại diện: ${c.partyA?.representative || 'Ông Đỗ Tất Kiên'} — Chức vụ: ${c.partyA?.position || 'Tổng giám đốc'}`)
         .text('Địa chỉ: Số 40, phố Tăng Bạt Hổ, Phường Hai Bà Trưng, Hà Nội')
         .text('Mã số thuế: 0102341714');
     doc.moveDown(0.8);
     // Party B
-    doc.fontSize(11).font('Helvetica-Bold').text(`2. Bên B: Ông/bà ${c.partyB?.name || ''}`);
-    doc.fontSize(10).font('Helvetica')
+    doc.fontSize(11).font('VnBold').text(`BÊN B (Bên nhận khoán):`);
+    doc.fontSize(10).font('Vn')
+        .text(`Họ và tên: ${c.partyB?.name || '.....................'}`)
         .text(`Ngày sinh: ${c.partyB?.dateOfBirth || '.....................'}`)
-        .text(`Số CCCD: ${c.partyB?.idNumber || '.....................'}`)
+        .text(`Số CMND/CCCD: ${c.partyB?.idNumber || '.....................'}`)
         .text(`Điện thoại: ${c.partyB?.phone || '.....................'}`)
         .text(`Địa chỉ: ${c.partyB?.address || '.....................'}`)
         .text(`Mã số thuế: ${c.partyB?.taxId || '.....................'}`)
-        .text(`Số tài khoản: ${c.partyB?.bankAccount || '.....................'} tại ${c.partyB?.bankName || '.....................'}`)
-        .text(`Chi nhánh: ${c.partyB?.bankBranch || '.....................'}`);
+        .text(`Tài khoản NH: ${c.partyB?.bankAccount || '.....................'} — ${c.partyB?.bankName || '.....................'}${c.partyB?.bankBranch ? ` — ${c.partyB.bankBranch}` : ''}`);
     doc.moveDown(1);
-    // Article 1 — Scope
-    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 1. PHẠM VI CÔNG VIỆC');
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
-        .text(c.jobDescription || c.scope || '(Theo mô tả công việc của job được giao)', { lineGap: 2 });
-    doc.moveDown(0.8);
-    // Article 2 — Value
-    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 2. GIÁ TRỊ HỢP ĐỒNG, TẠM ỨNG VÀ THANH TOÁN');
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
-        .text(`Giá trị hợp đồng (trọn gói): ${Number(c.totalValue || 0).toLocaleString('vi-VN')} đồng`)
+    // ── PHẦN III ────────────────────────────────────────────────────
+    doc.fontSize(12).font('VnBold').text('PHẦN III. CÁC ĐIỀU KHOẢN CỦA HỢP ĐỒNG');
+    doc.moveDown(0.5);
+    // Điều 1
+    doc.fontSize(11).font('VnBold').text('Điều 1. Nội dung công việc');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text(c.scope || c.jobDescription || '(Theo mô tả công việc của job được giao)', { lineGap: 2 });
+    if (c.jobDescription && c.scope) {
+        doc.text(c.jobDescription, { lineGap: 2 });
+    }
+    if (c.jobCategory) {
+        doc.font('VnBold').text(`Hạng mục thi công/thiết kế: `, { continued: true }).font('Vn').text(c.jobCategory);
+    }
+    doc.moveDown(0.6);
+    // Điều 2
+    doc.fontSize(11).font('VnBold').text('Điều 2. Giá trị hợp đồng');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text(`Tổng giá trị hợp đồng: ${Number(c.totalValue || 0).toLocaleString('vi-VN')} đồng (VND).`)
         .text('Giá hợp đồng là thu nhập thực nhận sau khi khấu trừ thuế TNCN. Bên A có trách nhiệm kê khai và nộp thuế thay Bên B.');
-    doc.moveDown(0.8);
-    // Article 3 — Payment schedule
-    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 3. PHƯƠNG THỨC THANH TOÁN');
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
-        .text('Hình thức thanh toán: Chuyển khoản');
+    doc.moveDown(0.6);
+    // Điều 3
+    doc.fontSize(11).font('VnBold').text('Điều 3. Thanh toán');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text(`3.1. ${c.paymentTerms || 'Thanh toán theo các mốc milestone đã thỏa thuận.'}`);
     if (c.milestones && c.milestones.length > 0) {
-        doc.text('Các đợt thanh toán:').moveDown(0.2);
+        doc.text('3.2. Các mốc thanh toán:').moveDown(0.2);
         c.milestones.forEach((m, i) => {
-            doc.text(`  Đợt ${i + 1}: ${m.name} — ${m.percentage}% — ${Number(m.amount || 0).toLocaleString('vi-VN')} đồng`);
+            doc.text(`    Đợt ${i + 1}: ${m.name} — ${m.percentage}% — ${Number(m.amount || 0).toLocaleString('vi-VN')} đồng`);
         });
     }
-    doc.moveDown(0.8);
-    // Article 5 — Timeline
-    doc.fontSize(12).font('Helvetica-Bold').text('ĐIỀU 5. TIẾN ĐỘ THỰC HIỆN HỢP ĐỒNG');
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
-        .text('Thời gian bắt đầu: Ngay sau khi hợp đồng được ký kết.')
-        .text('Thời gian hoàn thành: Theo tiến độ chung của dự án.');
-    doc.moveDown(0.8);
-    // Note about full terms
-    doc.fontSize(9).font('Helvetica').fillColor('#666666')
-        .text('(Các điều khoản 4, 6-17 bao gồm: điều chỉnh giá, quyền và nghĩa vụ các bên, chế tài vi phạm, bảo mật, bảo hiểm, bất khả kháng và giải quyết tranh chấp — theo mẫu hợp đồng tiêu chuẩn của VAA.)', { lineGap: 2 });
-    doc.fillColor('#000000');
+    doc.text('3.3. Thanh toán bằng chuyển khoản ngân hàng vào tài khoản Bên B đã đăng ký.');
+    doc.moveDown(0.6);
+    // Điều 4
+    doc.fontSize(11).font('VnBold').text('Điều 4. Thay đổi và điều chỉnh giá hợp đồng');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Giá hợp đồng chỉ được điều chỉnh khi có thay đổi phạm vi công việc được hai bên thống nhất bằng văn bản (phụ lục hợp đồng).');
+    doc.moveDown(0.6);
+    // Điều 5
+    doc.fontSize(11).font('VnBold').text('Điều 5. Thời gian thực hiện');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Thời gian thực hiện theo thỏa thuận trong phạm vi dự án, tính từ ngày ký hợp đồng.');
+    doc.moveDown(0.6);
+    // Điều 6
+    doc.fontSize(11).font('VnBold').text('Điều 6. Quyền và nghĩa vụ của Bên B');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('6.1. Thực hiện công việc đúng tiến độ, chất lượng và quy cách đã thỏa thuận.')
+        .text('6.2. Chịu trách nhiệm về chất lượng sản phẩm bàn giao.')
+        .text('6.3. Tuân thủ quy định bảo mật thông tin dự án.')
+        .text('6.4. Báo cáo tiến độ theo yêu cầu của Bên A.')
+        .text('6.5. Chịu trách nhiệm nộp thuế TNCN theo quy định pháp luật.');
+    doc.moveDown(0.6);
+    // Điều 7
+    doc.fontSize(11).font('VnBold').text('Điều 7. Quyền và nghĩa vụ của Bên A');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('7.1. Cung cấp đầy đủ thông tin, tài liệu cần thiết cho Bên B thực hiện công việc.')
+        .text('7.2. Thanh toán đầy đủ, đúng hạn theo các điều khoản đã thỏa thuận.')
+        .text('7.3. Nghiệm thu sản phẩm đúng thời hạn đã cam kết.')
+        .text('7.4. Giám sát tiến độ và chất lượng công việc.');
+    doc.moveDown(0.6);
+    // Điều 8
+    doc.fontSize(11).font('VnBold').text('Điều 8. Vật liệu và thiết bị');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Bên B tự chịu trách nhiệm về thiết bị, phần mềm và công cụ phục vụ công việc, trừ khi có thỏa thuận khác.');
+    doc.moveDown(0.6);
+    // Điều 9
+    doc.fontSize(11).font('VnBold').text('Điều 9. Sản phẩm và nghiệm thu');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Sản phẩm được nghiệm thu theo các mốc (milestone) đã thỏa thuận. Bên A có trách nhiệm phản hồi trong vòng 5 ngày làm việc kể từ khi nhận sản phẩm.');
+    doc.moveDown(0.6);
+    // Điều 10
+    doc.fontSize(11).font('VnBold').text('Điều 10. Tạm ngừng và chấm dứt hợp đồng');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('10.1. Hợp đồng có thể tạm ngừng hoặc chấm dứt theo thỏa thuận của hai bên.')
+        .text('10.2. Bên vi phạm phải bồi thường thiệt hại theo quy định tại Điều 11.');
+    doc.moveDown(0.6);
+    // Điều 11
+    doc.fontSize(11).font('VnBold').text('Điều 11. Bồi thường và giới hạn trách nhiệm');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Mức bồi thường tối đa không vượt quá giá trị hợp đồng. Bên vi phạm chịu trách nhiệm bồi thường thiệt hại trực tiếp do lỗi của mình gây ra.');
+    doc.moveDown(0.6);
+    // Điều 12
+    doc.fontSize(11).font('VnBold').text('Điều 12. Phạt vi phạm');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Bên vi phạm các điều khoản hợp đồng có thể bị phạt tối đa 8% giá trị hợp đồng theo quy định pháp luật hiện hành.');
+    doc.moveDown(0.6);
+    // Điều 13
+    doc.fontSize(11).font('VnBold').text('Điều 13. Bảo mật và bản quyền');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('13.1. Mọi thông tin liên quan đến dự án thuộc quyền sở hữu của Bên A.')
+        .text('13.2. Bên B không được tiết lộ thông tin dự án cho bên thứ ba khi chưa có sự đồng ý bằng văn bản của Bên A.')
+        .text('13.3. Bản quyền sản phẩm giao thuộc về Bên A sau khi thanh toán đầy đủ.');
+    doc.moveDown(0.6);
+    // Điều 14
+    doc.fontSize(11).font('VnBold').text('Điều 14. Bảo hiểm');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Không áp dụng cho hợp đồng giao khoán cá nhân.');
+    doc.moveDown(0.6);
+    // Điều 15
+    doc.fontSize(11).font('VnBold').text('Điều 15. Bất khả kháng');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Bên bị ảnh hưởng bởi sự kiện bất khả kháng được miễn trừ trách nhiệm trong phạm vi và thời gian bị ảnh hưởng, với điều kiện phải thông báo bằng văn bản cho bên còn lại trong vòng 7 ngày.');
+    doc.moveDown(0.6);
+    // Điều 16
+    doc.fontSize(11).font('VnBold').text('Điều 16. Khiếu nại và tranh chấp');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('Mọi tranh chấp phát sinh từ hợp đồng này được giải quyết trước tiên bằng thương lượng. Nếu không thành, các bên có quyền khởi kiện tại Tòa án nhân dân có thẩm quyền.');
+    doc.moveDown(0.6);
+    // Điều 17
+    doc.fontSize(11).font('VnBold').text('Điều 17. Điều khoản chung');
+    doc.fontSize(10).font('Vn').moveDown(0.2)
+        .text('17.1. Hợp đồng có hiệu lực kể từ ngày ký.')
+        .text('17.2. Hợp đồng được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị pháp lý như nhau.')
+        .text('17.3. Mọi sửa đổi, bổ sung phải được hai bên thỏa thuận bằng văn bản (phụ lục hợp đồng).');
     doc.moveDown(1.5);
-    // Signatures
-    doc.fontSize(12).font('Helvetica-Bold')
-        .text('ĐẠI DIỆN BÊN A', { continued: true, width: 250 })
-        .text('ĐẠI DIỆN BÊN B', { align: 'right' });
-    doc.fontSize(10).font('Helvetica').moveDown(0.3)
-        .text('(Chữ ký điện tử)', { continued: true, width: 250 })
-        .text('(Chữ ký điện tử)', { align: 'right' });
-    doc.moveDown(3);
-    doc.fontSize(11).font('Helvetica-Bold')
-        .text('Đỗ Tất Kiên', { continued: true, width: 250 })
-        .text(c.partyB?.name || '', { align: 'right' });
-    doc.fontSize(9).font('Helvetica')
-        .text(`Ký lúc: ${now.toLocaleString('vi-VN')}`, { continued: true, width: 250 })
-        .text(c.signedByWorkerAt ? `Ký lúc: ${new Date(c.signedByWorkerAt?.toDate?.() || c.signedByWorkerAt).toLocaleString('vi-VN')}` : '', { align: 'right' });
+    // ── Signatures ──────────────────────────────────────────────────
+    const sigY = doc.y;
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const colWidth = pageWidth / 2;
+    const leftX = doc.page.margins.left;
+    const rightX = doc.page.margins.left + colWidth;
+    doc.fontSize(12).font('VnBold');
+    doc.text('ĐẠI DIỆN BÊN A', leftX, sigY, { width: colWidth, align: 'center' });
+    doc.text('BÊN B', rightX, sigY, { width: colWidth, align: 'center' });
+    doc.fontSize(9).font('Vn');
+    doc.text('(Ký, ghi rõ họ tên, đóng dấu)', leftX, sigY + 16, { width: colWidth, align: 'center' });
+    doc.text('(Ký, ghi rõ họ tên)', rightX, sigY + 16, { width: colWidth, align: 'center' });
+    // Embed freelancer signature image if available
+    if (c.signatureURL) {
+        try {
+            const sigPath = `signatures/${c.partyB?.uid}/${contractId}.png`;
+            const sigFile = bucket.file(sigPath);
+            const [exists] = await sigFile.exists();
+            if (exists) {
+                const [sigBuffer] = await sigFile.download();
+                doc.image(sigBuffer, rightX + colWidth / 2 - 50, sigY + 32, { width: 100, height: 50, fit: [100, 50] });
+            }
+        }
+        catch (err) {
+            console.warn('Could not embed signature image:', err);
+        }
+    }
+    const nameY = sigY + 90;
+    doc.fontSize(11).font('VnBold');
+    doc.text(c.partyA?.representative || 'Đỗ Tất Kiên', leftX, nameY, { width: colWidth, align: 'center' });
+    doc.text(c.partyB?.name || '', rightX, nameY, { width: colWidth, align: 'center' });
+    // Signed timestamps
+    doc.fontSize(8).font('Vn');
+    const signedAtA = now.toLocaleString('vi-VN');
+    doc.text(`Ký lúc: ${signedAtA}`, leftX, nameY + 16, { width: colWidth, align: 'center' });
+    if (c.signedByWorkerAt) {
+        const workerDate = new Date(c.signedByWorkerAt?.toDate?.() || c.signedByWorkerAt);
+        doc.text(`Ký lúc: ${workerDate.toLocaleString('vi-VN')}`, rightX, nameY + 16, { width: colWidth, align: 'center' });
+    }
     doc.end();
     return new Promise((resolve, reject) => {
         doc.on('end', async () => {
@@ -256,7 +401,7 @@ exports.onCreateContractPDF = (0, firestore_2.onDocumentCreated)('contracts/{con
                 });
                 const encodedPath = encodeURIComponent(filePath);
                 const pdfURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${dlToken}`;
-                await snap.ref.update({ pdfURL });
+                await contractRef.update({ pdfURL });
                 resolve();
             }
             catch (err) {
@@ -265,6 +410,31 @@ exports.onCreateContractPDF = (0, firestore_2.onDocumentCreated)('contracts/{con
         });
         doc.on('error', reject);
     });
+}
+// ============================================================
+// 1. onCreateContractPDF
+// ============================================================
+exports.onCreateContractPDF = (0, firestore_2.onDocumentCreated)('contracts/{contractId}', async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const c = snap.data();
+    const contractId = event.params.contractId;
+    await buildContractPDF(c, contractId, snap.ref);
+});
+// ============================================================
+// 1b. onContractSigned — Regenerate PDF with signature
+// ============================================================
+exports.onContractSigned = (0, firestore_2.onDocumentUpdated)('contracts/{contractId}', async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after)
+        return;
+    // Only regenerate when signatureURL is newly set (freelancer just signed)
+    if (before.signatureURL || !after.signatureURL)
+        return;
+    const contractId = event.params.contractId;
+    await buildContractPDF(after, contractId, event.data.after.ref);
 });
 // ============================================================
 // 2. requestPaymentOrder — with escrow release
@@ -551,7 +721,7 @@ exports.onPaymentUpdated = (0, firestore_2.onDocumentUpdated)('payments/{payment
             const invoiceNumber = `INV-${seq}-${String(countSnap.size + 1).padStart(3, '0')}`;
             // Fetch job info for invoice
             let jobTitle = after.reason || '';
-            let partyAName = 'VAA Engineering';
+            const partyAName = 'VAA Engineering';
             if (after.jobId) {
                 const jSnap = await db.collection('jobs').doc(after.jobId).get();
                 if (jSnap.exists) {
@@ -806,30 +976,33 @@ exports.generateInvoicePDF = (0, https_1.onCall)(async (request) => {
     const invoice = invoiceSnap.data();
     const bucket = storage.bucket();
     const filePath = `invoices/${invoiceId}.pdf`;
-    const doc = new pdfkit_1.default({ margin: 50 });
+    const doc = new pdfkit_1.default({ margin: 50, size: 'A4' });
     const buffers = [];
     doc.on('data', (chunk) => buffers.push(chunk));
+    // Register Vietnamese fonts
+    doc.registerFont('Vn', FONT_REGULAR);
+    doc.registerFont('VnBold', FONT_BOLD);
     // Header
-    doc.fontSize(18).text('HÓA ĐƠN THANH TOÁN', { align: 'center' });
-    doc.fontSize(10).text('VAA Engineering - Outsourcing Platform', { align: 'center' });
+    doc.fontSize(18).font('VnBold').text('HÓA ĐƠN THANH TOÁN', { align: 'center' });
+    doc.fontSize(10).font('Vn').text('VAA Engineering - Outsourcing Platform', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(12).text(`Số hóa đơn: ${invoice.invoiceNumber}`);
+    doc.fontSize(12).font('Vn').text(`Số hóa đơn: ${invoice.invoiceNumber}`);
     doc.text(`Ngày phát hành: ${new Date().toLocaleDateString('vi-VN')}`);
     doc.moveDown();
     // Party A
-    doc.fontSize(14).text('BÊN A (Chủ đầu tư):', { underline: true });
-    doc.fontSize(12).text(`Tên: ${invoice.partyA?.name || ''}`);
+    doc.fontSize(14).font('VnBold').text('BÊN A (Chủ đầu tư):');
+    doc.fontSize(12).font('Vn').text(`Tên: ${invoice.partyA?.name || ''}`);
     doc.text(`Đại diện: ${invoice.partyA?.representative || ''}`);
     doc.moveDown();
     // Party B
-    doc.fontSize(14).text('BÊN B (Nhà thầu phụ / Freelancer):', { underline: true });
-    doc.fontSize(12).text(`Tên: ${invoice.partyB?.name || ''}`);
+    doc.fontSize(14).font('VnBold').text('BÊN B (Nhà thầu phụ / Freelancer):');
+    doc.fontSize(12).font('Vn').text(`Tên: ${invoice.partyB?.name || ''}`);
     doc.text(`CMND/CCCD: ${invoice.partyB?.idNumber || ''}`);
     doc.text(`Ngân hàng: ${invoice.partyB?.bankName || ''} - ${invoice.partyB?.bankAccount || ''}`);
     doc.moveDown();
     // Details
-    doc.fontSize(14).text('CHI TIẾT THANH TOÁN:', { underline: true });
-    doc.fontSize(12).text(`Dự án: ${invoice.jobTitle}`);
+    doc.fontSize(14).font('VnBold').text('CHI TIẾT THANH TOÁN:');
+    doc.fontSize(12).font('Vn').text(`Dự án: ${invoice.jobTitle}`);
     doc.text(`Mô tả: ${invoice.description}`);
     doc.text(`Số tiền: ${Number(invoice.amount).toLocaleString('vi-VN')}₫`);
     doc.moveDown(2);
